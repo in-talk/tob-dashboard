@@ -1,6 +1,6 @@
 "use client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Document } from "@prisma/client";
+import { labels } from "@prisma/client";
 import useSWR from "swr";
 import DocumentItem from "./document-item";
 
@@ -11,7 +11,7 @@ export default function DocumentList() {
     data: documents,
     error,
     isLoading,
-  } = useSWR<Document[]>("/api/dashboard", fetcher);
+  } = useSWR<labels[]>("/api/dashboard", fetcher);
 
   if (isLoading)
     return (

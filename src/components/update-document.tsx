@@ -13,12 +13,12 @@ import {
 } from "@/components/ui/dialog";
 
 import { type DocumentSchema } from "@/lib/zod";
-import { Document } from "@prisma/client";
+import { labels } from "@prisma/client";
 import { Pencil1Icon } from "@radix-ui/react-icons";
 import DocumentForm from "./document-form";
 import { toast } from "@/hooks/use-toast";
 
-export default function UpdateDocument({ document }: { document: Document }) {
+export default function UpdateDocument({ document }: { document: labels }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isDialogOpen, setDialogOpen] = useState(false);
