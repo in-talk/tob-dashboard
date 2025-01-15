@@ -15,7 +15,7 @@ datasource db {
 
 model labels {
   id               String   @id @default(auto()) @map("_id") @db.ObjectId
-  label            String
+  label            String   @unique
   keywords         String[] // Array of strings
   active_turns     Int[]     // Array of objects
   file_name        String

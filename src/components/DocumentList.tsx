@@ -1,8 +1,9 @@
 "use client";
 import { Card, CardContent } from "@/components/ui/card";
-import { labels } from "@prisma/client";
 import useSWR from "swr";
-import DocumentItem from "./document-item";
+import { labels } from "@prisma/client";
+import { DataTable } from "./DataTable/DataTable";
+import { columns } from "./DataTable/Colums";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -38,9 +39,9 @@ export default function DocumentList() {
           </CardContent>
         </Card>
       ) : (
-        documentsList?.map((document) => (
-          <DocumentItem key={document.id} document={document} />
-        ))
+        <div className="container mx-auto py-10">
+          <DataTable columns={columns} data={documentsList} />
+        </div>
       )}
     </div>
   );

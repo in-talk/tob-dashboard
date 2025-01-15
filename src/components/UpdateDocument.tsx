@@ -12,18 +12,18 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { type DocumentSchema } from "@/lib/zod";
 import { labels } from "@prisma/client";
 import { Pencil1Icon } from "@radix-ui/react-icons";
-import DocumentForm from "./document-form";
+import DocumentForm from "./DocumentForm";
 import { toast } from "@/hooks/use-toast";
+import { LabelsSchema } from "@/lib/zod";
 
 export default function UpdateDocument({ document }: { document: labels }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isDialogOpen, setDialogOpen] = useState(false);
 
-  const onSubmit = async (data: DocumentSchema) => {
+  const onSubmit = async (data: LabelsSchema) => {
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/dashboard", {
@@ -65,10 +65,10 @@ export default function UpdateDocument({ document }: { document: labels }) {
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
-          className="mr-1 text-blue-500 bg-blue-100 hover:text-blue-700 hover:bg-blue-200"
+          className="text-blue-500 bg-blue-100 hover:text-blue-700 hover:bg-blue-200"
         >
-          <Pencil1Icon className="h-4 w-4" />
+          <Pencil1Icon className="h-4 w-4 mr-1" />
+          Update
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-white">
@@ -88,6 +88,7 @@ export default function UpdateDocument({ document }: { document: labels }) {
           }}
           onSubmit={onSubmit}
           submitButtonText="Update"
+          keywordsButtonText="Update keywords"
           isSubmitting={isSubmitting}
         />
       </DialogContent>
