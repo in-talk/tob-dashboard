@@ -11,11 +11,11 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
-import { documentSchema, type DocumentSchema } from "@/lib/zod";
+import { LabelsSchema, labelsSchema } from "@/lib/zod";
 import { useState } from "react";
 
 import { mutate } from "swr";
-import DocumentForm from "./document-form";
+import DocumentForm from "./DocumentForm";
 import { toast } from "@/hooks/use-toast";
 
 export default function CreateDocument() {
@@ -23,18 +23,18 @@ export default function CreateDocument() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isDialogOpen, setDialogOpen] = useState(false);
 
-  const form = useForm<DocumentSchema>({
-    resolver: zodResolver(documentSchema),
+  const form = useForm<LabelsSchema>({
+    resolver: zodResolver(labelsSchema),
     defaultValues: {
       label: "",
-      keywords: [], // Default to an empty array
-      active_turns: [], // Default to an empty array
+      keywords: [],
+      active_turns: [],
       file_name: "",
-      check_on_all_turns: false, // Default boolean value
+      check_on_all_turns: false,
     },
   });
 
-  const onSubmit = async (data: DocumentSchema) => {
+  const onSubmit = async (data: LabelsSchema) => {
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/dashboard", {
@@ -88,14 +88,15 @@ export default function CreateDocument() {
         <DocumentForm
           defaultValues={{
             label: "",
-            keywords: [], // Default to an empty array
-            active_turns: [], // Default to an empty array
+            keywords: [],
+            active_turns: [],
             file_name: "",
-            check_on_all_turns: false, // Default boolean value
+            check_on_all_turns: false,
           }}
           onSubmit={onSubmit}
           submitButtonText="Create"
           isSubmitting={isSubmitting}
+          keywordsButtonText="Add keywords"
         />
       </DialogContent>
     </Dialog>

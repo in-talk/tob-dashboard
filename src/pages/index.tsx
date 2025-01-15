@@ -1,6 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
-import CreateDocument from "@/components/create-document";
-import DocumentList from "@/components/document-list";
+import CreateDocument from "@/components/CreateDocument";
+import DocumentList from "@/components/DocumentList";
 
 export default function Home() {
   return (

@@ -1,22 +1,6 @@
 import prisma from '@/lib/prisma';
-import { z } from 'zod';
-
+import { labelsSchema } from '@/lib/zod';
 import { NextApiRequest, NextApiResponse } from 'next';
-
-// Define the schema validation for the Document model
-const documentSchema = z.object({
-    label: z.string(),
-    keywords: z.array(z.string()).optional(),
-    active_turns: z
-        .array(
-            z.object({
-                turn_number: z.number(),
-            })
-        )
-        .optional(),
-    file_name: z.string(),
-    check_on_all_turns: z.boolean().optional(),
-});
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
@@ -56,7 +40,7 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
 async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     try {
         const body = req.body;
-        const result = documentSchema.safeParse(body);
+        const result = labelsSchema.safeParse(body);
 
         if (!result.success) {
             return res.status(400).json({ message: 'Invalid input', errors: result.error.errors });
@@ -109,7 +93,7 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
         const body = req.body;
         const { id, ...rest } = body;
 
-        const result = documentSchema.safeParse(rest);
+        const result = labelsSchema.safeParse(rest);
 
         if (!result.success) {
             return res.status(400).json({ message: 'Invalid input', errors: result.error.errors });
@@ -126,7 +110,7 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
             data: {
                 label: documentData.label,
                 keywords: documentData.keywords,
-                active_turns: documentData.active_turns, // Update JSON directly
+                active_turns: documentData.active_turns,
                 file_name: documentData.file_name,
                 check_on_all_turns: documentData.check_on_all_turns,
             },

@@ -54,10 +54,9 @@ export default function DeleteDocument({ id }: { id: string }) {
       <AlertDialogTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
-          className="mr-1 text-red-500 bg-red-100 hover:text-red-700 hover:bg-red-200"
+          className="text-red-500 bg-red-100 hover:text-red-700 hover:bg-red-200"
         >
-          <TrashIcon className="h-4 w-4" />
+          <TrashIcon className="h-4 w-4 mr-1" /> Delete
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
