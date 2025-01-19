@@ -43,10 +43,20 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
         const result = labelsSchema.safeParse(body);
 
         if (!result.success) {
-            return res.status(400).json({ message: 'Invalid input', errors: result.error.errors });
+            return res.status(400).json({ message: "Invalid input", errors: result.error.errors });
         }
 
         const documentData = result.data;
+
+        const existingDocument = await prisma.labels.findUnique({
+            where: { label: documentData.label },
+        });
+
+        if (existingDocument) {
+            return res
+                .status(409)
+                .json({ message: `Document with label "${documentData.label}" already exists.` });
+        }
 
         const newDocument = await prisma.labels.create({
             data: {
@@ -60,10 +70,11 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
 
         return res.status(201).json(newDocument);
     } catch (error) {
-        console.error('Error adding document:', error);
-        return res.status(500).json({ message: 'An unexpected error occurred' });
+        console.error("Error adding document:", error);
+        return res.status(500).json({ message: "An unexpected error occurred" });
     }
 }
+
 
 async function handleDelete(req: NextApiRequest, res: NextApiResponse) {
     try {
@@ -93,16 +104,33 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
         const body = req.body;
         const { id, ...rest } = body;
 
+        // Validate the input using the schema
         const result = labelsSchema.safeParse(rest);
 
         if (!result.success) {
-            return res.status(400).json({ message: 'Invalid input', errors: result.error.errors });
+            return res
+                .status(400)
+                .json({ message: "Invalid input", errors: result.error.errors });
         }
 
         const documentData = result.data;
 
         if (!id) {
-            return res.status(400).json({ message: 'Document ID is required' });
+            return res.status(400).json({ message: "Document ID is required" });
+        }
+
+        // Check if the label exists for a different document
+        const existingDocument = await prisma.labels.findFirst({
+            where: {
+                label: documentData.label,
+                NOT: { id },
+            },
+        });
+
+        if (existingDocument) {
+            return res
+                .status(409)
+                .json({ message: `Label "${documentData.label}" already exists.` });
         }
 
         const updatedDocument = await prisma.labels.update({
@@ -117,12 +145,12 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
         });
 
         if (!updatedDocument) {
-            return res.status(404).json({ message: 'Document not found' });
+            return res.status(404).json({ message: "Document not found" });
         }
 
         return res.status(200).json(updatedDocument);
     } catch (error) {
-        console.error('Error updating document:', error);
-        return res.status(500).json({ message: 'An unexpected error occurred' });
+        console.error("Error updating document:", error);
+        return res.status(500).json({ message: "An unexpected error occurred" });
     }
 }

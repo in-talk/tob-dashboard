@@ -1,0 +1,304 @@
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+
+import { LabelsSchema, labelsSchema } from "@/lib/zod";
+import { useRef, useState } from "react";
+import { Textarea } from "./ui/textarea";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
+import { Separator } from "./ui/separator";
+import ClearAllKeywordsAlert from "./ClearAllKeywordsAlert";
+import { Checkbox } from "./ui/checkbox";
+import { toast } from "@/hooks/use-toast";
+import { mutate } from "swr";
+
+interface CreateDocumentFormProps {
+  defaultValues: LabelsSchema;
+  submitButtonText: string;
+}
+
+export default function CreateDocumentForm({
+  defaultValues,
+  submitButtonText,
+}: CreateDocumentFormProps) {
+  const form = useForm<LabelsSchema>({
+    resolver: zodResolver(labelsSchema),
+    defaultValues,
+  });
+  const [keywords, setKeywords] = useState<string[]>(
+    defaultValues.keywords ?? []
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isAlertOpen, setAlertOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isDialogOpen, setDialogOpen] = useState(false);
+
+  const keywordInputRef = useRef<HTMLInputElement>(null);
+  const bulkInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const onSubmit = async (data: LabelsSchema) => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/dashboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        toast({
+          variant: "destructive",
+          description: "Failed to create document.",
+        });
+        throw new Error(responseData.message || "Failed to create document");
+      }
+      toast({
+        variant: "success",
+        description: "Yeyyyy, Document created successfully.",
+      });
+      form.reset();
+      mutate("/api/dashboard");
+      setErrorMessage("");
+      setDialogOpen(false);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
+      setErrorMessage(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const addKeyword = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault(); // Prevent default Enter behavior
+      const input = keywordInputRef.current?.value.trim();
+      if (input) {
+        // Add a single keyword
+        if (!keywords.includes(input)) {
+          setKeywords((prev) => [...prev, input]);
+          const currentKeywords = form.getValues("keywords") || [];
+          form.setValue("keywords", [...currentKeywords, input]);
+        }
+        keywordInputRef.current!.value = "";
+      }
+    }
+  };
+
+  const addBulkKeywords = () => {
+    const input = bulkInputRef.current?.value.trim();
+    if (input) {
+      // Split input by commas or new lines
+      const newKeywords = input
+        .split(/[\n,]+/)
+        .map((keyword) => keyword.trim())
+        .filter((keyword) => keyword.length > 0 && !keywords.includes(keyword)); // Remove duplicates
+      if (newKeywords.length > 0) {
+        setKeywords((prev) => [...prev, ...newKeywords]); // Update state
+        const currentKeywords = form.getValues("keywords") || [];
+        form.setValue("keywords", [...currentKeywords, ...newKeywords]);
+      }
+      bulkInputRef.current!.value = "";
+    }
+  };
+
+  const removeKeyword = (keywordToRemove: string) => {
+    const currentKeywords = form.getValues("keywords") || [];
+    setKeywords((prev) =>
+      prev.filter((keyword) => keyword !== keywordToRemove)
+    );
+
+    form.setValue(
+      "keywords",
+      currentKeywords.filter((keyword) => keyword !== keywordToRemove)
+    );
+  };
+
+  const isFormValid =
+    form.watch("label")?.trim() && form.watch("file_name")?.trim();
+
+  const filteredKeywords = keywords.filter((keyword) =>
+    keyword.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleClearAllKeywords = async () => {
+    setKeywords([]);
+    form.setValue("keywords", []);
+    setAlertOpen(false);
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="label"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Label</FormLabel>
+              <FormControl>
+                <Input {...field} required />
+              </FormControl>
+              {errorMessage && (
+                <FormMessage className="text-red-500 text-sm">
+                  {errorMessage}
+                </FormMessage>
+              )}
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="file_name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>File name</FormLabel>
+              <FormControl>
+                <Input {...field} required />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="check_on_all_turns"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0  py-4 ">
+              <FormControl>
+                <Checkbox
+                  id="terms"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel htmlFor="terms">Check on all turns :</FormLabel>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button disabled={!isFormValid}>Add Keywords</Button>
+          </DialogTrigger>
+          <DialogContent
+            className="sm:max-w-[625px] bg-white"
+            aria-describedby=""
+          >
+            <DialogDescription>
+              Add single or bulk keywords form
+            </DialogDescription>
+            <DialogHeader>
+              <DialogTitle>Add Keywords</DialogTitle>
+            </DialogHeader>
+            <div className="flex gap-[10px] mt-[10px]">
+              <div className="w-[60%] flex flex-col  gap-[10px] border-r-slate-100">
+                <FormLabel>Single Keyword Input</FormLabel>
+
+                <input
+                  ref={keywordInputRef}
+                  type="text"
+                  placeholder="Add keywords press Enter"
+                  onKeyDown={addKeyword}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                />
+
+                <FormLabel>Bulk Keyword Input</FormLabel>
+                <FormControl>
+                  <Textarea
+                    ref={bulkInputRef}
+                    placeholder="Add multiple keywords (comma-separated or one per line)"
+                    rows={8}
+                  />
+                </FormControl>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={addBulkKeywords}
+                >
+                  Add Bulk Keywords
+                </Button>
+              </div>
+              <Separator orientation="vertical" />
+              <div
+                className="flex justify-between flex-col  w-[35%]"
+                style={{ gap: "10px", flexWrap: "wrap" }}
+              >
+                <div
+                  className="flex mt-2"
+                  style={{ gap: "5px", flexWrap: "wrap" }}
+                >
+                  <input
+                    type="text"
+                    placeholder="Search keywords..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  {filteredKeywords.map((keyword, index) => (
+                    <Button
+                      variant={"outline"}
+                      key={index}
+                      onClick={() => removeKeyword(keyword)}
+                    >
+                      {keyword} ✕
+                    </Button>
+                  ))}
+                </div>
+                <ClearAllKeywordsAlert
+                  isAlertOpen={isAlertOpen}
+                  setAlertOpen={setAlertOpen}
+                  handleClearAllKeywords={handleClearAllKeywords}
+                />
+              </div>
+            </div>
+
+            <DialogClose asChild>
+              <Button onClick={() => setDialogOpen(false)} variant="secondary">
+                Save
+              </Button>
+            </DialogClose>
+          </DialogContent>
+        </Dialog>
+
+        <Button
+          disabled={isSubmitting}
+          className="w-full relative"
+          type="submit"
+        >
+          {isSubmitting && (
+            <div className="absolute inset-0 flex items-center justify-center bg-primary/50 rounded-md">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
+          {submitButtonText}
+        </Button>
+      </form>
+    </Form>
+  );
+}
