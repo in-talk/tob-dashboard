@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { mutate } from "swr";
 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -14,51 +15,59 @@ import {
 
 import { labels } from "@prisma/client";
 import { Pencil1Icon } from "@radix-ui/react-icons";
-import DocumentForm from "./DocumentForm";
 import { toast } from "@/hooks/use-toast";
 import { LabelsSchema } from "@/lib/zod";
+import UpdateDocumentForm from "./UpdateDocumentForm";
 
 export default function UpdateDocument({ document }: { document: labels }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isDialogOpen, setDialogOpen] = useState(false);
 
-  const onSubmit = async (data: LabelsSchema) => {
-    setIsSubmitting(true);
-    try {
-      const response = await fetch("/api/dashboard", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, id: document.id }),
-      });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        toast({
-          variant: "destructive",
-          description: responseData.message || "Failed to update document",
+  const onSubmit = useCallback(
+    async (data: LabelsSchema) => {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch("/api/dashboard", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...data, id: document.id }),
         });
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+          toast({
+            variant: "destructive",
+            description: responseData.message || "Failed to update document",
+          });
+          throw new Error(responseData.message || "Failed to create document");
+        }
+        if (response.status === 409) {
+          toast({
+            variant: "destructive",
+            description: responseData.message || "Failed to update document",
+          });
+          setErrorMessage(responseData.message);
+          throw new Error(responseData.message);
+        }
+        toast({
+          description: "Document updated successfully.",
+        });
+        setErrorMessage("");
+        mutate("/api/dashboard");
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred";
+        setErrorMessage(errorMessage);
+      } finally {
+        setIsSubmitting(false);
       }
-      toast({
-        description: "Document updated successfully.",
-      });
-      setErrorMessage("");
-      setDialogOpen(false);
-      mutate("/api/dashboard");
-    } catch (error) {
-      console.error("Error updating document:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "An unexpected error occurred";
-      toast({
-        variant: "destructive",
-        description: errorMessage,
-      });
-      setErrorMessage(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+    [document.id]
+  );
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
@@ -68,17 +77,15 @@ export default function UpdateDocument({ document }: { document: labels }) {
           className="text-blue-500 bg-blue-100 hover:text-blue-700 hover:bg-blue-200"
         >
           <Pencil1Icon className="h-4 w-4 mr-1" />
-          Update
+          Edit
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-white">
+        <DialogDescription> Update document form</DialogDescription>
         <DialogHeader>
           <DialogTitle>Update Document</DialogTitle>
         </DialogHeader>
-        {errorMessage && (
-          <div className="text-red-500 text-sm mb-4">{errorMessage}</div>
-        )}
-        <DocumentForm
+        <UpdateDocumentForm
           defaultValues={{
             label: document.label,
             keywords: document.keywords,
@@ -88,8 +95,8 @@ export default function UpdateDocument({ document }: { document: labels }) {
           }}
           onSubmit={onSubmit}
           submitButtonText="Update"
-          keywordsButtonText="Update keywords"
           isSubmitting={isSubmitting}
+          errorMessage={errorMessage}
         />
       </DialogContent>
     </Dialog>

@@ -39,7 +39,7 @@ export default function DocumentList() {
           </CardContent>
         </Card>
       ) : (
-        <div className="container mx-auto py-10">
+        <div className="container mx-auto py-10 px-[30px]">
           <DataTable columns={columns} data={documentsList} />
         </div>
       )}
