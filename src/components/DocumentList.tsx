@@ -29,7 +29,7 @@ export default function DocumentList() {
   const documentsList = documents || [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {documentsList.length === 0 ? (
         <Card>
           <CardContent className="text-center py-10">
@@ -39,7 +39,7 @@ export default function DocumentList() {
           </CardContent>
         </Card>
       ) : (
-        <div className="container mx-auto py-10 px-[30px]">
+        <div className="container mx-auto py-3 px-[30px]">
           <DataTable columns={columns} data={documentsList} />
         </div>
       )}
