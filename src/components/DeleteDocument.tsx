@@ -28,6 +28,7 @@ export default function DeleteDocument({ id }: { id: string }) {
 
       if (response.ok) {
         toast({
+          variant: "success",
           description: "Document deleted successfully.",
         });
         mutate("/api/dashboard");
@@ -54,7 +55,7 @@ export default function DeleteDocument({ id }: { id: string }) {
       <AlertDialogTrigger asChild>
         <Button
           variant="ghost"
-          className="text-red-500 bg-red-100 hover:text-red-700 hover:bg-red-200"
+          className="text-white bg-red-700  hover:bg-red-900 hover:text-white"
         >
           <TrashIcon className="h-4 w-4 mr-1" /> Delete
         </Button>

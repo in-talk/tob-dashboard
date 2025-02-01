@@ -3,78 +3,16 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-
-import { LabelsSchema, labelsSchema } from "@/lib/zod";
-import { useState } from "react";
-
-import { mutate } from "swr";
-import DocumentForm from "./DocumentForm";
-import { toast } from "@/hooks/use-toast";
+import CreateDocumentForm from "./CreateDocumentForm";
 
 export default function CreateDocument() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isDialogOpen, setDialogOpen] = useState(false);
-
-  const form = useForm<LabelsSchema>({
-    resolver: zodResolver(labelsSchema),
-    defaultValues: {
-      label: "",
-      keywords: [],
-      active_turns: [],
-      file_name: "",
-      check_on_all_turns: false,
-    },
-  });
-
-  const onSubmit = async (data: LabelsSchema) => {
-    setIsSubmitting(true);
-    try {
-      const response = await fetch("/api/dashboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        toast({
-          variant: "destructive",
-          description: "Failed to create document.",
-        });
-        throw new Error(responseData.message || "Failed to create document");
-      }
-      toast({
-        description: "Yeyyyy, Document created successfully.",
-      });
-      form.reset();
-      setDialogOpen(false);
-      mutate("/api/dashboard");
-      setErrorMessage("");
-    } catch (error) {
-      console.error("Error creating document:", error);
-      toast({
-        variant: "destructive",
-        description: "Error creating document.",
-      });
-      const errorMessage =
-        error instanceof Error ? error.message : "An unexpected error occurred";
-      setErrorMessage(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
-    <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+    <Dialog>
       <DialogTrigger asChild>
         <Button>Add Document</Button>
       </DialogTrigger>
@@ -82,10 +20,10 @@ export default function CreateDocument() {
         <DialogHeader>
           <DialogTitle>Create New Document</DialogTitle>
         </DialogHeader>
-        {errorMessage && (
-          <div className="text-red-500 text-sm mb-4">{errorMessage}</div>
-        )}
-        <DocumentForm
+        <DialogDescription>
+          This form is used create new document with lable and add keywords
+        </DialogDescription>
+        <CreateDocumentForm
           defaultValues={{
             label: "",
             keywords: [],
@@ -93,10 +31,7 @@ export default function CreateDocument() {
             file_name: "",
             check_on_all_turns: false,
           }}
-          onSubmit={onSubmit}
           submitButtonText="Create"
-          isSubmitting={isSubmitting}
-          keywordsButtonText="Add keywords"
         />
       </DialogContent>
     </Dialog>
