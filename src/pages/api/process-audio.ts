@@ -24,11 +24,12 @@ interface FormidableFile extends formidable.File {
 const cleanFilename = (filename: string): string => {
   // Get base name without extension
   const baseName = path.parse(filename).name;
+  return baseName;
   // Clean the filename
-  return baseName
-    .replace(/[^a-zA-Z0-9]/g, '_')
-    .toLowerCase()
-    .replace(/_+/g, '_');
+  // return baseName
+  //   .replace(/[^a-zA-Z0-9]/g, '_')
+  //   .toLowerCase()
+  //   .replace(/_+/g, '_');
 };
 
 const processAudioFile = async (inputPath: string, outputDir: string, originalFilename: string): Promise<string> => {
