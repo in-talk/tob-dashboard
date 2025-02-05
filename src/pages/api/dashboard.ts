@@ -103,7 +103,7 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
     try {
         const body = req.body;
         const { id, ...rest } = body;
-
+        
         // Validate the input using the schema
         const result = labelsSchema.safeParse(rest);
 

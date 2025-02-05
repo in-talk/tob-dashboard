@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 
 import { LabelsSchema, labelsSchema } from "@/lib/zod";
 import { Checkbox } from "./ui/checkbox";
+import { Textarea } from "./ui/textarea";
 
 interface UpdateDocumentFormProps {
   defaultValues: LabelsSchema;
@@ -70,6 +71,24 @@ export default function UpdateDocumentForm({
             </FormItem>
           )}
         />
+<FormField
+  control={form.control}
+  name="active_turns"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Active Turns (comma-separated)</FormLabel>
+      <FormControl>
+        <Textarea
+          {...field}
+          value={Array.isArray(field.value) ? field.value.join(", ") : field.value ?? ""}
+          onChange={(e) => field.onChange(e.target.value)} // Store as string
+          placeholder="Enter numbers separated by commas, e.g., 1, 2, 3"
+        />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
 
         <FormField
           control={form.control}

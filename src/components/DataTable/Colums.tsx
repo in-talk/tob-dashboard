@@ -5,6 +5,7 @@ import { ColumnDef } from "@tanstack/react-table";
 // import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import EditKeywords from "../EditKeywords";
+import React from "react";
 
 export const columns: ColumnDef<labels>[] = [
   {
@@ -24,9 +25,11 @@ export const columns: ColumnDef<labels>[] = [
     header: "Active turns",
     cell: ({ row }) => {
       const activeTurns: number[] = row.getValue("active_turns");
-      return activeTurns.map((activeTurn) => (
-        <div key={activeTurn}>{activeTurn}</div>
-      ));
+      return  <div className="max-w-[100px] overflow-auto pb-[10px]">
+          { activeTurns.map((activeTurn,index) => (
+        <React.Fragment key={activeTurn}>{activeTurn}{index !== activeTurns.length - 1 && ","}</React.Fragment>
+      ))}
+      </div>
     },
   },
   {
