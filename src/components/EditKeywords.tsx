@@ -123,7 +123,7 @@ function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
       <DialogTrigger asChild>
         <Button>Edit keywords</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[625px] bg-white">
+      <DialogContent className="sm:max-w-[425px] md:max-w-[825px] bg-white">
         <DialogHeader>
           <DialogTitle>Add Keywords</DialogTitle>
         </DialogHeader>
