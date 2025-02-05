@@ -89,7 +89,7 @@ export default function UpdateDocument({ document }: { document: labels }) {
           defaultValues={{
             label: document.label,
             keywords: document.keywords,
-            active_turns: [],
+            active_turns: document.active_turns,
             file_name: document.file_name,
             check_on_all_turns: document.check_on_all_turns,
           }}
