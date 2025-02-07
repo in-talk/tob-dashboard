@@ -2,11 +2,10 @@ import * as React from "react";
 import {
   Frame,
   GalleryVerticalEnd,
-  Settings2,
   Atom,
   LayoutDashboard,
+  AudioLines
 } from "lucide-react";
-import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
 import { TeamSwitcher } from "@/components/team-switcher";
@@ -18,7 +17,6 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-// This is sample data.
 const data = {
   user: {
     name: "In Talk",
@@ -35,13 +33,13 @@ const data = {
   navMain: [
     {
       title: "Home",
-      url: "#",
+      url: "/",
       icon: LayoutDashboard,
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "Audio Formatter",
+          url: "/audio-formatter",
         },
         {
           title: "Starred",
@@ -55,9 +53,9 @@ const data = {
     },
 
     {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
+      title: "Audio Formatter",
+      url: "/audio-formatter",
+      icon: AudioLines,
       items: [
         {
           title: "General",
@@ -80,9 +78,14 @@ const data = {
   ],
   projects: [
     {
-      name: "Tob Dashboard",
-      url: "#",
-      icon: Atom,
+      name: "Home",
+      url: "/",
+      icon: LayoutDashboard,
+    },
+    {
+      name: "Audio Formatter",
+      url: "/audio-formatter",
+      icon: AudioLines,
     },
     {
       name: "Design",
@@ -104,7 +107,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
