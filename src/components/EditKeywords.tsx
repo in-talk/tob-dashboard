@@ -6,7 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
-  DialogDescription,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
@@ -123,14 +122,12 @@ function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
       <DialogTrigger asChild>
         <Button>Edit keywords</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] md:max-w-[825px] bg-white">
+      <DialogContent className="sm:max-w-[425px] md:max-w-[825px] bg-white overflow-y-auto ">
         <DialogHeader>
           <DialogTitle>Add Keywords</DialogTitle>
         </DialogHeader>
-        <DialogDescription>Add single or bulk keywords form</DialogDescription>
-
-        <div className="flex gap-4 mt-4">
-          <div className="w-3/5 flex flex-col gap-4 border-r border-slate-100 pr-4">
+        <div className="flex flex-col gap-4 mt-4">
+          <div className=" flex flex-col gap-4 border-r border-slate-100 pr-4">
             <Label>Single Keyword Input</Label>
             <Input
               ref={keywordInputRef}
@@ -142,7 +139,7 @@ function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
             <Textarea
               ref={bulkInputRef}
               placeholder="Add multiple keywords (comma-separated or one per line)"
-              rows={8}
+              rows={3}
             />
             <Button
               variant="outline"
@@ -152,16 +149,16 @@ function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
               Add Bulk Keywords
             </Button>
           </div>
-          <Separator orientation="vertical" />
-          <div className="flex flex-col w-2/5 gap-4">
+          <Separator  />
+          <div className="flex flex-col gap-4">
             <Input
               type="text"
               placeholder="Search keywords..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9"
+              className="h-9 w-[50%]"
             />
-            <div className="overflow-y-auto h-64">
+            <div className="overflow-y-auto h-[200px]">
               {filteredKeywords.map((keyword) => (
                 <Button
                   className="m-1"

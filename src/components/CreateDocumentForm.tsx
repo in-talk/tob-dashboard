@@ -21,7 +21,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -225,17 +224,14 @@ export default function CreateDocumentForm({
             <Button disabled={!isFormValid}>Add Keywords</Button>
           </DialogTrigger>
           <DialogContent
-            className="sm:max-w-[625px] bg-white"
+            className="sm:max-w-[425px] md:max-w-[825px] bg-white"
             aria-describedby=""
           >
-            <DialogDescription>
-              Add single or bulk keywords form
-            </DialogDescription>
             <DialogHeader>
               <DialogTitle>Add Keywords</DialogTitle>
             </DialogHeader>
-            <div className="flex gap-[10px] mt-[10px]">
-              <div className="w-[60%] flex flex-col  gap-[10px] border-r-slate-100">
+            <div className="flex flex-col gap-[10px] mt-[10px]">
+              <div className=" flex flex-col  gap-[10px] border-r-slate-100">
                 <FormLabel>Single Keyword Input</FormLabel>
 
                 <input
@@ -251,7 +247,7 @@ export default function CreateDocumentForm({
                   <Textarea
                     ref={bulkInputRef}
                     placeholder="Add multiple keywords (comma-separated or one per line)"
-                    rows={8}
+                    rows={3}
                   />
                 </FormControl>
                 <Button
@@ -262,14 +258,14 @@ export default function CreateDocumentForm({
                   Add Bulk Keywords
                 </Button>
               </div>
-              <Separator orientation="vertical" />
+              <Separator  />
               <div
-                className="flex justify-between flex-col  w-[35%]"
+                className="flex justify-between flex-col "
                 style={{ gap: "10px", flexWrap: "wrap" }}
               >
                 <div
                   className="flex mt-2"
-                  style={{ gap: "5px", flexWrap: "wrap" }}
+                  style={{ gap: "20px", flexWrap: "wrap" }}
                 >
                   <input
                     type="text"
@@ -278,6 +274,7 @@ export default function CreateDocumentForm({
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   />
+                   <div className="overflow-y-auto h-[200px]">
                   {filteredKeywords.map((keyword, index) => (
                     <Button
                       variant={"outline"}
@@ -287,6 +284,7 @@ export default function CreateDocumentForm({
                       {keyword} ✕
                     </Button>
                   ))}
+                  </div>
                 </div>
                 <ClearAllKeywordsAlert
                   isAlertOpen={isAlertOpen}
