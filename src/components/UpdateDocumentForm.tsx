@@ -38,6 +38,18 @@ export default function UpdateDocumentForm({
     defaultValues,
   });
 
+  const handleChangeUniqueWords = (e: any) => {
+    const newValue = e.target.value;
+
+    // Convert to array, trim whitespace, and filter empty values
+    const newArray = newValue
+      .split(",")
+      .map((item: any) => item.trim())
+      .filter((item: any) => item !== "");
+
+    form.setValue("unique_words", [...newArray]);
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -71,24 +83,52 @@ export default function UpdateDocumentForm({
             </FormItem>
           )}
         />
-<FormField
-  control={form.control}
-  name="active_turns"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Active Turns (comma-separated)</FormLabel>
-      <FormControl>
-        <Textarea
-          {...field}
-          value={Array.isArray(field.value) ? field.value.join(", ") : field.value ?? ""}
-          onChange={(e) => field.onChange(e.target.value)} // Store as string
-          placeholder="Enter numbers separated by commas, e.g., 1, 2, 3"
+        <FormField
+          control={form.control}
+          name="active_turns"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Active Turns (comma-separated)</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  value={
+                    Array.isArray(field.value)
+                      ? field.value.join(", ")
+                      : field.value ?? ""
+                  }
+                  onChange={(e) => field.onChange(e.target.value)} // Store as string
+                  placeholder="Enter numbers separated by commas, e.g., 1, 2, 3"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-  )}
-/>
+
+        <FormField
+          control={form.control}
+          name="unique_words"
+          render={({ field }) => (
+            <FormItem className="flex flex-col gap-3 items-start space-x-3 space-y-0  py-4 ">
+              <FormLabel>Unique Keywords</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  // value={field.value}
+                  value={
+                    Array.isArray(field.value)
+                      ? field.value.join(", ")
+                      : field.value ?? ""
+                  }
+                  onChange={handleChangeUniqueWords} // Store as string
+                  placeholder="Enter unique words separated by commas, e.g., 1, 2, 3"
+                  className="-m-0 w-full"
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
