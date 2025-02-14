@@ -251,7 +251,8 @@ export default function CreateDocumentForm({
                       ? field.value.join(", ")
                       : field.value ?? ""
                   }
-                  onChange={handleChangeUniqueWords} // Store as string
+                  onChange={(e) => field.onChange(e.target.value)}
+                  // onChange={handleChangeUniqueWords} // Store as string
                   placeholder="Enter unique words separated by commas, e.g., 1, 2, 3"
                   className="-m-0 w-full"
                 />
