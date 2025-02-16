@@ -23,7 +23,7 @@ export default function UpdateDocument({ document }: { document: labels }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isDialogOpen, setDialogOpen] = useState(false);
-
+  
   const onSubmit = useCallback(
     async (data: LabelsSchema) => {
       setIsSubmitting(true);
