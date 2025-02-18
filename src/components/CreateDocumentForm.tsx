@@ -47,6 +47,7 @@ export default function CreateDocumentForm({
   const [keywords, setKeywords] = useState<string[]>(
     defaultValues.keywords ?? []
   );
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isAlertOpen, setAlertOpen] = useState(false);
@@ -55,14 +56,29 @@ export default function CreateDocumentForm({
 
   const keywordInputRef = useRef<HTMLInputElement>(null);
   const bulkInputRef = useRef<HTMLTextAreaElement>(null);
+  const uniqueWordsRefs = useRef<HTMLTextAreaElement>(null);
+
+  const getUniqueWords = () => {
+    const input = uniqueWordsRefs.current?.value.trim();
+    if (input) {
+      const newWords = input.split(/[\n,]+/).map((word) => word.trim());
+
+      if (newWords.length > 0) {
+        uniqueWordsRefs.current!.value = "";
+        return newWords;
+      }
+    }
+  };
 
   const onSubmit = async (data: LabelsSchema) => {
     setIsSubmitting(true);
     try {
+      const uniqueWords = getUniqueWords();
+
       const response = await fetch("/api/dashboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, unique_words: uniqueWords }),
       });
 
       const responseData = await response.json();
@@ -138,7 +154,6 @@ export default function CreateDocumentForm({
 
   const isFormValid =
     form.watch("label")?.trim() && form.watch("file_name")?.trim();
-
   const filteredKeywords = keywords.filter((keyword) =>
     keyword.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -184,23 +199,27 @@ export default function CreateDocumentForm({
           )}
         />
         <FormField
-  control={form.control}
-  name="active_turns"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Active Turns (comma-separated)</FormLabel>
-      <FormControl>
-        <Textarea
-          {...field}
-          value={Array.isArray(field.value) ? field.value.join(", ") : field.value ?? ""}
-          onChange={(e) => field.onChange(e.target.value)} // Store as string
-          placeholder="Enter numbers separated by commas, e.g., 1, 2, 3"
+          control={form.control}
+          name="active_turns"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Active Turns (comma-separated)</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  value={
+                    Array.isArray(field.value)
+                      ? field.value.join(", ")
+                      : field.value ?? ""
+                  }
+                  onChange={(e) => field.onChange(e.target.value)} // Store as string
+                  placeholder="Enter numbers separated by commas, e.g., 1, 2, 3"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-  )}
-/>
         <FormField
           control={form.control}
           name="check_on_all_turns"
@@ -218,6 +237,17 @@ export default function CreateDocumentForm({
             </FormItem>
           )}
         />
+
+        <FormLabel>Unique Keywords</FormLabel>
+
+        <FormControl>
+          <Textarea
+            ref={uniqueWordsRefs}
+            placeholder="Enter unique words separated by commas, e.g., foo, bar"
+            rows={3}
+            className="-m-0 w-full"
+          />
+        </FormControl>
 
         <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -258,7 +288,7 @@ export default function CreateDocumentForm({
                   Add Bulk Keywords
                 </Button>
               </div>
-              <Separator  />
+              <Separator />
               <div
                 className="flex justify-between flex-col "
                 style={{ gap: "10px", flexWrap: "wrap" }}
@@ -274,16 +304,16 @@ export default function CreateDocumentForm({
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   />
-                   <div className="overflow-y-auto h-[200px]">
-                  {filteredKeywords.map((keyword, index) => (
-                    <Button
-                      variant={"outline"}
-                      key={index}
-                      onClick={() => removeKeyword(keyword)}
-                    >
-                      {keyword} ✕
-                    </Button>
-                  ))}
+                  <div className="overflow-y-auto h-[200px]">
+                    {filteredKeywords.map((keyword, index) => (
+                      <Button
+                        variant={"outline"}
+                        key={index}
+                        onClick={() => removeKeyword(keyword)}
+                      >
+                        {keyword} ✕
+                      </Button>
+                    ))}
                   </div>
                 </div>
                 <ClearAllKeywordsAlert

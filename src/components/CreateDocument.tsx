@@ -28,6 +28,7 @@ export default function CreateDocument() {
             label: "",
             keywords: [],
             active_turns: [],
+            unique_words: [],
             file_name: "",
             check_on_all_turns: false,
           }}

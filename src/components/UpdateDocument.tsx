@@ -23,7 +23,7 @@ export default function UpdateDocument({ document }: { document: labels }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isDialogOpen, setDialogOpen] = useState(false);
-
+  
   const onSubmit = useCallback(
     async (data: LabelsSchema) => {
       setIsSubmitting(true);
@@ -90,6 +90,7 @@ export default function UpdateDocument({ document }: { document: labels }) {
             label: document.label,
             keywords: document.keywords,
             active_turns: document.active_turns,
+            unique_words: document.unique_words,
             file_name: document.file_name,
             check_on_all_turns: document.check_on_all_turns,
           }}

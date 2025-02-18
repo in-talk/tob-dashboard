@@ -18,6 +18,7 @@ model labels {
   label            String   @unique
   keywords         String[] // Array of strings
   active_turns     Int[]     // Array of objects
+  unique_words     String[] @default([]) // Array of strings
   file_name        String
   check_on_all_turns Boolean @default(false)
 }

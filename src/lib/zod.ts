@@ -8,14 +8,15 @@ export const labelsSchema = z.object({
     .transform((val) => {
       if (typeof val === "string") {
         return val
-          .split(",") 
-          .map((num) => num.trim()) 
+          .split(",")
+          .map((num) => num.trim())
           .filter((num) => num !== "" && !isNaN(Number(num))) // Only valid numbers
-          .map(Number); 
+          .map(Number);
       }
       return val;
     })
     .optional(),
+  unique_words: z.array(z.string()).optional(),
   file_name: z.string(),
   check_on_all_turns: z.boolean().optional(),
 });

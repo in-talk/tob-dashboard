@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { LabelsSchema, labelsSchema } from "@/lib/zod";
 import { Checkbox } from "./ui/checkbox";
 import { Textarea } from "./ui/textarea";
+import { useRef, useState } from "react";
 
 interface UpdateDocumentFormProps {
   defaultValues: LabelsSchema;
@@ -38,9 +39,26 @@ export default function UpdateDocumentForm({
     defaultValues,
   });
 
+   const [uniqueWords, setUniqueWords] = useState<string[]>(
+      defaultValues.unique_words ?? []
+    );
+
+  const uniqueWordsRefs = useRef<HTMLTextAreaElement>(null);
+
+  const handleFormSubmit = form.handleSubmit((data) => {
+    const input = uniqueWordsRefs.current?.value.trim();
+    if (input) {
+      const newWords = input.split(/[\n,]+/).map((word) => word.trim());
+      const updatedWords = Array.from(new Set([...uniqueWords, ...newWords]));
+      setUniqueWords(updatedWords);
+      form.setValue("unique_words", updatedWords);
+    }
+  
+    onSubmit({ ...data, unique_words: uniqueWords });
+  });
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleFormSubmit} className="space-y-4">
         <FormField
           control={form.control}
           name="label"
@@ -71,24 +89,41 @@ export default function UpdateDocumentForm({
             </FormItem>
           )}
         />
-<FormField
-  control={form.control}
-  name="active_turns"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Active Turns (comma-separated)</FormLabel>
-      <FormControl>
-        <Textarea
-          {...field}
-          value={Array.isArray(field.value) ? field.value.join(", ") : field.value ?? ""}
-          onChange={(e) => field.onChange(e.target.value)} // Store as string
-          placeholder="Enter numbers separated by commas, e.g., 1, 2, 3"
+        <FormField
+          control={form.control}
+          name="active_turns"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Active Turns (comma-separated)</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  value={
+                    Array.isArray(field.value)
+                      ? field.value.join(", ")
+                      : field.value ?? ""
+                  }
+                  onChange={(e) => field.onChange(e.target.value)} // Store as string
+                  placeholder="Enter numbers separated by commas, e.g., 1, 2, 3"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-  )}
-/>
+
+        <FormItem className="flex flex-col gap-3 items-start space-x-3 space-y-0  py-4 ">
+          <FormLabel>Unique Keywords</FormLabel>
+          <FormControl>
+            <Textarea
+              ref={uniqueWordsRefs}
+              value={uniqueWords.join(", ")} // Show existing words
+              onChange={(e) => setUniqueWords(e.target.value.split(/[\n,]+/).map((w) => w.trim()))}
+              placeholder="Enter unique words separated by commas, e.g., foo,bar"
+              className="-m-0 w-full"
+            />
+          </FormControl>
+        </FormItem>
 
         <FormField
           control={form.control}
