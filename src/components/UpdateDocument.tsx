@@ -13,11 +13,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { labels } from "@prisma/client";
 import { Pencil1Icon } from "@radix-ui/react-icons";
 import { toast } from "@/hooks/use-toast";
 import { LabelsSchema } from "@/lib/zod";
 import UpdateDocumentForm from "./UpdateDocumentForm";
+import { labels } from "@/types/lables";
 
 export default function UpdateDocument({ document }: { document: labels }) {
   const [isSubmitting, setIsSubmitting] = useState(false);

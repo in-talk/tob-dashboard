@@ -1,9 +1,9 @@
 "use client";
 import { Card, CardContent } from "@/components/ui/card";
 import useSWR from "swr";
-import { labels } from "@prisma/client";
 import { DataTable } from "./DataTable/DataTable";
 import { columns } from "./DataTable/Colums";
+import { labels } from "@/types/lables";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 

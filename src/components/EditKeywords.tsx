@@ -12,10 +12,10 @@ import { Textarea } from "./ui/textarea";
 import { Separator } from "./ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { mutate } from "swr";
-import { labels } from "@prisma/client";
 import { Label } from "./ui/label";
 import ClearAllKeywordsAlert from "./ClearAllKeywordsAlert";
 import { Input } from "./ui/input";
+import { labels } from "@/types/lables";
 
 interface EditKeywordProps {
   document: labels;

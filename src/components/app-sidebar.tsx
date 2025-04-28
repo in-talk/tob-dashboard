@@ -27,7 +27,6 @@ const data = {
     {
       name: "In Talk",
       logo: Atom,
-      plan: "Free",
     },
   ],
   navMain: [
