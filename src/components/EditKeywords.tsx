@@ -12,10 +12,10 @@ import { Textarea } from "./ui/textarea";
 import { Separator } from "./ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { mutate } from "swr";
-import { labels } from "@prisma/client";
 import { Label } from "./ui/label";
 import ClearAllKeywordsAlert from "./ClearAllKeywordsAlert";
 import { Input } from "./ui/input";
+import { labels } from "@/types/lables";
 
 interface EditKeywordProps {
   document: labels;
@@ -36,7 +36,7 @@ function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
         const response = await fetch("/api/updateKeywords", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: document.id, keywords: updatedKeywords }),
+          body: JSON.stringify({ id: document._id, keywords: updatedKeywords }),
         });
 
         if (!response.ok) {
@@ -56,7 +56,7 @@ function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
         });
       }
     },
-    [document.id]
+    [document._id]
   );
 
   const handleAddKeyword = useCallback(

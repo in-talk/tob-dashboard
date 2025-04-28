@@ -1,4 +1,3 @@
-import { labels } from "@prisma/client";
 import UpdateDocument from "../UpdateDocument";
 import DeleteDocument from "../DeleteDocument";
 import { ColumnDef } from "@tanstack/react-table";
@@ -6,6 +5,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Separator } from "../ui/separator";
 import EditKeywords from "../EditKeywords";
 import React from "react";
+import { labels } from "@/types/lables";
 
 export const columns: ColumnDef<labels>[] = [
   {
@@ -51,7 +51,7 @@ export const columns: ColumnDef<labels>[] = [
         <div className="flex ">
           <UpdateDocument document={document} />
           <Separator orientation="vertical" className="mx-1" />
-          <DeleteDocument id={document.id} />
+          <DeleteDocument id={document._id} />
           <Separator orientation="vertical" className="mx-1" />
           <EditKeywords document={document} documentKeywords={keywords} />
         </div>

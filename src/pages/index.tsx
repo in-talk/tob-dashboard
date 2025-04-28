@@ -1,6 +1,10 @@
 import CreateDocument from "@/components/CreateDocument";
 import DocumentList from "@/components/DocumentList";
+import { withAuth } from "@/utils/auth";
+import { GetServerSideProps } from "next";
+
 export default function Home() {
+
   return (
     <>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -16,3 +20,9 @@ export default function Home() {
     </>
   );
 }
+
+
+
+export const getServerSideProps: GetServerSideProps = withAuth(async () => {
+  return { props: {} };
+}, ["admin", "superAdmin",'user']);

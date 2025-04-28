@@ -13,17 +13,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { labels } from "@prisma/client";
 import { Pencil1Icon } from "@radix-ui/react-icons";
 import { toast } from "@/hooks/use-toast";
 import { LabelsSchema } from "@/lib/zod";
 import UpdateDocumentForm from "./UpdateDocumentForm";
+import { labels } from "@/types/lables";
 
 export default function UpdateDocument({ document }: { document: labels }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isDialogOpen, setDialogOpen] = useState(false);
-  
   const onSubmit = useCallback(
     async (data: LabelsSchema) => {
       setIsSubmitting(true);
@@ -31,7 +30,7 @@ export default function UpdateDocument({ document }: { document: labels }) {
         const response = await fetch("/api/dashboard", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...data, id: document.id }),
+          body: JSON.stringify({ ...data, id: document._id }),
         });
 
         const responseData = await response.json();
@@ -66,7 +65,7 @@ export default function UpdateDocument({ document }: { document: labels }) {
         setIsSubmitting(false);
       }
     },
-    [document.id]
+    [document._id]
   );
 
   return (

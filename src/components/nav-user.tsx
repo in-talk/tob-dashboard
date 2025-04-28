@@ -1,6 +1,11 @@
 "use client";
 
-import { BadgeCheck, Bell, ChevronsUpDown, LogOut } from "lucide-react";
+import {
+  BadgeCheck,
+  Bell,
+  ChevronsUpDown,
+  LogOut,
+} from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -18,6 +23,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/router";
+import CreateUser from "./CreateUser";
 
 export function NavUser({
   user,
@@ -25,10 +33,19 @@ export function NavUser({
   user: {
     name: string;
     email: string;
+    role?: string;
     avatar: string;
   };
 }) {
   const { isMobile } = useSidebar();
+  
+  const router = useRouter();
+  const { data: session } = useSession();
+
+  function handleLogout() {
+    router.push("/signin");
+    signOut();
+  }
 
   return (
     <SidebarMenu>
@@ -43,8 +60,10 @@ export function NavUser({
                 <AvatarImage src={user.avatar} alt={user.name} />
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate font-semibold">
+                  {session?.user.name}
+                </span>
+                <span className="truncate text-xs">{session?.user.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -62,8 +81,12 @@ export function NavUser({
                   <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-semibold">
+                    {session?.user.name}
+                  </span>
+                  <span className="truncate text-xs">
+                    {session?.user.email}
+                  </span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -71,6 +94,11 @@ export function NavUser({
             <DropdownMenuGroup></DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              {session?.user.role === "admin" && (
+                <DropdownMenuItem asChild>
+                 <CreateUser />
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem>
                 <BadgeCheck />
                 Account
@@ -81,7 +109,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Log out
             </DropdownMenuItem>
