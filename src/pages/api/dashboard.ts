@@ -73,6 +73,9 @@ async function handleDelete(req: NextApiRequest, res: NextApiResponse, collectio
     if (!id || typeof id !== 'string') {
       return res.status(400).json({ message: 'Document ID is required' });
     }
+    if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid document ID' });
+      }
 
     const result = await collection.deleteOne({ _id: new ObjectId(String(id)) });
     if (result.deletedCount === 0) {

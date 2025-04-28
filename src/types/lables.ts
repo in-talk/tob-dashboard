@@ -1,5 +1,5 @@
 export type labels = {
-    id: string;
+    _id: string;
     label: string;
     keywords: string[];
     active_turns: number[];

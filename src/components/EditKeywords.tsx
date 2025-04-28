@@ -36,7 +36,7 @@ function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
         const response = await fetch("/api/updateKeywords", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: document.id, keywords: updatedKeywords }),
+          body: JSON.stringify({ id: document._id, keywords: updatedKeywords }),
         });
 
         if (!response.ok) {
@@ -56,7 +56,7 @@ function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
         });
       }
     },
-    [document.id]
+    [document._id]
   );
 
   const handleAddKeyword = useCallback(
