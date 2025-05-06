@@ -31,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ChevronDown } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -45,6 +46,9 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
+  const { data: session } = useSession();
+  const userRole = session?.user.role;
+
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
@@ -68,15 +72,18 @@ export function DataTable<TData, TValue>({
     },
   });
 
+  const filterInput =
+    userRole === "admin" ? table.getColumn("email") : table.getColumn("label");
+
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
         <Input
-          placeholder="Filter documents..."
-          value={(table.getColumn("label")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("label")?.setFilterValue(event.target.value)
-          }
+          placeholder={`Filter ${
+            userRole === "admin" ? "Users" : "Documents"
+          }....`}
+          value={(filterInput?.getFilterValue() as string) ?? ""}
+          onChange={(event) => filterInput?.setFilterValue(event.target.value)}
           className="max-w-sm"
         />
         <DropdownMenu>

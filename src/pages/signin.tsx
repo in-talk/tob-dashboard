@@ -14,22 +14,24 @@ export default function SignIn() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setError("");
 
-    const result = await signIn("credentials", {
-      redirect: false,
-      email,
-      password,
-    });
-
-    if (result?.ok) {
-      router.push("/");
-    }
-
-    if (result?.error) {
-      setError("Invalid email or password");
-    } else {
-      router.push("/signin");
+    try {
+      const result = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+        callbackUrl: "/",
+      });
+   console.log('result',result)
+      if (result?.error) {
+        setError("Invalid email or password");
+      } else if (result?.url) {
+        router.push(result.url);
+      }
+    } catch (err) {
+      console.error("SignIn error:", err);
+      setError("An unexpected error occurred");
     }
   };
 
@@ -72,7 +74,7 @@ export default function SignIn() {
                       className="absolute inset-y-0 right-0 mt-5 flex items-center pr-3"
                       onClick={() => setShowPassword(!showPassword)} // toggle password visibility
                     >
-                      {showPassword ? <EyeOpenIcon />: <EyeClosedIcon /> }
+                      {showPassword ? <EyeOpenIcon /> : <EyeClosedIcon />}
                     </button>
                   </div>
                   <button

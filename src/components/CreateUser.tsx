@@ -16,7 +16,8 @@ interface CreateUserFormValues {
   email: string;
   password: string;
   name: string;
-  role: "superAdmin" | "admin" | "user";
+  client_id?: string;
+  role: "admin" | "user";
 }
 
 export default function CreateUser() {
@@ -25,9 +26,11 @@ export default function CreateUser() {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
+    watch,
   } = useForm<CreateUserFormValues>();
 
   const [message, setMessage] = useState<string | null>(null);
+  const selectedRole = watch("role"); // assuming you have a 'role' field
 
   const onSubmit = async (data: CreateUserFormValues) => {
     setMessage(null);
@@ -113,11 +116,24 @@ export default function CreateUser() {
               {...register("role")}
               className="mt-1 p-2 w-full border rounded"
             >
-              <option value="superAdmin">Super Admin</option>
               <option value="admin">Admin</option>
               <option value="user">User</option>
             </select>
           </div>
+
+          {selectedRole === "user" && (
+            <div>
+              <label className="block text-sm font-medium">Client Id</label>
+              <input
+                type="text"
+                {...register("name", { required: "Client ID is required" })}
+                className="mt-1 p-2 w-full border rounded"
+              />
+              {errors.name && (
+                <p className="text-red-500 text-sm">{errors.name.message}</p>
+              )}
+            </div>
+          )}
 
           <Button
             type="submit"
