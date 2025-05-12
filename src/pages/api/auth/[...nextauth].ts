@@ -1,53 +1,88 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { auth, db } from "@/firebase/client";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { compare } from "bcryptjs";
+import db from "@/lib/db"; // Use our database utility instead of Prisma
+
+
 
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email", required: true },
-        password: { label: "Password", type: "password", required: true },
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials");
+        try {
+
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error("Missing email or password");
+          }
+
+          const { email, password } = credentials;
+
+          // Query the database directly
+          const result = await db.query(
+            'SELECT * FROM users WHERE email = $1',
+            [email.toLowerCase()]
+          );
+
+          const user = result.rows[0];
+
+
+          if (!user) {
+            throw new Error("Email not found");
+          }
+
+          const isValid = await compare(password, user.password);
+
+          if (!isValid) {
+            throw new Error("Invalid password");
+          }
+
+
+          // Return user data in the expected format
+          return {
+            id: user.id.toString(),
+            name: user.name || "",
+            email: user.email,
+            role: user.role || "user",
+            client_id: user.client_id || null
+          };
+        } catch (error) {
+          console.error("Authentication error:", error);
+          return null;
         }
-
-        const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
-        const user = userCredential.user;
-
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-
-        if (!userDoc.exists()) {
-          throw new Error("User not found in Firestore");
-        }
-      
-        const userData = userDoc.data();
-        const role = userData.role || "user";
-        const name = userData.name || "Unknown";
-      
-        return { id: user.uid, email: user.email, role, name };
-      },
+      }
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        token.role = (user as any).role; // Type assertion to fix error
+        token.role = user.role;
+        token.id = user.id;
       }
       return token;
     },
     async session({ session, token }) {
-      session.user.role = token.role as string; 
+      if (session.user) {
+        session.user.role = token.role as string;
+        session.user.id = token.id as string;
+      }
       return session;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  debug: process.env.NODE_ENV === "development",
+  pages: {
+    signIn: "/signin",
+    error: "/unauthorize",
+  },
 };
 
 export default NextAuth(authOptions);
