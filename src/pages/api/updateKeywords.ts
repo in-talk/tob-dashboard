@@ -25,9 +25,9 @@ export default async function handleUpdateKeywords(
     const client = await clientPromise;
     const db = client.db();
     const collection = db.collection("labels_10000");
-
+    
     const result = await collection.updateOne(
-      {_id: { $ne: new ObjectId(String(id)) }, },
+      { _id: new ObjectId(String(id)) },
       { $set: { keywords } }
     );
 
@@ -35,7 +35,7 @@ export default async function handleUpdateKeywords(
       return res.status(404).json({ message: "Document not found" });
     }
 
-    const updatedDocument = await collection.findOne({_id: { $ne: new ObjectId(String(id)) }, });
+    const updatedDocument = await collection.findOne({ _id: new ObjectId(String(id)) });
 
     return res.status(200).json({
       message: "Keywords updated successfully",
