@@ -1,23 +1,16 @@
 "use client";
 import { Card, CardContent } from "@/components/ui/card";
+import { User } from "@/types/user";
 import useSWR from "swr";
+import { usersColumns } from "./DataTable/UsersColumn";
 import { DataTable } from "./DataTable/DataTable";
-import { columns } from "./DataTable/Colums";
-import { labels } from "@/types/lables";
-import { useMemo } from "react";
+
+
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default function DocumentList() {
-  const {
-    data: documents,
-    error,
-    isLoading,
-  } = useSWR<labels[]>("/api/dashboard", fetcher);
-
-  const memoizedData = useMemo(() => {
-    return documents ?? [];
-  }, [documents]);
+export default function UsersList() {
+  const { data: users, error, isLoading } = useSWR<User[]>("/api/get-users", fetcher);
 
   if (isLoading)
     return (
@@ -29,24 +22,22 @@ export default function DocumentList() {
       </div>
     );
 
-  if (error) return <div>Failed to load documents.</div>;
+  if (error) return <div>Failed to load users.</div>;
 
-
+  const usersList = users || [];
 
   return (
     <div className="space-y-2">
-      {memoizedData.length === 0 ? (
+      {usersList.length === 0 ? (
         <Card>
           <CardContent className="text-center py-10">
-            <p className="text-muted-foreground">
-              No Document is availabe in database!
-            </p>
+            <p className="text-muted-foreground">No User in database!</p>
           </CardContent>
         </Card>
       ) : (
         <div className="container mx-auto py-3 px-[30px]">
-          <DataTable columns={columns} data={memoizedData} />
-        </div>
+                <DataTable columns={usersColumns} data={usersList} />
+              </div>
       )}
     </div>
   );

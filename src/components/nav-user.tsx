@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  BadgeCheck,
-  Bell,
-  ChevronsUpDown,
-  LogOut,
-} from "lucide-react";
+import { BadgeCheck, Bell, ChevronsUpDown, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -38,7 +33,7 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
-  
+
   const router = useRouter();
   const { data: session } = useSession();
 
@@ -96,9 +91,9 @@ export function NavUser({
             <DropdownMenuGroup>
               {session?.user.role === "admin" && (
                 <DropdownMenuItem asChild>
-                 <CreateUser />
+                  <CreateUser />
                 </DropdownMenuItem>
-              )}
+               )} 
               <DropdownMenuItem>
                 <BadgeCheck />
                 Account
