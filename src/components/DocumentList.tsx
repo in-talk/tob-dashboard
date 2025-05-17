@@ -4,6 +4,7 @@ import useSWR from "swr";
 import { DataTable } from "./DataTable/DataTable";
 import { columns } from "./DataTable/Colums";
 import { labels } from "@/types/lables";
+import { useMemo } from "react";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -13,6 +14,10 @@ export default function DocumentList() {
     error,
     isLoading,
   } = useSWR<labels[]>("/api/dashboard", fetcher);
+
+  const memoizedData = useMemo(() => {
+    return documents ?? [];
+  }, [documents]);
 
   if (isLoading)
     return (
@@ -26,11 +31,11 @@ export default function DocumentList() {
 
   if (error) return <div>Failed to load documents.</div>;
 
-  const documentsList = documents || [];
+
 
   return (
     <div className="space-y-2">
-      {documentsList.length === 0 ? (
+      {memoizedData.length === 0 ? (
         <Card>
           <CardContent className="text-center py-10">
             <p className="text-muted-foreground">
@@ -40,7 +45,7 @@ export default function DocumentList() {
         </Card>
       ) : (
         <div className="container mx-auto py-3 px-[30px]">
-          <DataTable columns={columns} data={documentsList} />
+          <DataTable columns={columns} data={memoizedData} />
         </div>
       )}
     </div>
