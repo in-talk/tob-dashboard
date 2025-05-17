@@ -66,7 +66,7 @@ export default function UpdateDocumentForm({
             <FormItem>
               <FormLabel>Label</FormLabel>
               <FormControl>
-                <Input {...field} required />
+                <Input {...field} required className="border dark:border-white" />
               </FormControl>
               {errorMessage && (
                 <FormMessage className="text-red-500 text-sm">
@@ -83,7 +83,7 @@ export default function UpdateDocumentForm({
             <FormItem>
               <FormLabel>File name</FormLabel>
               <FormControl>
-                <Input {...field} required />
+                <Input {...field} required className="border dark:border-white"  />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -98,6 +98,7 @@ export default function UpdateDocumentForm({
               <FormControl>
                 <Textarea
                   {...field}
+                  className="border dark:border-white" 
                   value={
                     Array.isArray(field.value)
                       ? field.value.join(", ")
@@ -120,7 +121,7 @@ export default function UpdateDocumentForm({
               value={uniqueWords.join(", ")} // Show existing words
               onChange={(e) => setUniqueWords(e.target.value.split(/[\n,]+/).map((w) => w.trim()))}
               placeholder="Enter unique words separated by commas, e.g., foo,bar"
-              className="-m-0 w-full"
+              className=" !ml-0 border dark:border-white" 
             />
           </FormControl>
         </FormItem>
@@ -135,9 +136,10 @@ export default function UpdateDocumentForm({
                   id="terms"
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                   className="border dark:border-white" 
                 />
               </FormControl>
-              <FormLabel htmlFor="terms">Check on all turns :</FormLabel>
+              <FormLabel htmlFor="terms">Check on all turns</FormLabel>
               <FormMessage />
             </FormItem>
           )}

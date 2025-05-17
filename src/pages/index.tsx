@@ -19,7 +19,7 @@ export default function Home() {
           {session?.user.role === "admin" ? <CreateUser /> : <CreateDocument />}
         </div>
 
-        <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min">
+        <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 dark:bg-sidebar md:min-h-min">
           {session?.user.role === "admin" ? <UsersList /> : <DocumentList />}
         </div>
       </div>

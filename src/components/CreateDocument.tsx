@@ -16,7 +16,7 @@ export default function CreateDocument() {
       <DialogTrigger asChild>
         <Button>Add Document</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-white">
+      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-sidebar">
         <DialogHeader>
           <DialogTitle>Create New Document</DialogTitle>
         </DialogHeader>

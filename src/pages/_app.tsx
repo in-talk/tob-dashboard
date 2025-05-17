@@ -19,17 +19,29 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { SessionProvider, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
+import ThemeToggler from "@/components/ThemeToggler";
+import { ThemeProviders } from "@/theme/ThemeProviders";
 
-export default function App({ Component, pageProps: { session, ...pageProps },router }: AppProps) {
+export default function App({
+  Component,
+  pageProps: { session, ...pageProps },
+  router,
+}: AppProps) {
   return (
     <SessionProvider session={session}>
-      <MainLayout Component={Component} pageProps={pageProps} router={router} />
-      <Toaster />
+      <ThemeProviders>
+        <MainLayout
+          Component={Component}
+          pageProps={pageProps}
+          router={router}
+        />
+        <Toaster />
+      </ThemeProviders>
     </SessionProvider>
   );
 }
 
-export  function MainLayout({ Component, pageProps }: AppProps) {
+export function MainLayout({ Component, pageProps }: AppProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const isLoginPage = router.pathname === "/signin";
@@ -40,7 +52,7 @@ export  function MainLayout({ Component, pageProps }: AppProps) {
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
-            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+            <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
               <div className="flex items-center gap-2 px-4">
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 h-4" />
@@ -58,6 +70,7 @@ export  function MainLayout({ Component, pageProps }: AppProps) {
                   </BreadcrumbList>
                 </Breadcrumb>
               </div>
+              <ThemeToggler />
             </header>
             <Component {...pageProps} />
             <Toaster />

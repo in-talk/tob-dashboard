@@ -122,24 +122,27 @@ function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
       <DialogTrigger asChild>
         <Button>Edit keywords</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] md:max-w-[825px] bg-white overflow-y-auto ">
+      <DialogContent className="sm:max-w-[425px] md:max-w-[825px] bg-white dark:bg-sidebar overflow-y-auto ">
         <DialogHeader>
           <DialogTitle>Add Keywords</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4 mt-4">
-          <div className=" flex flex-col gap-4 border-r border-slate-100 pr-4">
+          <div className=" flex flex-col gap-4  pr-4">
             <Label>Single Keyword Input</Label>
             <Input
               ref={keywordInputRef}
               type="text"
               placeholder="Add keywords and press Enter"
               onKeyDown={handleAddKeyword}
+              className="border dark:border-white"
+
             />
             <Label>Bulk Keyword Input</Label>
             <Textarea
               ref={bulkInputRef}
               placeholder="Add multiple keywords (comma-separated or one per line)"
               rows={3}
+              className="border dark:border-white"
             />
             <Button
               variant="outline"
@@ -156,7 +159,8 @@ function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
               placeholder="Search keywords..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9 w-[50%]"
+              className="h-9 w-[50%] border dark:border-white"
+              
             />
             <div className="overflow-y-auto h-[200px]">
               {filteredKeywords.map((keyword) => (
