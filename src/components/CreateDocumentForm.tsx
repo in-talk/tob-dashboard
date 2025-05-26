@@ -174,7 +174,7 @@ export default function CreateDocumentForm({
             <FormItem>
               <FormLabel>Label</FormLabel>
               <FormControl>
-                <Input {...field} required />
+                <Input {...field} required className="border dark:border-white" />
               </FormControl>
               {errorMessage && (
                 <FormMessage className="text-red-500 text-sm">
@@ -192,7 +192,7 @@ export default function CreateDocumentForm({
             <FormItem>
               <FormLabel>File name</FormLabel>
               <FormControl>
-                <Input {...field} required />
+                <Input {...field} required className="border dark:border-white" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -214,6 +214,7 @@ export default function CreateDocumentForm({
                   }
                   onChange={(e) => field.onChange(e.target.value)} // Store as string
                   placeholder="Enter numbers separated by commas, e.g., 1, 2, 3"
+                  className="border dark:border-white"
                 />
               </FormControl>
               <FormMessage />
@@ -230,6 +231,7 @@ export default function CreateDocumentForm({
                   id="terms"
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  className="border dark:border-white"
                 />
               </FormControl>
               <FormLabel htmlFor="terms">Check on all turns :</FormLabel>
@@ -245,7 +247,7 @@ export default function CreateDocumentForm({
             ref={uniqueWordsRefs}
             placeholder="Enter unique words separated by commas, e.g., foo, bar"
             rows={3}
-            className="-m-0 w-full"
+            className="!ml-0 w-full border dark:border-white"
           />
         </FormControl>
 
@@ -254,7 +256,7 @@ export default function CreateDocumentForm({
             <Button disabled={!isFormValid}>Add Keywords</Button>
           </DialogTrigger>
           <DialogContent
-            className="sm:max-w-[425px] md:max-w-[825px] bg-white"
+            className="sm:max-w-[425px] md:max-w-[825px] bg-white dark:bg-sidebar"
             aria-describedby=""
           >
             <DialogHeader>
@@ -269,7 +271,7 @@ export default function CreateDocumentForm({
                   type="text"
                   placeholder="Add keywords press Enter"
                   onKeyDown={addKeyword}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent  dark:border-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 />
 
                 <FormLabel>Bulk Keyword Input</FormLabel>
@@ -278,6 +280,7 @@ export default function CreateDocumentForm({
                     ref={bulkInputRef}
                     placeholder="Add multiple keywords (comma-separated or one per line)"
                     rows={3}
+                    className="border dark:border-white"
                   />
                 </FormControl>
                 <Button
@@ -302,7 +305,7 @@ export default function CreateDocumentForm({
                     placeholder="Search keywords..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent dark:border-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   />
                   <div className="overflow-y-auto h-[200px]">
                     {filteredKeywords.map((keyword, index) => (

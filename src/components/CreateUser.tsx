@@ -11,6 +11,7 @@ import {
 import { useState } from "react";
 import { Edit2Icon } from "lucide-react";
 import { useForm } from "react-hook-form";
+import CustomLoader from "./ui/CustomLoader";
 
 interface CreateUserFormValues {
   email: string;
@@ -30,7 +31,7 @@ export default function CreateUser() {
   } = useForm<CreateUserFormValues>();
 
   const [message, setMessage] = useState<string | null>(null);
-  const selectedRole = watch("role"); // assuming you have a 'role' field
+  const selectedRole = watch("role"); 
 
   const onSubmit = async (data: CreateUserFormValues) => {
     setMessage(null);
@@ -54,12 +55,12 @@ export default function CreateUser() {
   };
 
   return (
-    <Dialog>
+    <Dialog >
       <DialogTrigger className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0">
         <Edit2Icon />
         <span className="text-sm">Create User</span>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-white">
+      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-sidebar">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
         </DialogHeader>
@@ -76,7 +77,7 @@ export default function CreateUser() {
             <input
               type="email"
               {...register("email", { required: "Email is required" })}
-              className="mt-1 p-2 w-full border rounded"
+              className="mt-1 p-2 w-full border bg-transparent rounded dark:border-white"
             />
             {errors.email && (
               <p className="text-red-500 text-sm">{errors.email.message}</p>
@@ -91,7 +92,7 @@ export default function CreateUser() {
                 required: "Password is required",
                 minLength: 6,
               })}
-              className="mt-1 p-2 w-full border rounded"
+              className="mt-1 p-2 w-full border bg-transparent rounded  dark:border-white"
             />
             {errors.password && (
               <p className="text-red-500 text-sm">{errors.password.message}</p>
@@ -103,7 +104,7 @@ export default function CreateUser() {
             <input
               type="text"
               {...register("name", { required: "Name is required" })}
-              className="mt-1 p-2 w-full border rounded"
+              className="mt-1 p-2 w-full border bg-transparent rounded dark:border-white"
             />
             {errors.name && (
               <p className="text-red-500 text-sm">{errors.name.message}</p>
@@ -114,7 +115,7 @@ export default function CreateUser() {
             <label className="block text-sm font-medium">Role</label>
             <select
               {...register("role")}
-              className="mt-1 p-2 w-full border rounded"
+              className="mt-1 p-2 w-full border bg-transparent rounded  dark:border-white"
             >
               <option value="admin">Admin</option>
               <option value="user">User</option>
@@ -126,8 +127,8 @@ export default function CreateUser() {
               <label className="block text-sm font-medium">Client Id</label>
               <input
                 type="text"
-                {...register("name", { required: "Client ID is required" })}
-                className="mt-1 p-2 w-full border rounded"
+                {...register("client_id", { required: "Client ID is required" })}
+                className="mt-1 p-2 w-full border bg-transparent rounded  dark:border-white"
               />
               {errors.name && (
                 <p className="text-red-500 text-sm">{errors.name.message}</p>
@@ -137,10 +138,17 @@ export default function CreateUser() {
 
           <Button
             type="submit"
-            className="w-full bg-[#3b65f5] text-white p-2 rounded mt-2"
+            variant='outline'
+            className="w-full bg-[#3b65f5] text-dark dark:text-white p-2 rounded mt-2"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Creating..." : "Create User"}
+            {isSubmitting ? (
+              <>
+                <span className="mr-5">Creating...</span> <CustomLoader />
+              </>
+            ) : (
+              "Create User"
+            )}
           </Button>
         </form>
       </DialogContent>

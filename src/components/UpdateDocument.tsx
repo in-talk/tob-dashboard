@@ -79,7 +79,7 @@ export default function UpdateDocument({ document }: { document: labels }) {
           Edit
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-white">
+      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-sidebar">
         <DialogDescription> Update document form</DialogDescription>
         <DialogHeader>
           <DialogTitle>Update Document</DialogTitle>
