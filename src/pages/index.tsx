@@ -1,26 +1,28 @@
-import CreateDocument from "@/components/CreateDocument";
-import CreateUser from "@/components/CreateUser";
-import DocumentList from "@/components/DocumentList";
-import UsersList from "@/components/UsersList";
+import CallDataTable from "@/components/Analytics/CallDataTable";
+import DispositionChart from "@/components/Analytics/DispositionChart";
+import GaugeChart from "@/components/Analytics/GaugeChart";
 import { withAuth } from "@/utils/auth";
 import { GetServerSideProps } from "next";
-import { useSession } from "next-auth/react";
+import Head from "next/head";
 
 export default function Home() {
-  const { data: session } = useSession();
-
   return (
     <>
+      <Head>
+        <title>
+          InTalk Dashboard - Smart Customer Service Management
+        </title>
+      </Head>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <div className="flex justify-between items-center my-2">
-          <h1 className="text-4xl font-bold capitalize">
-            {session?.user.role} Dashboard
-          </h1>
-          {session?.user.role === "admin" ? <CreateUser /> : <CreateDocument />}
+        <h1 className="text-4xl font-bold capitalize">Dashboard</h1>
+        <div className="">
+          <CallDataTable />
         </div>
-
-        <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 dark:bg-sidebar md:min-h-min">
-          {session?.user.role === "admin" ? <UsersList /> : <DocumentList />}
+        <div className="w-full">
+          <DispositionChart />
+        </div>
+        <div className="w-full">
+          <GaugeChart />
         </div>
       </div>
     </>
