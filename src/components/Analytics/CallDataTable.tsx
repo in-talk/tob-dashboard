@@ -69,7 +69,6 @@ const CallDataTable = () => {
     a.click();
   };
 
-
   const handleClearRows = () => {
     setToggleCleared(!toggleCleared);
     setSelectedRows([]);
@@ -128,18 +127,18 @@ const CallDataTable = () => {
     },
     {
       name: "Transcription",
-      selector: (row: CallRecord) => row.Transcription ,
+      selector: (row: CallRecord) => row.Transcription,
       sortable: true,
-      center: true,
-      cell: (row: CallRecord) => <span title={row.Transcription}>
-       { row.Transcription}
-      </span>,
+      center: false,
+      cell: (row: CallRecord) => (
+        <span title={row.Transcription}>{row.Transcription}</span>
+      ),
     },
-     {
+    {
       name: "D",
       selector: (row: CallRecord) => row.D || 0,
       sortable: true,
-     width:'50px',
+      width: "50px",
       center: true,
       cell: (row: CallRecord) => row.D,
     },
@@ -152,6 +151,14 @@ const CallDataTable = () => {
       cell: (row: CallRecord) => row.T,
     },
     {
+      name: "Lead Id",
+      selector: (row: CallRecord) => row.LeadID || 0,
+      sortable: true,
+      width: "100px",
+      center: true,
+      cell: (row: CallRecord) => row.LeadID,
+    },
+    {
       name: "Agent",
       selector: (row: CallRecord) => row.AgentName || "-",
       sortable: true,
@@ -160,20 +167,20 @@ const CallDataTable = () => {
         <span title={row.AgentName}>{row.AgentName || "-"}</span>
       ),
     },
-    {
-      name: "Call Audio",
-      selector: (row: CallRecord) => row.CallAudio || "-",
-      sortable: true,
-      center: true,
-      cell: (row: CallRecord) => (
-        <a
-          className=" cursor-pointer hover:underline block text-blue-700 dark:text-blue-300"
-          href={row.CallAudio}
-        >
-          {row.CallAudio}
-        </a>
-      ),
-    },
+    // {
+    //   name: "Call Audio",
+    //   selector: (row: CallRecord) => row.CallAudio || "-",
+    //   sortable: true,
+    //   center: true,
+    //   cell: (row: CallRecord) => (
+    //     <a
+    //       className=" cursor-pointer hover:underline block text-blue-700 dark:text-blue-300"
+    //       href={row.CallAudio}
+    //     >
+    //       {row.CallAudio}
+    //     </a>
+    //   ),
+    // },
   ];
 
   // Custom styles for the data table
@@ -216,21 +223,19 @@ const CallDataTable = () => {
   };
 
   const LoadingComponent = () => (
-     <div className="flex justify-center items-center h-40 bg-transparent">
-        <div className="relative w-12 h-12 top-[170px]">
-          <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-spin border-t-transparent"></div>
-          <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-ping opacity-25"></div>
-        </div>
+    <div className="flex justify-center items-center h-40 bg-transparent">
+      <div className="relative w-12 h-12 top-[170px]">
+        <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-spin border-t-transparent"></div>
+        <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-ping opacity-25"></div>
       </div>
+    </div>
   );
 
   return (
     <div className="p-6 bg-light dark:bg-sidebar min-h-screen">
       <div className="max-w-full mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">
-            Call Detail Records
-          </h1>
+          <h1 className="text-2xl font-bold mb-2">Call Detail Records</h1>
         </div>
 
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -301,7 +306,7 @@ const CallDataTable = () => {
             <div className="flex items-center gap-2">
               <User className="w-5 h-5 text-indigo-900" />
               <span className="text-sm font-medium text-indigo-900">
-               Total Agents
+                Total Agents
               </span>
             </div>
             <p className="text-2xl font-bold text-indigo-900">
