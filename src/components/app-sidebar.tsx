@@ -1,10 +1,9 @@
 import * as React from "react";
 import {
-  Frame,
-  GalleryVerticalEnd,
   Atom,
   LayoutDashboard,
-  AudioLines
+  ChartArea,
+  AudioLines,
 } from "lucide-react";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
@@ -29,56 +28,15 @@ const data = {
       logo: Atom,
     },
   ],
-  navMain: [
-    {
-      title: "Home",
-      url: "/",
-      icon: LayoutDashboard,
-      isActive: true,
-      items: [
-        {
-          title: "Audio Formatter",
-          url: "/audio-formatter",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Documents",
-          url: "#",
-        },
-      ],
-    },
-
-    {
-      title: "Audio Formatter",
-      url: "/audio-formatter",
-      icon: AudioLines,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
   projects: [
     {
       name: "Home",
       url: "/",
+      icon: ChartArea,
+    },
+    {
+      name: "Label Managment",
+      url: "/label_managment",
       icon: LayoutDashboard,
     },
     {
@@ -86,25 +44,13 @@ const data = {
       url: "/audio-formatter",
       icon: AudioLines,
     },
-    {
-      name: "Design",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Quantumwhile",
-      url: "#",
-      icon: GalleryVerticalEnd,
-    },
   ],
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-
-  
   return (
     <Sidebar collapsible="icon" {...props}>
-     <SidebarHeader>
+      <SidebarHeader>
         <ClientSwitcher clients={data.clients} />
       </SidebarHeader>
       <SidebarContent>
