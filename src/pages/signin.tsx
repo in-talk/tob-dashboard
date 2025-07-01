@@ -19,10 +19,6 @@ export default function SignIn() {
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   const handleRecaptchaChange = (token: string | null) => {
-    console.log(
-      "reCAPTCHA token received:",
-      token ? "Token obtained" : "No token"
-    );
     setRecaptchaToken(token);
     if (error === "Please complete the reCAPTCHA verification") {
       setError(null);
@@ -36,7 +32,6 @@ export default function SignIn() {
   };
 
   const handleRecaptchaExpired = () => {
-    console.log("reCAPTCHA expired");
     setRecaptchaToken(null);
     setError("reCAPTCHA expired. Please verify again.");
   };
@@ -52,7 +47,6 @@ export default function SignIn() {
       });
 
       const data = await response.json();
-      console.log("Server verification result:", data);
       return data.success;
     } catch (error) {
       console.error("Error verifying reCAPTCHA:", error);
@@ -102,7 +96,6 @@ export default function SignIn() {
     } catch (err) {
       console.error("SignIn error:", err);
       setError("An unexpected error occurred");
-      // Reset reCAPTCHA on error
       recaptchaRef.current?.reset();
       setRecaptchaToken(null);
     } finally {
@@ -110,7 +103,6 @@ export default function SignIn() {
     }
   };
 
-  // Don't render if site key is missing
   if (!siteKey) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -213,7 +205,7 @@ export default function SignIn() {
                         onChange={handleRecaptchaChange}
                         onErrored={handleRecaptchaError}
                         onExpired={handleRecaptchaExpired}
-                        theme="light"
+                        theme="dark"
                       />
                     </div>
                   </div>
