@@ -205,7 +205,7 @@ export default function SignIn() {
                         onChange={handleRecaptchaChange}
                         onErrored={handleRecaptchaError}
                         onExpired={handleRecaptchaExpired}
-                        theme="dark"
+                        theme="light"
                       />
                     </div>
                   </div>
