@@ -26,6 +26,7 @@
     "@radix-ui/react-tooltip": "^1.1.6",
     "@tanstack/react-table": "^8.20.6",
     "archiver": "^7.0.1",
+    "aws-sdk": "^2.1692.0",
     "bcryptjs": "^3.0.2",
     "chart.js": "^4.4.9",
     "class-variance-authority": "^0.7.1",

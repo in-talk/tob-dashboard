@@ -1,9 +1,12 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useTheme } from "next-themes";
 import { Search, Filter, Download, Phone, User } from "lucide-react";
 import { CallRecord } from "@/types/callRecord";
-import { useCallData } from "@/context/CallRecordContext";
+import { getSession } from "next-auth/react";
+import { formatCallDuration } from "@/utils/formatCallDuration";
+import AudioPlayer from "../AudioPlayer";
+import { generateAudioUrl } from "@/utils/WasabiClient";
 
 const dispositionColors: Record<string, string> = {
   XFER: "bg-blue-100 text-blue-800",
@@ -15,36 +18,61 @@ const dispositionColors: Record<string, string> = {
   LB: "bg-cyan-100 text-cyan-800",
   AM: "bg-teal-100 text-teal-800",
   DAIR: "bg-indigo-100 text-indigo-800",
-  HP: "bg-pink-100 text-pink-800",
-  FAS: "bg-gray-100 text-gray-800",
-  RI: "bg-slate-100 text-slate-800",
+  PQ2: "bg-pink-100 text-pink-800",
+  NT: "bg-gray-100 text-gray-800",
+  P: "bg-slate-100 text-slate-800",
 };
 
-const CallDataTable = () => {
-  const [data, setData] = useState<CallRecord[]>([]);
+const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
+  const [data, setData] = useState<CallRecord[]>(callRecords);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDisposition, setFilterDisposition] = useState("");
   const [selectedRows, setSelectedRows] = useState<CallRecord[]>([]);
   const [toggleCleared, setToggleCleared] = useState(false);
-
   const { theme } = useTheme();
-  const dispositions = [...new Set(data.map((item) => item.Disposition))];
-  const { callData, loading } = useCallData();
+  const dispositions = [...new Set(data.map((item) => item.disposition))];
+  const [callsLoading, setCallsLoading] = useState(false);
 
-  useEffect(() => {
-    if (!loading && callData && callData.length > 0) {
-      setData(callData);
+  const fetchCallRecords = async (page: number) => {
+    try {
+      setCallsLoading(true);
+
+      const session = await getSession();
+      const client_id = session?.user?.client_id;
+
+      const res = await fetch("/api/fetchCallRecords", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_id,
+          page,
+          num_of_records: 10,
+          caller_id: null,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok)
+        throw new Error(result.error || "Failed to fetch call records");
+
+      setData(result.callRecords || []);
+    } catch (err) {
+      console.error("Error fetching records:", err);
+    } finally {
+      setCallsLoading(false);
     }
-  }, [callData, loading]);
+  };
 
-  // Filter data
   const filteredData = useMemo(() => {
     return data.filter((item) => {
       const matchesSearch = Object.values(item).some((value) =>
         value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
       );
       const matchesDisposition =
-        filterDisposition === "" || item.Disposition === filterDisposition;
+        filterDisposition === "" || item.disposition === filterDisposition;
       return matchesSearch && matchesDisposition;
     });
   }, [data, searchTerm, filterDisposition]);
@@ -73,117 +101,89 @@ const CallDataTable = () => {
     setToggleCleared(!toggleCleared);
     setSelectedRows([]);
   };
-
-  // Define columns
   const columns: TableColumn<CallRecord>[] = [
     {
-      name: "Sr No.",
-      selector: (row: CallRecord) => row.SrNo,
+      name: "Call Id",
+      selector: (row: CallRecord) => row.call_id,
       sortable: true,
       width: "150px",
       center: true,
     },
     {
-      name: "Client ID",
-      selector: (row: CallRecord) => row.ClientID,
+      name: "Call Duration",
+      selector: (row: CallRecord) => row.call_duration?.minutes,
+      sortable: true,
+      width: "150px",
+      center: true,
+      cell: (row: CallRecord) => {
+        const callDuration = formatCallDuration(row.call_duration);
+        return <span title={callDuration}>{callDuration}</span>;
+      },
+    },
+    {
+      name: "Status",
+      selector: (row: CallRecord) => row.call_status,
       sortable: true,
       width: "100px",
-      cell: (row: CallRecord) => (
-        <span title={row.ClientID}>{row.ClientID}</span>
-      ),
     },
     {
-      name: "Time",
-      selector: (row: CallRecord) => row.CallTime,
+      name: "T",
+      selector: (row: CallRecord) => row.turn || 0,
       sortable: true,
-      width: "130px",
+      width: "50px",
       center: true,
-      cell: (row: CallRecord) => (
-        <span title={row.CallTime}>{row.CallTime}</span>
-      ),
-    },
-    {
-      name: "Type",
-      selector: (row: CallRecord) => row.CallType,
-      sortable: true,
-      width: "80px",
+      cell: (row: CallRecord) => row.turn,
     },
     {
       name: "Disposition",
-      selector: (row: CallRecord) => row.Disposition,
+      selector: (row: CallRecord) => row.disposition,
       sortable: true,
       width: "110px",
       center: true,
       cell: (row: CallRecord) => (
         <span
           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getDispositionColor(
-            row.Disposition
+            row.disposition
           )}`}
-          title={row.Disposition}
+          title={row.disposition}
         >
-          {row.Disposition}
+          {row.disposition}
         </span>
       ),
     },
     {
-      name: "Transcription",
-      selector: (row: CallRecord) => row.Transcription,
-      sortable: true,
-      center: false,
-      cell: (row: CallRecord) => (
-        <span title={row.Transcription}>{row.Transcription}</span>
-      ),
-    },
-    {
-      name: "D",
-      selector: (row: CallRecord) => row.D || 0,
-      sortable: true,
-      width: "50px",
+      name: "Call Recording",
+      selector: (row: CallRecord) => row.call_recording_path,
+      sortable: false,
+      width: "300px",
       center: true,
-      cell: (row: CallRecord) => row.D,
+      cell: (row: CallRecord) => {
+        const audioUrl = generateAudioUrl(row.call_recording_path);
+        return <AudioPlayer audioUrl={audioUrl} />;
+      },
     },
     {
-      name: "Turns",
-      selector: (row: CallRecord) => row.T || 0,
+      name: "Label",
+      selector: (row: CallRecord) => row.label || 0,
       sortable: true,
       width: "100px",
       center: true,
-      cell: (row: CallRecord) => row.T,
+      cell: (row: CallRecord) => row.label,
     },
-    {
-      name: "Lead Id",
-      selector: (row: CallRecord) => row.LeadID || 0,
-      sortable: true,
-      width: "100px",
-      center: true,
-      cell: (row: CallRecord) => row.LeadID,
-    },
+
     {
       name: "Agent",
-      selector: (row: CallRecord) => row.AgentName || "-",
+      selector: (row: CallRecord) => row.agent || "-",
       sortable: true,
-      width: "80px",
+      width: "100px",
       cell: (row: CallRecord) => (
-        <span title={row.AgentName}>{row.AgentName || "-"}</span>
+        <span className="capitalize" title={row.agent}>
+          {row.agent || "-"}
+        </span>
       ),
     },
-    // {
-    //   name: "Call Audio",
-    //   selector: (row: CallRecord) => row.CallAudio || "-",
-    //   sortable: true,
-    //   center: true,
-    //   cell: (row: CallRecord) => (
-    //     <a
-    //       className=" cursor-pointer hover:underline block text-blue-700 dark:text-blue-300"
-    //       href={row.CallAudio}
-    //     >
-    //       {row.CallAudio}
-    //     </a>
-    //   ),
-    // },
   ];
 
-  // Custom styles for the data table
   const customStyles = {
     table: {
       style: {
@@ -198,7 +198,7 @@ const CallDataTable = () => {
     },
     rows: {
       style: {
-        minHeight: "48px",
+        minHeight: "70px",
         "&:hover": {
           backgroundColor: "#f9fafb",
         },
@@ -223,8 +223,8 @@ const CallDataTable = () => {
   };
 
   const LoadingComponent = () => (
-    <div className="flex justify-center items-center h-40 bg-transparent">
-      <div className="relative w-12 h-12 top-[170px]">
+    <div className="flex justify-center items-center h-screen bg-transparent">
+      <div className="relative w-12 h-12 -top-[120px]">
         <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-spin border-t-transparent"></div>
         <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-ping opacity-25"></div>
       </div>
@@ -240,7 +240,6 @@ const CallDataTable = () => {
 
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
@@ -270,7 +269,6 @@ const CallDataTable = () => {
             </div>
           </div>
 
-          {/* Export and Clear Selection */}
           <div className="flex gap-2">
             {selectedRows.length > 0 && (
               <button
@@ -298,9 +296,7 @@ const CallDataTable = () => {
                 Total Calls
               </span>
             </div>
-            <p className="text-2xl font-bold text-blue-900">
-              {filteredData.length}
-            </p>
+            <p className="text-2xl font-bold text-blue-900">{data.length}</p>
           </div>
           <div className="bg-indigo-100  dark:bg-indigo-400 p-4 rounded-lg">
             <div className="flex items-center gap-2">
@@ -310,27 +306,26 @@ const CallDataTable = () => {
               </span>
             </div>
             <p className="text-2xl font-bold text-indigo-900">
-              {
-                new Set(
-                  filteredData.map((call) => call.AgentName).filter(Boolean)
-                ).size
-              }
+              {new Set(data.map((call) => call.agent).filter(Boolean)).size}
             </p>
           </div>
         </div>
 
         {/* Data Table */}
         <div className="bg-light dark:bg-sidebar border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
-          <div className="w-full overflow-x-auto" style={{ maxWidth: "100vw" }}>
-            <div style={{ minWidth: "1000px" }}>
+          <div className="w-full overflow-x-auto max-w-[100vw]">
+            <div>
               <DataTable
                 title="Call Records"
                 columns={columns}
                 data={filteredData}
-                progressPending={loading}
+                progressPending={callsLoading}
                 progressComponent={<LoadingComponent />}
                 pagination
-                paginationPerPage={20}
+                paginationServer
+                paginationPerPage={10}
+                onChangePage={fetchCallRecords}
+                paginationTotalRows={Number(filteredData[0]?.total_records)}
                 paginationRowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
                 clearSelectedRows={toggleCleared}
                 customStyles={customStyles}

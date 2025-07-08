@@ -21,9 +21,9 @@ const dispositionLabels = [
   "LB",
   "AM",
   "DAIR",
-  "HP",
-  "FAS",
-  "RI",
+  "PQ2",
+  "NT",
+  "P",
 ];
 
 const dispositionColors: Record<string, string> = {
@@ -36,9 +36,9 @@ const dispositionColors: Record<string, string> = {
   LB: "#17a2b8",
   AM: "#20c997",
   DAIR: "#6610f2",
-  HP: "#e83e8c",
-  FAS: "#343a40",
-  RI: "#adb5bd",
+  PQ2: "#e83e8c",
+  NT: "#343a40",
+  P: "#adb5bd",
 };
 type ChartEntry = {
   CallTime: string;
@@ -53,17 +53,19 @@ const DispositionChart = () => {
 
   useEffect(() => {
     if (!loading && callData) {
-      const timestamps = [...new Set(callData.map((item) => item.CallTime))];
+      const timestamps = [
+        ...new Set(callData.map((item) => item.call_start_time)),
+      ];
 
       const processedData = timestamps.map((time) => {
-        const group = callData.filter((item) => item.CallTime === time);
+        const group = callData.filter((item) => item.call_start_time === time);
         const total = group.length || 1;
 
         const entry: ChartEntry = { CallTime: time };
 
         dispositionLabels.forEach((dispo) => {
           const count = group.filter(
-            (item) => item.Disposition === dispo
+            (item) => item.disposition === dispo
           ).length;
           entry[dispo] = parseFloat(((count / total) * 100).toFixed(2));
         });
@@ -107,7 +109,7 @@ const DispositionChart = () => {
             formatter={(value: number) => `${value.toFixed(2)}%`}
             contentStyle={{
               backgroundColor: `${theme === "dark" ? "#1f2937" : "white"}`,
-              color:`${theme === "dark" ? "white" : "#1f2937"}`
+              color: `${theme === "dark" ? "white" : "#1f2937"}`,
             }}
           />
 
