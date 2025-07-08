@@ -25,8 +25,6 @@ export const CallDataProvider = ({ children }: { children: React.ReactNode }) =>
     fetch();
   }, []);
 
-  console.log('context called ')
-
   return (
     <CallDataContext.Provider value={{ callData, loading }}>
       {children}
