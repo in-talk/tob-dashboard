@@ -22,7 +22,6 @@ export const authOptions: NextAuthOptions = {
 
           const { email, password } = credentials;
 
-          // Query the database directly
           const result = await db.query(
             'SELECT * FROM users WHERE email = $1',
             [email.toLowerCase()]
@@ -41,7 +40,7 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Invalid password");
           }
 
-
+          
           // Return user data in the expected format
           return {
             id: user.id.toString(),
@@ -57,22 +56,24 @@ export const authOptions: NextAuthOptions = {
       }
     }),
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role;
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.role = token.role as string;
-        session.user.id = token.id as string;
-      }
-      return session;
-    },
+callbacks: {
+  async jwt({ token, user }) {
+    if (user) {
+      token.role = user.role;
+      token.id = user.id;
+      token.client_id = user.client_id; 
+    }
+    return token;
   },
+  async session({ session, token }) {
+    if (session.user) {
+      session.user.role = token.role as string;
+      session.user.id = token.id as string;
+      session.user.client_id = token.client_id as number
+    }
+    return session;
+  },
+},
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
