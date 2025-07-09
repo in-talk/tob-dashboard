@@ -14,6 +14,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        console.log("Incoming credentials:", credentials);
         try {
 
           if (!credentials?.email || !credentials?.password) {
@@ -40,7 +41,8 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Invalid password");
           }
 
-          
+          console.log("Auth successful, returning user");
+
           // Return user data in the expected format
           return {
             id: user.id.toString(),
@@ -56,30 +58,30 @@ export const authOptions: NextAuthOptions = {
       }
     }),
   ],
-callbacks: {
-  async jwt({ token, user }) {
-    if (user) {
-      token.role = user.role;
-      token.id = user.id;
-      token.client_id = user.client_id; 
-    }
-    return token;
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = user.role;
+        token.id = user.id;
+        token.client_id = user.client_id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.role = token.role as string;
+        session.user.id = token.id as string;
+        session.user.client_id = token.client_id as number
+      }
+      return session;
+    },
   },
-  async session({ session, token }) {
-    if (session.user) {
-      session.user.role = token.role as string;
-      session.user.id = token.id as string;
-      session.user.client_id = token.client_id as number
-    }
-    return session;
-  },
-},
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  debug: process.env.NODE_ENV === "development",
+  debug: true,
   pages: {
     signIn: "/signin",
     error: "/unauthorize",
