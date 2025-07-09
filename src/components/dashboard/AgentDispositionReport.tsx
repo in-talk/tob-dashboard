@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useTheme } from "next-themes";
@@ -18,7 +20,6 @@ const AgentDispositionReport = ({
       selector: (row: AgentReportRow) => row.agentName,
       sortable: true,
       width: "120px",
-      center: true,
       cell: (row: AgentReportRow) => (
         <span className="capitalize text-md font-bold"> {row.agentName}</span>
       ),
@@ -28,7 +29,6 @@ const AgentDispositionReport = ({
       selector: (row: AgentReportRow) => row.totalCalls,
       sortable: true,
       width: "120px",
-      center: true,
       cell: (row: AgentReportRow) => (
         <span className="text-md font-bold">{row.totalCalls}</span>
       ),
@@ -42,7 +42,7 @@ const AgentDispositionReport = ({
         return (
           <span className="text-md">
             {row.xfer.count} -{" "}
-            <span className="font-bold text-blue-500 ">
+            <span className="font-bold text-green-500 ">
               ({row.xfer.percentage}%)
             </span>{" "}
           </span>
@@ -54,12 +54,11 @@ const AgentDispositionReport = ({
       selector: (row: AgentReportRow) => row.dnc.count,
       sortable: true,
       width: "100px",
-      center: true,
       cell: (row: AgentReportRow) => {
         return (
           <span className="text-md">
             {row.dnc.count} -{" "}
-            <span className="font-bold text-purple-500">
+            <span className="font-bold text-red-500">
               ({row.dnc.percentage}%)
             </span>{" "}
           </span>
@@ -71,12 +70,11 @@ const AgentDispositionReport = ({
       selector: (row: AgentReportRow) => row.ni.count,
       sortable: true,
       width: "120px",
-      center: true,
       cell: (row: AgentReportRow) => {
         return (
           <span className="text-md">
             {row.ni.count} -{" "}
-            <span className="font-bold text-yellow-500">
+            <span className="font-bold text-red-500">
               ({row.ni.percentage}%)
             </span>{" "}
           </span>
@@ -88,12 +86,13 @@ const AgentDispositionReport = ({
       selector: (row: AgentReportRow) => row.cb.count,
       sortable: false,
       width: "120px",
-      center: true,
       cell: (row: AgentReportRow) => {
         return (
           <span className="text-md">
             {row.cb.count} -{" "}
-            <span className="font-bold ">({row.cb.percentage}%)</span>{" "}
+            <span className="font-bold text-red-500 ">
+              ({row.cb.percentage}%)
+            </span>{" "}
           </span>
         );
       },
@@ -103,7 +102,6 @@ const AgentDispositionReport = ({
       selector: (row: AgentReportRow) => row.dc.count,
       sortable: true,
       width: "120px",
-      center: true,
       cell: (row: AgentReportRow) => {
         return (
           <span className="text-md">
@@ -125,7 +123,7 @@ const AgentDispositionReport = ({
         return (
           <span className="text-md">
             {row.dair.count} -{" "}
-            <span className="font-bold text-green-500">
+            <span className="font-bold text-red-500">
               ({row.dair.percentage}%)
             </span>{" "}
           </span>
@@ -141,7 +139,7 @@ const AgentDispositionReport = ({
         return (
           <span className="text-md">
             {row.ri.count} -{" "}
-            <span className="font-bold text-orange-400">
+            <span className="font-bold text-red-500">
               ({row.ri.percentage}%)
             </span>{" "}
           </span>
@@ -157,7 +155,7 @@ const AgentDispositionReport = ({
         return (
           <span className="text-md">
             {row.other.count} -{" "}
-            <span className="font-bold text-pink-300">
+            <span className="font-bold text-red-500">
               ({row.other.percentage}%)
             </span>{" "}
           </span>
@@ -193,6 +191,7 @@ const AgentDispositionReport = ({
         fontWeight: "600",
         fontSize: "11px",
         textTransform: "uppercase" as const,
+        justifyContent: "center" as const,
       },
     },
     cells: {
@@ -200,6 +199,7 @@ const AgentDispositionReport = ({
         paddingLeft: "12px",
         paddingRight: "12px",
         fontSize: "13px",
+        justifyContent: "center" as const,
       },
     },
   };

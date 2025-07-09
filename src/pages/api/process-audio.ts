@@ -70,8 +70,7 @@ const processAudioFile = async (
   } catch (error) {
     console.error(`Error processing ${originalFilename}:`, error);
     throw new Error(
-      `Failed to process ${originalFilename}: ${
-        error instanceof Error ? error.message : "Unknown error"
+      `Failed to process ${originalFilename}: ${error instanceof Error ? error.message : "Unknown error"
       }`
     );
   }

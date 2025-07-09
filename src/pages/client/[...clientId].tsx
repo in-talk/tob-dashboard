@@ -1,23 +1,17 @@
-import AdminDashboard from "@/components/AdminDashboard";
-// import AgentDispositionReport from "@/components/dashboard/AgentDispositionReport";
-// import CallDataTable from "@/components/dashboard/CallDataTable";
-import DispositionChart from "@/components/dashboard/DispositionChart";
+// import DispositionChart from "@/components/dashboard/DispositionChart";
 import { CallRecord } from "@/types/callRecord";
-// import GaugeChart from "@/components/dashboard/GaugeChart";
 import { withAuth } from "@/utils/auth";
 import { AgentReportRow, transformAgentData } from "@/utils/transformAgentData";
 import { GetServerSideProps } from "next";
-import { getSession, useSession } from "next-auth/react";
+import { getSession } from "next-auth/react";
 import dynamic from "next/dynamic";
-import Head from "next/head";
-interface HomeProps {
+
+interface CallsPageProps {
   callRecords: CallRecord[];
   agentReport: AgentReportRow[];
 }
 
-export default function Home({ callRecords, agentReport }: HomeProps) {
-  const { data: session } = useSession();
-
+const ClientPage = ({ callRecords, agentReport }: CallsPageProps) => {
   const CallDataTable = dynamic(
     () => import("@/components/dashboard/CallDataTable"),
     {
@@ -30,35 +24,22 @@ export default function Home({ callRecords, agentReport }: HomeProps) {
       ssr: false,
     }
   );
-
   return (
     <>
-      <Head>
-        <title>InTalk Dashboard - Smart Customer Service Management</title>
-      </Head>
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <h1 className="text-4xl font-bold capitalize">Dashboard</h1>
-
-        {session?.user.role === "admin" ? (
-          <AdminDashboard />
-        ) : (
-          <>
-            <CallDataTable callRecords={callRecords} />
-            <div className="w-full">
+      <CallDataTable callRecords={callRecords} />
+      {/* <div className="w-full">
               <DispositionChart />
-            </div>
-            <div className="w-full">
-              <AgentDispositionReport agentReport={agentReport} />
-            </div>
-            {/* <div className="w-full">
+            </div> */}
+      <div className="w-full">
+        <AgentDispositionReport agentReport={agentReport} />
+      </div>
+      {/* <div className="w-full">
           <GaugeChart />
         </div> */}
-          </>
-        )}
-      </div>
     </>
   );
-}
+};
+export default ClientPage;
 
 export const getServerSideProps: GetServerSideProps = withAuth(
   async (context) => {
@@ -73,18 +54,9 @@ export const getServerSideProps: GetServerSideProps = withAuth(
       };
     }
 
-    const { role, client_id } = session.user;
+    const { client_id } = session.user;
 
-    if (role === "admin") {
-      return {
-        props: {
-          callRecords: [],
-          agentReport: [],
-        },
-      };
-    }
-
-    if (role === "user" && !client_id) {
+    if (!client_id) {
       return {
         redirect: {
           destination: "/signin",

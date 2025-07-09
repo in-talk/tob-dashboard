@@ -3,7 +3,7 @@ import {
   Atom,
   LayoutDashboard,
   ChartArea,
-  AudioLines,
+  AudioLines
 } from "lucide-react";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
@@ -30,7 +30,7 @@ const data = {
   ],
   projects: [
     {
-      name: "Home",
+      name: "Dashboard",
       url: "/",
       icon: ChartArea,
     },
