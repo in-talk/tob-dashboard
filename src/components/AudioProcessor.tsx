@@ -1,47 +1,57 @@
 // components/AudioProcessor.tsx
 
-import React, { useState, useCallback, useRef } from 'react';
-import { Upload, X, AlertCircle, CheckCircle } from 'lucide-react';
-import type { AudioFile, ProcessingStatus } from '../types/audio';
-import { generateUniqueId, formatFileSize, getStatusClasses, validateAudioFile } from '../utils/audioProcessing';
+import React, { useState, useCallback, useRef } from "react";
+import { Upload, X, AlertCircle, CheckCircle } from "lucide-react";
+import type { AudioFile, ProcessingStatus } from "../types/audio";
+import {
+  generateUniqueId,
+  formatFileSize,
+  getStatusClasses,
+  validateAudioFile,
+} from "../utils/audioProcessing";
 
 const AudioProcessor: React.FC = () => {
   const [files, setFiles] = useState<AudioFile[]>([]);
   const [status, setStatus] = useState<ProcessingStatus>({
-    message: '',
-    type: 'idle'
+    message: "",
+    type: "idle",
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    let uploadedFiles: FileList | null = null;
+  const handleFileUpload = useCallback(
+    (
+      e: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>
+    ) => {
+      e.preventDefault();
+      let uploadedFiles: FileList | null = null;
 
-    if ('dataTransfer' in e) {
-      uploadedFiles = e.dataTransfer.files;
-    } else if ('target' in e && e.target instanceof HTMLInputElement) {
-      uploadedFiles = e.target.files;
-    }
+      if ("dataTransfer" in e) {
+        uploadedFiles = e.dataTransfer.files;
+      } else if ("target" in e && e.target instanceof HTMLInputElement) {
+        uploadedFiles = e.target.files;
+      }
 
-    if (!uploadedFiles?.length) return;
+      if (!uploadedFiles?.length) return;
 
-    const newFiles = Array.from(uploadedFiles).map(file => {
-      const error = validateAudioFile(file);
-      return {
-        file,
-        id: generateUniqueId(),
-        status: error ? 'error' : 'pending',
-        error
-      };
-    });
+      const newFiles: AudioFile[] = Array.from(uploadedFiles).map((file) => {
+        const error = validateAudioFile(file);
+        return {
+          file,
+          id: generateUniqueId(),
+          status: error ? "error" : "pending",
+          error: error || undefined,
+        };
+      });
 
-    setFiles(prev => [...prev, ...newFiles]);
-    setStatus({
-      message: `${newFiles.length} files added`,
-      type: 'success'
-    });
-  }, []);
+      setFiles((prev) => [...prev, ...newFiles]);
+      setStatus({
+        message: `${newFiles.length} files added`,
+        type: "success",
+      });
+    },
+    []
+  );
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -49,7 +59,7 @@ const AudioProcessor: React.FC = () => {
   }, []);
 
   const removeFile = useCallback((id: string) => {
-    setFiles(prev => prev.filter(file => file.id !== id));
+    setFiles((prev) => prev.filter((file) => file.id !== id));
   }, []);
 
   const processFiles = async () => {
@@ -57,18 +67,18 @@ const AudioProcessor: React.FC = () => {
 
     setIsProcessing(true);
     setStatus({
-      message: 'Processing files...',
-      type: 'processing'
+      message: "Processing files...",
+      type: "processing",
     });
 
     const formData = new FormData();
     files.forEach(({ file }) => {
-      formData.append('files', file);
+      formData.append("files", file);
     });
 
     try {
-      const response = await fetch('/api/process-audio', {
-        method: 'POST',
+      const response = await fetch("/api/process-audio", {
+        method: "POST",
         body: formData,
       });
 
@@ -78,23 +88,25 @@ const AudioProcessor: React.FC = () => {
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', 'processed_audio.zip');
+      link.setAttribute("download", "processed_audio.zip");
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
 
       setStatus({
-        message: 'Processing complete! Files downloaded.',
-        type: 'success'
+        message: "Processing complete! Files downloaded.",
+        type: "success",
       });
       setFiles([]);
     } catch (error) {
       setStatus({
-        message: `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`,
-        type: 'error'
+        message: `Error: ${
+          error instanceof Error ? error.message : "Unknown error occurred"
+        }`,
+        type: "error",
       });
     } finally {
       setIsProcessing(false);
@@ -103,9 +115,9 @@ const AudioProcessor: React.FC = () => {
 
   const handleReset = () => {
     setFiles([]);
-    setStatus({ message: '', type: 'idle' });
+    setStatus({ message: "", type: "idle" });
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -162,9 +174,9 @@ const AudioProcessor: React.FC = () => {
                   className="flex items-center justify-between p-3 bg-white rounded-lg border"
                 >
                   <div className="flex items-center space-x-3">
-                    {fileStatus === 'error' ? (
+                    {fileStatus === "error" ? (
                       <AlertCircle className="text-red-500" size={20} />
-                    ) : fileStatus === 'completed' ? (
+                    ) : fileStatus === "completed" ? (
                       <CheckCircle className="text-green-500" size={20} />
                     ) : null}
                     <div>
@@ -191,18 +203,29 @@ const AudioProcessor: React.FC = () => {
 
         <button
           onClick={processFiles}
-          disabled={isProcessing || files.length === 0 || files.some(f => f.status === 'error')}
+          disabled={
+            isProcessing ||
+            files.length === 0 ||
+            files.some((f) => f.status === "error")
+          }
           className={`w-full py-3 px-4 rounded-md text-white font-medium transition-colors
-            ${isProcessing || files.length === 0 || files.some(f => f.status === 'error')
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-500 hover:bg-blue-600'
+            ${
+              isProcessing ||
+              files.length === 0 ||
+              files.some((f) => f.status === "error")
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-500 hover:bg-blue-600"
             }`}
         >
-          {isProcessing ? 'Processing...' : 'Process and Download'}
+          {isProcessing ? "Processing..." : "Process and Download"}
         </button>
 
         {status.message && (
-          <div className={`mt-4 p-4 rounded-md border ${getStatusClasses(status.type)}`}>
+          <div
+            className={`mt-4 p-4 rounded-md border ${getStatusClasses(
+              status.type
+            )}`}
+          >
             <p className="text-sm">{status.message}</p>
           </div>
         )}
