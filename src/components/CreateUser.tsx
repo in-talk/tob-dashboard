@@ -31,7 +31,7 @@ export default function CreateUser() {
   } = useForm<CreateUserFormValues>();
 
   const [message, setMessage] = useState<string | null>(null);
-  const selectedRole = watch("role"); 
+  const selectedRole = watch("role");
 
   const onSubmit = async (data: CreateUserFormValues) => {
     setMessage(null);
@@ -55,10 +55,11 @@ export default function CreateUser() {
   };
 
   return (
-    <Dialog >
+    <Dialog>
       <DialogTrigger className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0">
-        <Edit2Icon />
-        <span className="text-sm">Create User</span>
+        <span className="px-5 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-300 flex items-center gap-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)]">
+          <Edit2Icon /> Create User
+        </span>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-white dark:bg-sidebar">
         <DialogHeader>
@@ -127,7 +128,9 @@ export default function CreateUser() {
               <label className="block text-sm font-medium">Client Id</label>
               <input
                 type="text"
-                {...register("client_id", { required: "Client ID is required" })}
+                {...register("client_id", {
+                  required: "Client ID is required",
+                })}
                 className="mt-1 p-2 w-full border bg-transparent rounded  dark:border-white"
               />
               {errors.name && (
@@ -138,8 +141,8 @@ export default function CreateUser() {
 
           <Button
             type="submit"
-            variant='outline'
-            className="w-full bg-[#3b65f5] text-dark dark:text-white p-2 rounded mt-2"
+            variant="outline"
+            className="w-full bg-[#3b65f5] rounded-lg text-dark dark:text-white p-2  mt-2"
             disabled={isSubmitting}
           >
             {isSubmitting ? (

@@ -1,12 +1,41 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 
 export default function AudioPlayer({ audioUrl }: { audioUrl: string | null }) {
-  const audioRef = useRef(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    const audio = audioRef.current;
+
+    const handleCanPlay = () => setLoading(false);
+    const handleError = () => setLoading(false); // still hide loader on error
+
+    audio.addEventListener("canplaythrough", handleCanPlay);
+    audio.addEventListener("error", handleError);
+
+    return () => {
+      audio.removeEventListener("canplaythrough", handleCanPlay);
+      audio.removeEventListener("error", handleError);
+    };
+  }, [audioUrl]);
 
   if (!audioUrl) return <div>No audio available</div>;
+
   return (
-    <div className="w-full">
-      <audio ref={audioRef} controls preload="metadata" className="w-full">
+    <div className="w-full relative">
+      {loading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center dark:border-gray-700 backdrop-blur-sm rounded">
+          <div className="animate-spin h-6 w-6 border-4 border-indigo-500 border-t-transparent rounded-full" />
+        </div>
+      )}
+      <audio
+        ref={audioRef}
+        controls
+        preload="metadata"
+        className={`w-full ${loading ? "opacity-50 pointer-events-none" : ""}`}
+      >
         <source src={audioUrl} type="audio/mpeg" />
         <source src={audioUrl} type="audio/wav" />
         <source src={audioUrl} type="audio/mp3" />

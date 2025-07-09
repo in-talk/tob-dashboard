@@ -1,12 +1,15 @@
+"use client";
+
 import React, { useState, useMemo } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useTheme } from "next-themes";
 import { Search, Filter, Download, Phone, User } from "lucide-react";
 import { CallRecord } from "@/types/callRecord";
-import { getSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { formatCallDuration } from "@/utils/formatCallDuration";
 import AudioPlayer from "../AudioPlayer";
 import { generateAudioUrl } from "@/utils/WasabiClient";
+import { formatDateTime } from "@/utils/formatDateTime";
 
 const dispositionColors: Record<string, string> = {
   XFER: "bg-blue-100 text-blue-800",
@@ -32,13 +35,17 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
   const { theme } = useTheme();
   const dispositions = [...new Set(data.map((item) => item.disposition))];
   const [callsLoading, setCallsLoading] = useState(false);
+  const { data: session } = useSession();
 
   const fetchCallRecords = async (page: number) => {
     try {
       setCallsLoading(true);
-
-      const session = await getSession();
       const client_id = session?.user?.client_id;
+
+      if (!client_id) {
+        setCallsLoading(false);
+        return null;
+      }
 
       const res = await fetch("/api/fetchCallRecords", {
         method: "POST",
@@ -101,45 +108,46 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
     setToggleCleared(!toggleCleared);
     setSelectedRows([]);
   };
+
   const columns: TableColumn<CallRecord>[] = [
     {
       name: "Call Id",
       selector: (row: CallRecord) => row.call_id,
       sortable: true,
-      width: "150px",
-      center: true,
+      width: "110px",
     },
     {
-      name: "Call Duration",
+      name: "D",
       selector: (row: CallRecord) => row.call_duration?.minutes,
       sortable: true,
-      width: "150px",
-      center: true,
+      width: "70px",
       cell: (row: CallRecord) => {
-        const callDuration = formatCallDuration(row.call_duration);
-        return <span title={callDuration}>{callDuration}</span>;
+        const callDuration = formatCallDuration(row?.call_duration);
+        return <span>{callDuration || "-"}</span>;
       },
     },
     {
-      name: "Status",
-      selector: (row: CallRecord) => row.call_status,
+      name: "Created at",
+      selector: (row: CallRecord) => row.created_at,
       sortable: true,
-      width: "100px",
+      width: "200px",
+      cell: (row: CallRecord) => {
+        const createdAt = formatDateTime(row.created_at);
+        return <span>{createdAt || "-"}</span>;
+      },
     },
     {
       name: "T",
       selector: (row: CallRecord) => row.turn || 0,
       sortable: true,
       width: "50px",
-      center: true,
-      cell: (row: CallRecord) => row.turn,
+      cell: (row: CallRecord) => row.turn || -1,
     },
     {
       name: "Disposition",
       selector: (row: CallRecord) => row.disposition,
       sortable: true,
       width: "110px",
-      center: true,
       cell: (row: CallRecord) => (
         <span
           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getDispositionColor(
@@ -147,7 +155,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
           )}`}
           title={row.disposition}
         >
-          {row.disposition}
+          {row.disposition || "N/A"}
         </span>
       ),
     },
@@ -156,7 +164,6 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
       selector: (row: CallRecord) => row.call_recording_path,
       sortable: false,
       width: "300px",
-      center: true,
       cell: (row: CallRecord) => {
         const audioUrl = generateAudioUrl(row.call_recording_path);
         return <AudioPlayer audioUrl={audioUrl} />;
@@ -167,8 +174,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
       selector: (row: CallRecord) => row.label || 0,
       sortable: true,
       width: "100px",
-      center: true,
-      cell: (row: CallRecord) => row.label,
+      cell: (row: CallRecord) => row.label || "N/A",
     },
 
     {
@@ -178,12 +184,23 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
       width: "100px",
       cell: (row: CallRecord) => (
         <span className="capitalize" title={row.agent}>
-          {row.agent || "-"}
+          {row.agent || "N/A"}
         </span>
       ),
     },
   ];
 
+  if (session?.user?.role === "admin") {
+    columns.push({
+      name: "Transcription",
+      selector: (row: CallRecord) => row.transcription,
+      sortable: true,
+      width: "100px",
+      cell: (row: CallRecord) => (
+        <span title={row.transcription}>{row.transcription}</span>
+      ),
+    });
+  }
   const customStyles = {
     table: {
       style: {
@@ -211,6 +228,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
         fontWeight: "600",
         fontSize: "11px",
         textTransform: "uppercase" as const,
+        justifyContent: "center" as const,
       },
     },
     cells: {
@@ -218,6 +236,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
         paddingLeft: "12px",
         paddingRight: "12px",
         fontSize: "13px",
+        justifyContent: "center" as const,
       },
     },
   };
@@ -235,7 +254,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
     <div className="p-6 bg-light dark:bg-sidebar min-h-screen">
       <div className="max-w-full mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">Call Detail Records</h1>
+          <h1 className="text-2xl font-bold mb-2">Call Records</h1>
         </div>
 
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -313,7 +332,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
 
         {/* Data Table */}
         <div className="bg-light dark:bg-sidebar border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
-          <div className="w-full overflow-x-auto max-w-[100vw]">
+          <div className="w-full overflow-auto max-w-[100vw] ">
             <div>
               <DataTable
                 title="Call Records"

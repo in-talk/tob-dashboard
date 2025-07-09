@@ -2,11 +2,12 @@ export const formatCallDuration = (interval: {
   minutes?: number;
   seconds?: number;
 }) => {
-  const {  minutes = 0, seconds = 0 } = interval;
-  const parts = [];
+  if (!interval) return "00:00";
 
-  if (minutes > 0) parts.push(`${minutes} min`);
-  if (seconds > 0 || parts.length === 0) parts.push(`${seconds} sec`);
+  const { minutes = 0, seconds = 0 } = interval;
 
-  return parts.join(' ');
+  const paddedMinutes = String(minutes).padStart(2, '0');
+  const paddedSeconds = String(seconds).padStart(2, '0');
+
+  return `${paddedMinutes}:${paddedSeconds}`;
 };
