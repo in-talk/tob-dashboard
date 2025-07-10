@@ -88,7 +88,6 @@ export const reducer = (state: State, action: Action): State => {
       };
 
     case actionTypes.DISMISS_TOAST: {
-      // ✅ Fixed: was UPDATE_TOAST
       const { toastId } = action;
 
       if (toastId) {
@@ -111,8 +110,7 @@ export const reducer = (state: State, action: Action): State => {
         ),
       };
     }
-
-    case actionTypes.REMOVE_TOAST: // ✅ Fixed: now uses actionTypes
+    case actionTypes.REMOVE_TOAST:
       if (action.toastId === undefined) {
         return {
           ...state,
@@ -123,9 +121,6 @@ export const reducer = (state: State, action: Action): State => {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.toastId),
       };
-
-    default:
-      return state;
   }
 };
 

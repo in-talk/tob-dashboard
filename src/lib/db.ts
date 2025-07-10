@@ -1,7 +1,7 @@
 import { Pool } from "pg";
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.POSTGRESDATABASE_URL,
   ssl:
     process.env.NODE_ENV === "production"
       ? { rejectUnauthorized: false }
@@ -11,6 +11,7 @@ const pool = new Pool({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function query(text: string, params: any[] = []) {
   const res = await pool.query(text, params);
+  console.log("DB Query response", res);
   return res;
 }
 
