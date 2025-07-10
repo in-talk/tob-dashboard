@@ -3,8 +3,6 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import db from "@/lib/db"; // Use our database utility instead of Prisma
 
-
-
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -16,7 +14,6 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         console.log("Incoming credentials:", credentials);
         if (!credentials?.email || !credentials?.password) {
-
           throw new Error("Missing email or password");
         }
         try {
@@ -24,12 +21,11 @@ export const authOptions: NextAuthOptions = {
 
           console.log(" Querying user from DB");
           const result = await db.query(
-            'SELECT * FROM users WHERE email = $1',
+            "SELECT * FROM users WHERE email = $1",
             [email.toLowerCase()]
           );
           console.log(" Query successfull");
           const user = result.rows[0];
-
 
           if (!user) {
             throw new Error("Email not found");
@@ -49,13 +45,13 @@ export const authOptions: NextAuthOptions = {
             name: user.name || "",
             email: user.email,
             role: user.role || "user",
-            client_id: user.client_id || null
+            client_id: user.client_id || null,
           };
         } catch (error) {
           console.error("Authentication error:", error);
           return null;
         }
-      }
+      },
     }),
   ],
   callbacks: {
@@ -71,7 +67,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.role = token.role as string;
         session.user.id = token.id as string;
-        session.user.client_id = token.client_id as number
+        session.user.client_id = token.client_id as number;
       }
       return session;
     },

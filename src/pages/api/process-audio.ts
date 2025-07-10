@@ -51,7 +51,7 @@ const processAudioFile = async (
 
       console.log("Executing piped command:", command);
 
-      const { stdout, stderr } = await execAsync(command);
+      const { stderr } = await execAsync(command);
       if (stderr) {
         console.warn("Sox warning:", stderr);
       }
@@ -60,7 +60,7 @@ const processAudioFile = async (
       const command = `sox "${inputPath}" -r 8000 -c 1 -b 16 "${outputPath}"`;
       console.log("Converting without background:", command);
 
-      const { stdout, stderr } = await execAsync(command);
+      const { stderr } = await execAsync(command);
       if (stderr) {
         console.warn("Sox warning:", stderr);
       }
@@ -70,7 +70,8 @@ const processAudioFile = async (
   } catch (error) {
     console.error(`Error processing ${originalFilename}:`, error);
     throw new Error(
-      `Failed to process ${originalFilename}: ${error instanceof Error ? error.message : "Unknown error"
+      `Failed to process ${originalFilename}: ${
+        error instanceof Error ? error.message : "Unknown error"
       }`
     );
   }
@@ -184,8 +185,8 @@ export default async function handler(
       zlib: { level: 9 },
     });
 
-    await new Promise((resolve, reject) => {
-      output.on("close", resolve);
+    await new Promise<void>((resolve, reject) => {
+      output.on("close", () => resolve()); // Call resolve() with no arguments
       archive.on("error", reject);
       archive.pipe(output);
 
