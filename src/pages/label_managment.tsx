@@ -21,4 +21,4 @@ export default function LabelManagment() {
 
 export const getServerSideProps: GetServerSideProps = withAuth(async () => {
   return { props: {} };
-}, ["admin", "user"]);
+}, ["admin"]);

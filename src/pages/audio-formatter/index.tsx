@@ -7,4 +7,4 @@ export default function AudioProcessorPage() {
 
 export const getServerSideProps: GetServerSideProps = withAuth(async () => {
   return { props: {} };
-}, ["admin", "superAdmin",'user']);
+}, ["admin", "superAdmin"]);

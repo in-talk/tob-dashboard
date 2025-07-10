@@ -12,34 +12,27 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log("Incoming credentials:", credentials);
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Missing email or password");
         }
         try {
           const { email, password } = credentials;
 
-          console.log(" Querying user from DB");
           const result = await db.query(
             "SELECT * FROM users WHERE email = $1",
             [email.toLowerCase()]
           );
-          console.log(" Query successfull");
+
           const user = result.rows[0];
 
           if (!user) {
             throw new Error("Email not found");
           }
-          console.log(" password comparing ");
           const isValid = await compare(password, user.password);
-          console.log(" password compare", isValid);
           if (!isValid) {
             throw new Error("Invalid password");
           }
 
-          console.log("Auth successful, returning user");
-
-          // Return user data in the expected format
           return {
             id: user.id.toString(),
             name: user.name || "",

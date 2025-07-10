@@ -1,23 +1,28 @@
-import AdminDashboard from "@/components/AdminDashboard";
-// import AgentDispositionReport from "@/components/dashboard/AgentDispositionReport";
-// import CallDataTable from "@/components/dashboard/CallDataTable";
 import DispositionChart from "@/components/dashboard/DispositionChart";
 import { CallRecord } from "@/types/callRecord";
 // import GaugeChart from "@/components/dashboard/GaugeChart";
 import { withAuth } from "@/utils/auth";
 import { AgentReportRow, transformAgentData } from "@/utils/transformAgentData";
+import {
+  DispositionGraph,
+  transformGraphData,
+} from "@/utils/transformGraphData";
 import { GetServerSideProps } from "next";
 import { getSession, useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import Head from "next/head";
 interface HomeProps {
   callRecords: CallRecord[];
+  dispositionChartData: DispositionGraph[];
   agentReport: AgentReportRow[];
 }
 
-export default function Home({ callRecords, agentReport }: HomeProps) {
+export default function Home({
+  callRecords,
+  dispositionChartData,
+  agentReport,
+}: HomeProps) {
   const { data: session } = useSession();
-
   const CallDataTable = dynamic(
     () => import("@/components/dashboard/CallDataTable"),
     {
@@ -37,24 +42,22 @@ export default function Home({ callRecords, agentReport }: HomeProps) {
         <title>InTalk Dashboard - Smart Customer Service Management</title>
       </Head>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <h1 className="text-4xl font-bold capitalize">Dashboard</h1>
+        <h1 className="text-4xl font-bold capitalize">
+          {session?.user.role} Dashboard
+        </h1>
+        <div>
+          <div className="w-full">
+            <DispositionChart dispositionChartData={dispositionChartData} />
+          </div>
+          <CallDataTable callRecords={callRecords} />
 
-        {session?.user.role === "admin" ? (
-          <AdminDashboard />
-        ) : (
-          <>
-            <CallDataTable callRecords={callRecords} />
-            <div className="w-full">
-              <DispositionChart />
-            </div>
-            <div className="w-full">
-              <AgentDispositionReport agentReport={agentReport} />
-            </div>
-            {/* <div className="w-full">
+          <div className="w-full">
+            <AgentDispositionReport agentReport={agentReport} />
+          </div>
+          {/* <div className="w-full">
           <GaugeChart />
         </div> */}
-          </>
-        )}
+        </div>
       </div>
     </>
   );
@@ -75,15 +78,6 @@ export const getServerSideProps: GetServerSideProps = withAuth(
 
     const { role, client_id } = session.user;
 
-    if (role === "admin") {
-      return {
-        props: {
-          callRecords: [],
-          agentReport: [],
-        },
-      };
-    }
-
     if (role === "user" && !client_id) {
       return {
         redirect: {
@@ -94,7 +88,7 @@ export const getServerSideProps: GetServerSideProps = withAuth(
     }
 
     try {
-      const [callRes, agentRes] = await Promise.all([
+      const [callRes, graphDataRes, agentRes] = await Promise.all([
         fetch(`${process.env.BASE_URL}/api/fetchCallRecords`, {
           method: "POST",
           headers: {
@@ -105,6 +99,16 @@ export const getServerSideProps: GetServerSideProps = withAuth(
             page: 1,
             num_of_records: 10,
             caller_id: null,
+          }),
+        }),
+        fetch(`${process.env.BASE_URL}/api/fetchDispositionGraphData`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+          },
+          body: JSON.stringify({
+            client_id,
           }),
         }),
         fetch(`${process.env.BASE_URL}/api/fetchAgentReport`, {
@@ -118,13 +122,19 @@ export const getServerSideProps: GetServerSideProps = withAuth(
         }),
       ]);
 
-      const [callResult, agentResult] = await Promise.all([
+      const [callResult, graphDataResult, agentResult] = await Promise.all([
         callRes.json(),
+        graphDataRes.json(),
         agentRes.json(),
       ]);
 
       if (!callRes.ok) {
         throw new Error(callResult.error || "Failed to fetch call records");
+      }
+      if (!graphDataRes.ok) {
+        throw new Error(
+          callResult.error || "Failed to fetch dispostion graph data"
+        );
       }
 
       if (!agentRes.ok) {
@@ -134,6 +144,9 @@ export const getServerSideProps: GetServerSideProps = withAuth(
       return {
         props: {
           callRecords: callResult.callRecords || [],
+          dispositionChartData: transformGraphData(
+            graphDataResult.graphData || []
+          ),
           agentReport: transformAgentData(agentResult?.agentRecords || []),
         },
       };
@@ -143,6 +156,7 @@ export const getServerSideProps: GetServerSideProps = withAuth(
       return {
         props: {
           callRecords: [],
+          dispositionChartData: [],
           agentReport: [],
         },
       };

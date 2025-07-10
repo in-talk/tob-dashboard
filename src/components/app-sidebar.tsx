@@ -3,7 +3,8 @@ import {
   Atom,
   LayoutDashboard,
   ChartArea,
-  AudioLines
+  AudioLines,
+  User,
 } from "lucide-react";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
@@ -15,6 +16,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { ClientSwitcher } from "./client-switcher";
+import { useSession } from "next-auth/react";
 
 const data = {
   user: {
@@ -35,6 +37,11 @@ const data = {
       icon: ChartArea,
     },
     {
+      name: "Users",
+      url: "/users",
+      icon: User,
+    },
+    {
       name: "Label Managment",
       url: "/label_managment",
       icon: LayoutDashboard,
@@ -48,13 +55,26 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { data: session } = useSession();
+
+  const userRole = session?.user?.role;
+
+  const filteredProjects = data.projects.filter((project) => {
+    if (userRole === "user") {
+      return !["/users", "/label_managment", "/audio-formatter"].includes(
+        project.url
+      );
+    }
+    return true;
+  });
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <ClientSwitcher clients={data.clients} />
       </SidebarHeader>
       <SidebarContent>
-        <NavProjects projects={data.projects} />
+        <NavProjects projects={filteredProjects} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

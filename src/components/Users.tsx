@@ -7,7 +7,7 @@ import CreateUser from "./CreateUser";
 import { cn } from "@/lib/utils";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
-function AdminDashboard() {
+function Users() {
   const {
     data: users,
     error,
@@ -110,4 +110,4 @@ function AdminDashboard() {
   );
 }
 
-export default AdminDashboard;
+export default Users;
