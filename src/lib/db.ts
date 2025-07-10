@@ -8,7 +8,7 @@ const pool = new Pool({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function query(text: string, params: any[] = []) {
   const res = await pool.query(text, params);
-  
+  console.log('DB Query response',res)
   return res;
 }
 
