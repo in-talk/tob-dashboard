@@ -24,7 +24,6 @@ export default async function handler(
       `SELECT * FROM get_disposition_by_intervals($1, $2, $3, $4);`,
       [client_id, from_date, to_date, interval]
     );
-    console.log("graphData", result.rows);
     res.status(200).json({
       graphData: result.rows || result,
     });

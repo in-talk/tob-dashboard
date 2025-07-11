@@ -1,4 +1,5 @@
 import DispositionChart from "@/components/dashboard/DispositionChart";
+import Stats from "@/components/dashboard/Stats";
 import { CallRecord } from "@/types/callRecord";
 import { withAuth } from "@/utils/auth";
 import { AgentReportRow, transformAgentData } from "@/utils/transformAgentData";
@@ -33,13 +34,24 @@ const ClientPage = ({
       ssr: false,
     }
   );
+  const totalAgents = new Set(
+    callRecords?.map((call) => call.agent).filter(Boolean)
+  ).size;
 
   return (
     <>
       <div className="w-full">
+        <Stats
+          totalCalls={callRecords[0].total_records}
+          totalAgents={totalAgents}
+        />
+      </div>
+      <div className="w-full">
         <DispositionChart dispositionChartData={dispositionChartData} />
       </div>
-      <CallDataTable callRecords={callRecords} />
+      <div className="w-full my-6">
+        <CallDataTable callRecords={callRecords} />
+      </div>
 
       <div className="w-full">
         <AgentDispositionReport agentReport={agentReport} />
@@ -94,7 +106,7 @@ export const getServerSideProps: GetServerSideProps = withAuth(
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-               "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache",
           },
           body: JSON.stringify({
             client_id,

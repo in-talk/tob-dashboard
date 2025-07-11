@@ -214,7 +214,7 @@ const AgentDispositionReport = ({
   );
 
   return (
-    <div className="p-6 bg-light dark:bg-sidebar">
+    <div className="p-6 bg-gray-100 dark:bg-sidebar rounded-xl">
       <div className="max-w-full mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold mb-2">Agent Disposition Report</h1>

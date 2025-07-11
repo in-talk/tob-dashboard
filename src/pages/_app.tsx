@@ -21,7 +21,7 @@ import { SessionProvider, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import ThemeToggler from "@/components/ThemeToggler";
 import { ThemeProviders } from "@/theme/ThemeProviders";
-import { CallDataProvider } from "@/context/CallRecordContext";
+// import { CallDataProvider } from "@/context/CallRecordContext";
 import Head from "next/head";
 
 export default function App({
@@ -122,18 +122,18 @@ export function MainLayout({ Component, pageProps }: AppProps) {
               </div>
               <ThemeToggler />
             </header>
-            <CallDataProvider>
+            {/* <CallDataProvider> */}
               <Component {...pageProps} />
-            </CallDataProvider>
+            {/* </CallDataProvider> */}
             <Toaster />
           </SidebarInset>
         </SidebarProvider>
       ) : (
         <div>
           {/* <SimpleHeader /> */}
-          <CallDataProvider>
+          {/* <CallDataProvider> */}
             <Component {...pageProps} />
-          </CallDataProvider>
+          {/* </CallDataProvider> */}
         </div>
       )}
     </>
