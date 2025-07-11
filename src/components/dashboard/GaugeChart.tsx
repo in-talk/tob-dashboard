@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { PieChart, Pie, Cell } from "recharts";
-import { useCallData } from "@/context/CallRecordContext";
+// import { useCallData } from "@/context/CallRecordContext";
 
 interface AgentPerformance {
   name: string;
@@ -10,42 +10,42 @@ interface AgentPerformance {
 }
 
 const GaugeChart = () => {
-  const [agentData, setAgentData] = useState<AgentPerformance[]>([]);
+  const [agentData] = useState<AgentPerformance[]>([]);
 
-  const { callData, loading } = useCallData();
+  // const { callData, loading } = useCallData();
 
-  useEffect(() => {
-    if (!loading && callData) {
-      const grouped: Record<string, { total: number; xfer: number }> = {};
+  // useEffect(() => {
+  //   if (!loading && callData) {
+  //     const grouped: Record<string, { total: number; xfer: number }> = {};
 
-      callData.forEach((row) => {
-        const name = row["agent"];
-        const disposition = row["disposition"]?.trim().toUpperCase();
+  //     callData.forEach((row) => {
+  //       const name = row["agent"];
+  //       const disposition = row["disposition"]?.trim().toUpperCase();
 
-        if (!name) return;
+  //       if (!name) return;
 
-        if (!grouped[name]) {
-          grouped[name] = { total: 0, xfer: 0 };
-        }
+  //       if (!grouped[name]) {
+  //         grouped[name] = { total: 0, xfer: 0 };
+  //       }
 
-        grouped[name].total += 1;
-        if (disposition === "XFER") {
-          grouped[name].xfer += 1;
-        }
-      });
+  //       grouped[name].total += 1;
+  //       if (disposition === "XFER") {
+  //         grouped[name].xfer += 1;
+  //       }
+  //     });
 
-      const result: AgentPerformance[] = Object.entries(grouped).map(
-        ([name, stats]) => ({
-          name,
-          xferPercentage: parseFloat(
-            ((stats.xfer / stats.total) * 100).toFixed(2)
-          ),
-        })
-      );
+  //     const result: AgentPerformance[] = Object.entries(grouped).map(
+  //       ([name, stats]) => ({
+  //         name,
+  //         xferPercentage: parseFloat(
+  //           ((stats.xfer / stats.total) * 100).toFixed(2)
+  //         ),
+  //       })
+  //     );
 
-      setAgentData(result);
-    }
-  }, [callData, loading]);
+  //     setAgentData(result);
+  //   }
+  // }, [callData, loading]);
 
   const COLORS = ["#10b981", "#f3f4f6"];
 

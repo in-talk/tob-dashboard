@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useTheme } from "next-themes";
-import { Search, Filter, Download, Phone, User } from "lucide-react";
+import { Search, Filter, Download, Phone } from "lucide-react";
 import { CallRecord } from "@/types/callRecord";
 import { useSession } from "next-auth/react";
 import { formatCallDuration } from "@/utils/formatCallDuration";
@@ -251,7 +251,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
   );
 
   return (
-    <div className="p-6 bg-light dark:bg-sidebar rounded-xl ">
+    <div className="p-6 bg-gray-100 dark:bg-sidebar rounded-xl ">
       <div className="max-w-full mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold mb-2">Call Records</h1>
@@ -299,7 +299,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
             )}
             <button
               onClick={exportData}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-5 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-300 flex items-center gap-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)]"
             >
               <Download className="w-4 h-4" />
               Export CSV
@@ -307,35 +307,14 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-blue-100 dark:bg-blue-400 p-4 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Phone className="w-5 h-5 text-blue-900" />
-              <span className="text-sm font-medium text-blue-900">
-                Total Calls
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-blue-900">{data.length}</p>
-          </div>
-          <div className="bg-indigo-100  dark:bg-indigo-400 p-4 rounded-lg">
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-indigo-900" />
-              <span className="text-sm font-medium text-indigo-900">
-                Total Agents
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-indigo-900">
-              {new Set(data.map((call) => call.agent).filter(Boolean)).size}
-            </p>
-          </div>
-        </div>
+      
 
         {/* Data Table */}
         <div className="bg-light dark:bg-sidebar border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
           <div className="w-full overflow-auto max-w-[100vw] ">
             <div>
               <DataTable
-                title="Call Records"
+                title=""
                 columns={columns}
                 data={filteredData}
                 progressPending={callsLoading}

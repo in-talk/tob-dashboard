@@ -1,4 +1,5 @@
 import DispositionChart from "@/components/dashboard/DispositionChart";
+import Stats from "@/components/dashboard/Stats";
 import { CallRecord } from "@/types/callRecord";
 // import GaugeChart from "@/components/dashboard/GaugeChart";
 import { withAuth } from "@/utils/auth";
@@ -11,6 +12,7 @@ import { GetServerSideProps } from "next";
 import { getSession, useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import Head from "next/head";
+
 interface HomeProps {
   callRecords: CallRecord[];
   dispositionChartData: DispositionGraph[];
@@ -35,7 +37,9 @@ export default function Home({
       ssr: false,
     }
   );
-
+  const totalAgents = new Set(
+    callRecords?.map((call) => call.agent).filter(Boolean)
+  ).size;
   return (
     <>
       <Head>
@@ -47,10 +51,17 @@ export default function Home({
         </h1>
         <div>
           <div className="w-full">
+            <Stats
+              totalCalls={callRecords[0].total_records}
+              totalAgents={totalAgents}
+            />
+          </div>
+          <div className="w-full">
             <DispositionChart dispositionChartData={dispositionChartData} />
           </div>
-          <CallDataTable callRecords={callRecords} />
-
+          <div className="w-full my-6">
+            <CallDataTable callRecords={callRecords} />
+          </div>
           <div className="w-full">
             <AgentDispositionReport agentReport={agentReport} />
           </div>
