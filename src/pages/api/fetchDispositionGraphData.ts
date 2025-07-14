@@ -9,10 +9,12 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const defaultToDate = new Date().toISOString().split("T")[0];
+
   const {
     client_id,
-    from_date = "2025-06-20",
-    to_date = "2025-07-04",
+    from_date = defaultToDate,
+    to_date = `${defaultToDate} 23:59:59`,
     interval = 120,
   } = req.body;
 

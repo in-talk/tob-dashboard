@@ -1,5 +1,5 @@
 import { AgentReportRow } from "@/utils/transformAgentData";
-import { BellRing, PhoneForwarded, User,Activity, Phone } from "lucide-react";
+import { BellRing, PhoneForwarded, User, Activity, Phone } from "lucide-react";
 import React from "react";
 import CustomLoader from "../ui/CustomLoader";
 
@@ -19,6 +19,7 @@ function Stats({ agentReport, isLoading }: StatsProps) {
       acc.totalXfer += parseInt(agent.xfer.count);
       acc.totalDair += parseInt(agent.dair.count);
       acc.totalRi += parseInt(agent.ri.count);
+      acc.totalA += parseInt(agent.am.count);
       acc.totalOther += parseInt(agent.other.count);
       return acc;
     },
@@ -27,6 +28,7 @@ function Stats({ agentReport, isLoading }: StatsProps) {
       totalXfer: 0,
       totalDair: 0,
       totalRi: 0,
+      totalA: 0,
       totalOther: 0,
     }
   );
@@ -65,9 +67,9 @@ function Stats({ agentReport, isLoading }: StatsProps) {
       textColor: "text-gray-900",
     },
     {
-      label: "Other",
+      label: "A",
       icon: User,
-      value: totals.totalOther,
+      value: totals.totalA,
       bgLight: "bg-cyan-100",
       bgDark: "dark:bg-cyan-400",
       textColor: "text-cyan-900",
