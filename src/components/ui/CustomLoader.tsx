@@ -2,28 +2,12 @@ import React from "react";
 
 function CustomLoader() {
   return (
-    <span className="flex items-center space-x-2">
-      <svg
-        className="animate-spin h-5 w-5 text-white"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <circle
-          className="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth="4"
-        ></circle>
-        <path
-          className="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8v8H4z"
-        ></path>
-      </svg>
-    </span>
+    <div className="flex justify-end items-center ">
+      <div className="relative w-8 h-8">
+        <div className="absolute w-8 h-8 border-4 border-primary rounded-full animate-spin border-t-transparent"></div>
+        <div className="absolute w-8 h-8 borƒder-4 border-primary rounded-full animate-ping opacity-25"></div>
+      </div>
+    </div>
   );
 }
 

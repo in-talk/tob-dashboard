@@ -1,30 +1,39 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import db from "@/lib/db"; // Adjust based on your actual DB wrapper
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method not allowed" });
-    }
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-    const { client_id } = req.body;
+  const defaultToData = new Date().toISOString().split("T")[0];
 
-    if (!client_id) {
-        return res.status(400).json({ error: "client_id is required" });
-    }
+  const {
+    client_id,
+    from_date = "2025-06-20",
+    to_date = defaultToData,
+  } = req.body;
 
-    try {
-        const result = await db.query(
-            `SELECT * FROM get_agent_disposition_report($1);`,
-            [client_id]
-        );
+  if (!client_id) {
+    return res.status(400).json({ error: "client_id is required" });
+  }
 
-        res.status(200).json({
-            agentRecords: result.rows,
-        });
-    } catch (error) {
-        console.error("Error getting records:", error);
+  try {
+    const result = await db.query(
+      `SELECT * FROM get_agent_disposition_report($1,$2, $3);`,
+      [client_id, from_date, to_date]
+    );
+    
+    res.status(200).json({
+      agentRecords: result.rows,
+    });
+  } catch (error) {
+    console.error("Error getting records:", error);
 
-        const message = error instanceof Error ? error.message : "Unknown error";
-        res.status(500).json({ error: message });
-    }
+    const message = error instanceof Error ? error.message : "Unknown error";
+    res.status(500).json({ error: message });
+  }
 }
