@@ -1,10 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useTheme } from "next-themes";
-import { Phone } from "lucide-react";
-
+import { Headset } from "lucide-react";
 import { AgentReportRow } from "@/utils/transformAgentData";
 
 const AgentDispositionReport = ({
@@ -14,22 +13,22 @@ const AgentDispositionReport = ({
 }) => {
   const { theme } = useTheme();
 
-  const columns: TableColumn<AgentReportRow>[] = [
+  const baseColumns: TableColumn<AgentReportRow>[] = [
     {
       name: "Agent Name",
-      selector: (row: AgentReportRow) => row.agentName,
+      selector: (row) => row.agentName,
       sortable: true,
       width: "120px",
-      cell: (row: AgentReportRow) => (
+      cell: (row) => (
         <span className="capitalize text-md font-bold"> {row.agentName}</span>
       ),
     },
     {
       name: "Total Calls",
-      selector: (row: AgentReportRow) => row.totalCalls,
+      selector: (row) => row.totalCalls,
       sortable: true,
       width: "120px",
-      cell: (row: AgentReportRow) => (
+      cell: (row) => (
         <span className="text-md font-bold">{row.totalCalls}</span>
       ),
     },
@@ -37,142 +36,60 @@ const AgentDispositionReport = ({
       name: "XFER",
       selector: (row: AgentReportRow) => row.xfer.count,
       sortable: true,
-      width: "100px",
-      cell: (row: AgentReportRow) => {
-        return (
-          <span className="text-md">
-            {row.xfer.count} -{" "}
-            <span className="font-bold text-green-500 ">
-              ({row.xfer.percentage}%)
-            </span>{" "}
-          </span>
-        );
-      },
-    },
-    {
-      name: "DNC",
-      selector: (row: AgentReportRow) => row.dnc.count,
-      sortable: true,
-      width: "100px",
-      cell: (row: AgentReportRow) => {
-        return (
-          <span className="text-md">
-            {row.dnc.count} -{" "}
-            <span className="font-bold text-red-500">
-              ({row.dnc.percentage}%)
-            </span>{" "}
-          </span>
-        );
-      },
-    },
-    {
-      name: "NI",
-      selector: (row: AgentReportRow) => row.ni.count,
-      sortable: true,
       width: "120px",
       cell: (row: AgentReportRow) => {
+        const { count, percentage } = row.xfer || {
+          count: "0",
+          percentage: "0",
+        };
         return (
           <span className="text-md">
-            {row.ni.count} -{" "}
-            <span className="font-bold text-red-500">
-              ({row.ni.percentage}%)
-            </span>{" "}
-          </span>
-        );
-      },
-    },
-    {
-      name: "CB",
-      selector: (row: AgentReportRow) => row.cb.count,
-      sortable: false,
-      width: "120px",
-      cell: (row: AgentReportRow) => {
-        return (
-          <span className="text-md">
-            {row.cb.count} -{" "}
-            <span className="font-bold text-red-500 ">
-              ({row.cb.percentage}%)
-            </span>{" "}
-          </span>
-        );
-      },
-    },
-    {
-      name: "DC",
-      selector: (row: AgentReportRow) => row.dc.count,
-      sortable: true,
-      width: "120px",
-      cell: (row: AgentReportRow) => {
-        return (
-          <span className="text-md">
-            {row.dc.count} -{" "}
-            <span className="font-bold text-red-500">
-              ({row.dc.percentage}%)
-            </span>{" "}
-          </span>
-        );
-      },
-    },
-
-    {
-      name: "DAIR",
-      selector: (row: AgentReportRow) => row.dair.count,
-      sortable: true,
-      width: "120px",
-      cell: (row: AgentReportRow) => {
-        return (
-          <span className="text-md">
-            {row.dair.count} -{" "}
-            <span className="font-bold text-red-500">
-              ({row.dair.percentage}%)
-            </span>{" "}
-          </span>
-        );
-      },
-    },
-    {
-      name: "RI",
-      selector: (row: AgentReportRow) => row.ri.count,
-      sortable: true,
-      width: "110px",
-      cell: (row: AgentReportRow) => {
-        return (
-          <span className="text-md">
-            {row.ri.count} -{" "}
-            <span className="font-bold text-red-500">
-              ({row.ri.percentage}%)
-            </span>{" "}
-          </span>
-        );
-      },
-    },
-    {
-      name: "Other",
-      selector: (row: AgentReportRow) => row.other.count,
-      sortable: true,
-      width: "120px",
-      cell: (row: AgentReportRow) => {
-        return (
-          <span className="text-md">
-            {row.other.count} -{" "}
-            <span className="font-bold text-red-500">
-              ({row.other.percentage}%)
-            </span>{" "}
+            {count} -{" "}
+            <span className="font-bold text-green-500">({percentage}%)</span>
           </span>
         );
       },
     },
   ];
 
+  const dynamicDispositionKeys: (keyof Omit<
+    AgentReportRow,
+    "agentName" | "totalCalls"
+  >)[] = ["dnc", "callbk", "fas", "am", "hp", "dc", "dair", "ri", "other"];
+
+  const dynamicColumns = useMemo(() => {
+    return dynamicDispositionKeys
+      .filter((key) => agentReport.some((row) => Number(row[key]?.count) > 0))
+      .map((key) => ({
+        name: key.toUpperCase(),
+        selector: (row: AgentReportRow) => Number(row[key]?.count),
+        sortable: true,
+        width: "120px",
+        cell: (row: AgentReportRow) => {
+          const { count, percentage } = row[key] || {
+            count: "0",
+            percentage: "0",
+          };
+          return (
+            <span className="text-md">
+              {count} -{" "}
+              <span className="font-bold text-red-500">({percentage}%)</span>
+            </span>
+          );
+        },
+      }));
+  }, [agentReport]);
+
+  const columns = useMemo(
+    () => [...baseColumns, ...dynamicColumns],
+    [dynamicColumns]
+  );
+
   const customStyles = {
-    table: {
-      style: {
-        width: "100%",
-      },
-    },
     tableWrapper: {
       style: {
-        display: "table",
+        display: "block",
+        overflowX: "auto" as const,
         width: "100%",
       },
     },
@@ -214,40 +131,38 @@ const AgentDispositionReport = ({
   );
 
   return (
-    <div className="p-6 bg-gray-100 dark:bg-sidebar rounded-xl">
-      <div className="max-w-full mx-auto">
+    <div className="p-6 bg-gray-100 dark:bg-sidebar rounded-xl overflow-x-auto max-w-full">
+      <div className="min-w-full">
         <div className="mb-6">
           <h1 className="text-2xl font-bold mb-2">Agent Disposition Report</h1>
         </div>
-
         <div className="bg-light dark:bg-sidebar border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
-          <div className="w-full overflow-x-auto max-w-[100vw]">
-            <div>
-              <DataTable
-                title=""
-                columns={columns}
-                data={agentReport}
-                progressComponent={<LoadingComponent />}
-                pagination
-                paginationServer
-                paginationPerPage={10}
-                paginationRowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
-                customStyles={customStyles}
-                theme={theme}
-                highlightOnHover
-                pointerOnHover
-                responsive
-                fixedHeader
-                fixedHeaderScrollHeight="500px"
-                noDataComponent={
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <Phone className="w-12 h-12 text-gray-300 mb-4" />
-                    <p className="text-gray-500 text-lg">No records found</p>
-                  </div>
-                }
-              />
-            </div>
-          </div>
+          <DataTable
+            title=""
+            columns={columns}
+            data={agentReport}
+            progressComponent={<LoadingComponent />}
+            pagination
+            paginationServer
+            paginationPerPage={10}
+            paginationRowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
+            customStyles={customStyles}
+            theme={theme}
+            highlightOnHover
+            pointerOnHover
+            responsive
+            fixedHeader
+            fixedHeaderScrollHeight="500px"
+            noDataComponent={
+              <div className="flex flex-col items-center justify-center py-12">
+                <Headset className="w-12 h-12 text-gray-300 mb-4" />
+                <p className="text-gray-300 text-lg">No records found</p>
+                <p className="text-gray-300 text-sm">
+                  Try adjusting your search or filter criteria
+                </p>
+              </div>
+            }
+          />
         </div>
       </div>
     </div>

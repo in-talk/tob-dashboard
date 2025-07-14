@@ -1,45 +1,93 @@
 import DispositionChart from "@/components/dashboard/DispositionChart";
 import Stats from "@/components/dashboard/Stats";
+import DateFilter from "@/components/DateFilter";
 import { CallRecord } from "@/types/callRecord";
 // import GaugeChart from "@/components/dashboard/GaugeChart";
 import { withAuth } from "@/utils/auth";
-import { AgentReportRow, transformAgentData } from "@/utils/transformAgentData";
-import {
-  DispositionGraph,
-  transformGraphData,
-} from "@/utils/transformGraphData";
+import { transformAgentData } from "@/utils/transformAgentData";
+import { transformGraphData } from "@/utils/transformGraphData";
 import { GetServerSideProps } from "next";
-import { getSession, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import Head from "next/head";
+import { useState } from "react";
+import useSWR from "swr";
 
-interface HomeProps {
-  callRecords: CallRecord[];
-  dispositionChartData: DispositionGraph[];
-  agentReport: AgentReportRow[];
-}
+const fetcher = (url: string, body: Record<string, unknown>) =>
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((res) => res.json());
 
-export default function Home({
-  callRecords,
-  dispositionChartData,
-  agentReport,
-}: HomeProps) {
+const CallDataTable = dynamic(
+  () => import("@/components/dashboard/CallDataTable"),
+  {
+    ssr: false,
+  }
+);
+const AgentDispositionReport = dynamic(
+  () => import("@/components/dashboard/AgentDispositionReport"),
+  {
+    ssr: false,
+  }
+);
+
+export default function Home() {
   const { data: session } = useSession();
-  const CallDataTable = dynamic(
-    () => import("@/components/dashboard/CallDataTable"),
-    {
-      ssr: false,
-    }
+  const client_id = session?.user?.client_id;
+
+  const [dateRange, setDateRange] = useState<{
+    from: string;
+    to: string;
+  }>(() => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 1);
+
+    return {
+      from: startDate.toISOString().split("T")[0],
+      to: endDate.toISOString().split("T")[0],
+    };
+  });
+
+  const callDataQuery = useSWR(
+    dateRange && client_id
+      ? [`/api/fetchCallRecords`, { client_id, from_date: dateRange.from, to_date: dateRange.to }]
+      : null,
+    ([url, body]) => fetcher(url, body)
   );
-  const AgentDispositionReport = dynamic(
-    () => import("@/components/dashboard/AgentDispositionReport"),
-    {
-      ssr: false,
-    }
+
+  console.log('callDataQuery',callDataQuery.data)
+
+  const chartDataQuery = useSWR(
+    dateRange && client_id
+      ? [
+          `/api/fetchDispositionGraphData`,
+          { client_id, from_date: dateRange.from, to_date: dateRange.to },
+        ]
+      : null,
+    ([url, body]) => fetcher(url, body)
   );
-  const totalAgents = new Set(
-    callRecords?.map((call) => call.agent).filter(Boolean)
-  ).size;
+
+  const agentReportQuery = useSWR(
+    dateRange && client_id
+      ? [
+          `/api/fetchAgentReport`,
+          { client_id, from_date: dateRange.from, to_date: dateRange.to },
+        ]
+      : null,
+    ([url, body]) => fetcher(url, body)
+  );
+
+  const callRecords: CallRecord[] = callDataQuery.data?.callRecords ?? [];
+  const dispositionChartData = transformGraphData(
+    chartDataQuery.data?.graphData ?? []
+  );
+  const agentReport = transformAgentData(
+    agentReportQuery.data?.agentRecords ?? []
+  );
+
   return (
     <>
       <Head>
@@ -49,129 +97,32 @@ export default function Home({
         <h1 className="text-4xl font-bold capitalize">
           {session?.user.role} Dashboard
         </h1>
-        <div>
-          <div className="w-full">
-            <Stats
-              totalCalls={callRecords[0].total_records}
-              totalAgents={totalAgents}
-            />
-          </div>
-          <div className="w-full">
-            <DispositionChart dispositionChartData={dispositionChartData} />
-          </div>
-          <div className="w-full my-6">
-            <CallDataTable callRecords={callRecords} />
-          </div>
-          <div className="w-full">
-            <AgentDispositionReport agentReport={agentReport} />
-          </div>
-          {/* <div className="w-full">
-          <GaugeChart />
-        </div> */}
+
+        <DateFilter onDateChange={setDateRange} initialRange={dateRange} />
+
+        <div className="w-full">
+          <Stats
+            agentReport={agentReport || []}
+            isLoading={agentReportQuery.isLoading}
+          />
+        </div>
+        <div className="w-full">
+          <DispositionChart
+            dispositionChartData={dispositionChartData || []}
+            initialRange={dateRange}
+          />
+        </div>
+        <div className="w-full my-6">
+          <CallDataTable callRecords={callRecords} />
+        </div>
+        <div className="w-full">
+          <AgentDispositionReport agentReport={agentReport || []} />
         </div>
       </div>
     </>
   );
 }
 
-export const getServerSideProps: GetServerSideProps = withAuth(
-  async (context) => {
-    const session = await getSession(context);
-
-    if (!session) {
-      return {
-        redirect: {
-          destination: "/signin",
-          permanent: false,
-        },
-      };
-    }
-
-    const { role, client_id } = session.user;
-
-    if (role === "user" && !client_id) {
-      return {
-        redirect: {
-          destination: "/signin",
-          permanent: false,
-        },
-      };
-    }
-
-    try {
-      const [callRes, graphDataRes, agentRes] = await Promise.all([
-        fetch(`${process.env.BASE_URL}/api/fetchCallRecords`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            client_id,
-            page: 1,
-            num_of_records: 10,
-            caller_id: null,
-          }),
-        }),
-        fetch(`${process.env.BASE_URL}/api/fetchDispositionGraphData`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-cache",
-          },
-          body: JSON.stringify({
-            client_id,
-          }),
-        }),
-        fetch(`${process.env.BASE_URL}/api/fetchAgentReport`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            client_id,
-          }),
-        }),
-      ]);
-
-      const [callResult, graphDataResult, agentResult] = await Promise.all([
-        callRes.json(),
-        graphDataRes.json(),
-        agentRes.json(),
-      ]);
-
-      if (!callRes.ok) {
-        throw new Error(callResult.error || "Failed to fetch call records");
-      }
-      if (!graphDataRes.ok) {
-        throw new Error(
-          callResult.error || "Failed to fetch dispostion graph data"
-        );
-      }
-
-      if (!agentRes.ok) {
-        throw new Error(agentResult.error || "Failed to fetch agent report");
-      }
-
-      return {
-        props: {
-          callRecords: callResult.callRecords || [],
-          dispositionChartData: transformGraphData(
-            graphDataResult.graphData || []
-          ),
-          agentReport: transformAgentData(agentResult?.agentRecords || []),
-        },
-      };
-    } catch (error) {
-      console.error("SSR error:", error);
-
-      return {
-        props: {
-          callRecords: [],
-          dispositionChartData: [],
-          agentReport: [],
-        },
-      };
-    }
-  },
-  ["admin", "user"]
-);
+export const getServerSideProps: GetServerSideProps = withAuth(async () => {
+  return { props: {} };
+}, ["admin","user"]);

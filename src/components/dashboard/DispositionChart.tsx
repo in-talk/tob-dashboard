@@ -5,7 +5,7 @@ import {
 import { ReloadIcon } from "@radix-ui/react-icons";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   LineChart,
   Line,
@@ -17,35 +17,36 @@ import {
 } from "recharts";
 import useSWR from "swr";
 import { Button } from "../ui/button";
-import { FilterIcon } from "lucide-react";
 
 const dispositionLabels = [
   "XFER",
-  "DC",
-  "CALLBK",
-  "NI",
   "DNC",
-  "DNQ",
-  "LB",
-  "AM",
+  "DC",
   "DAIR",
-  "PQ2",
-  "NT",
+  "RI",
+  "CALLBK",
+  "A",
+  "LB",
+  "NP",
+  "FAS",
+  "DNQ",
+  "HP",
   "OTHER",
 ];
 
 const dispositionColors: Record<string, string> = {
   XFER: "#007bff",
-  DC: "#ff073a",
-  CALLBK: "#28a745",
-  NI: "#ffc107",
-  DNC: "#6f42c1",
-  DNQ: "#fd7e14",
-  LB: "#17a2b8",
-  AM: "#20c997",
-  DAIR: "#6610f2",
-  PQ2: "#e83e8c",
-  NT: "#343a40",
+  DNC: "#ff073a",
+  DC: "#28a745",
+  DAIR: "#ffc107",
+  RI: "#6f42c1",
+  CALLBK: "#fd7e14",
+  A: "#17a2b8",
+  LB: "#20c997",
+  NP: "#6610f2",
+  FAS: "#e83e8c",
+  DNQ: "#343a40",
+  HP: "#338c48",
   OTHER: "#adb5bd",
 };
 
@@ -74,39 +75,33 @@ export const fetcher = async (url: string, options?: RequestInit) => {
 
 const DispositionChart = ({
   dispositionChartData,
+  initialRange,
 }: {
   dispositionChartData: DispositionGraph[];
+  initialRange: { from: string; to: string };
 }) => {
   const { data: session } = useSession();
   const { theme } = useTheme();
 
-  const [dateRange, setDateRange] = useState(() => {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 7);
-
-    return {
-      from: startDate.toISOString().split("T")[0],
-      to: endDate.toISOString().split("T")[0],
-    };
-  });
-
-  const [pendingDateRange, setPendingDateRange] = useState(dateRange);
+  const [dateRange, setDateRange] = useState(initialRange);
 
   const cacheKey = session?.user?.client_id
     ? `disposition-graph-${session.user.client_id}-${dateRange.from}-${dateRange.to}`
     : null;
 
+  const fetchDispositionData = useCallback(() => {
+    return fetcher("/api/fetchDispositionGraphData", {
+      body: JSON.stringify({
+        client_id: session?.user?.client_id,
+        from_date: dateRange.from,
+        to_date: dateRange.to,
+      }),
+    });
+  }, [session?.user?.client_id, dateRange.from, dateRange.to]);
+
   const { data, isLoading, mutate, error } = useSWR(
     cacheKey,
-    () =>
-      fetcher("/api/fetchDispositionGraphData", {
-        body: JSON.stringify({
-          client_id: session?.user?.client_id,
-          from_date: dateRange.from,
-          to_date: dateRange.to,
-        }),
-      }),
+    fetchDispositionData,
     {
       fallbackData: dispositionChartData,
       refreshInterval: 300000,
@@ -125,13 +120,17 @@ const DispositionChart = ({
   const [focusedLine, setFocusedLine] = useState<string | null>(null);
 
   useEffect(() => {
+    setDateRange(initialRange);
+  }, [initialRange]);
+
+  useEffect(() => {
     if (transformedData?.length) {
       const processed = transformedData.map((entry) => ({
         CallTime: entry.timeLabel,
         XFER: Math.min(100, Math.max(0, entry.xferPercentage)),
         DC: Math.min(100, Math.max(0, entry.dcPercentage)),
-        CALLBK: Math.min(100, Math.max(0, entry.cbPercentage)),
-        NI: Math.min(100, Math.max(0, entry.niPercentage)),
+        CALLBK: Math.min(100, Math.max(0, entry.callbkPercentage)),
+        HP: Math.min(100, Math.max(0, entry.hpPercentage)),
         DNC: Math.min(100, Math.max(0, entry.dncPercentage)),
         DAIR: Math.min(100, Math.max(0, entry.dairPercentage)),
         RI: Math.min(100, Math.max(0, entry.riPercentage)),
@@ -144,10 +143,6 @@ const DispositionChart = ({
 
   const handleLegendClick = (label: string) => {
     setFocusedLine((prev) => (prev === label ? null : label));
-  };
-
-  const handleApplyFilters = () => {
-    setDateRange(pendingDateRange);
   };
 
   const handleQuickDateSelect = (days: number) => {
@@ -189,44 +184,7 @@ const DispositionChart = ({
       )}
 
       <div className="px-5 py-4 bg-light dark:bg-sidebar border-b border-gray-200 dark:border-gray-700">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">From:</label>
-            <input
-              type="date"
-              value={pendingDateRange.from}
-              onChange={(e) =>
-                setPendingDateRange((prev) => ({
-                  ...prev,
-                  from: e.target.value,
-                }))
-              }
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">To:</label>
-            <input
-              type="date"
-              value={pendingDateRange.to}
-              onChange={(e) =>
-                setPendingDateRange((prev) => ({ ...prev, to: e.target.value }))
-              }
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
-          </div>
-
-          <Button
-            onClick={handleApplyFilters}
-            className="px-5 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-300 flex items-center gap-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)]"
-          >
-            <FilterIcon className="w-4 h-4" />
-            Apply Filters
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2 mt-3">
+        <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Quick Select:</span>
           <div className="flex gap-2">
             <button

@@ -5,8 +5,8 @@ export type DispositionGraph = {
   timeLabel: string;
   xferPercentage: number;
   dncPercentage: number;
-  niPercentage: number;
-  cbPercentage: number;
+  hpPercentage: number;
+  callbkPercentage: number;
   dcPercentage: number;
   dairPercentage: number;
   riPercentage: number;
@@ -22,8 +22,8 @@ export function transformGraphData(rawData: dispositionGraphData[]): Disposition
     timeLabel: data.time_label,
     xferPercentage: parseFloat(data.xfer_pct),
     dncPercentage: parseFloat(data.dnc_pct),
-    niPercentage: parseFloat(data.ni_pct),
-    cbPercentage: parseFloat(data.cb_pct),
+    hpPercentage: parseFloat(data.hp_pct),
+    callbkPercentage: parseFloat(data.callbk_pct),
     dcPercentage: parseFloat(data.dc_pct),
     dairPercentage: parseFloat(data.dair_pct),
     riPercentage: parseFloat(data.ri_pct),

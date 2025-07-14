@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useTheme } from "next-themes";
-import { Search, Filter, Download, Phone } from "lucide-react";
+import { Search, Filter, Download, Headset } from "lucide-react";
 import { CallRecord } from "@/types/callRecord";
 import { useSession } from "next-auth/react";
 import { formatCallDuration } from "@/utils/formatCallDuration";
@@ -19,11 +19,11 @@ const dispositionColors: Record<string, string> = {
   DNC: "bg-purple-100 text-purple-800",
   DNQ: "bg-orange-100 text-orange-800",
   LB: "bg-cyan-100 text-cyan-800",
-  AM: "bg-teal-100 text-teal-800",
+  A: "bg-teal-100 text-teal-800",
   DAIR: "bg-indigo-100 text-indigo-800",
-  PQ2: "bg-pink-100 text-pink-800",
-  NT: "bg-gray-100 text-gray-800",
-  P: "bg-slate-100 text-slate-800",
+  HP: "bg-pink-100 text-pink-800",
+  FAS: "bg-gray-100 text-gray-800",
+  RI: "bg-slate-100 text-slate-800",
 };
 
 const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
@@ -36,6 +36,10 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
   const dispositions = [...new Set(data.map((item) => item.disposition))];
   const [callsLoading, setCallsLoading] = useState(false);
   const { data: session } = useSession();
+
+  useEffect(() => {
+    setData(callRecords);
+  }, [callRecords]);
 
   const fetchCallRecords = async (page: number) => {
     try {
@@ -307,8 +311,6 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
           </div>
         </div>
 
-      
-
         {/* Data Table */}
         <div className="bg-light dark:bg-sidebar border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
           <div className="w-full overflow-auto max-w-[100vw] ">
@@ -335,11 +337,11 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
                 fixedHeaderScrollHeight="500px"
                 noDataComponent={
                   <div className="flex flex-col items-center justify-center py-12">
-                    <Phone className="w-12 h-12 text-gray-300 mb-4" />
-                    <p className="text-gray-500 text-lg">
+                    <Headset className="w-12 h-12 text-gray-300 mb-4" />
+                    <p className="text-gray-300 text-lg">
                       No call records found
                     </p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-300 text-sm">
                       Try adjusting your search or filter criteria
                     </p>
                   </div>
