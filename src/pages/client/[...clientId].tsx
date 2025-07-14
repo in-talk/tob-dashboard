@@ -62,7 +62,11 @@ export default function ClientPage() {
     dateRange && client_id
       ? [
           `/api/fetchDispositionGraphData`,
-          { client_id, from_date: dateRange.from, to_date: dateRange.to },
+          {
+            client_id,
+            from_date: dateRange.from,
+            to_date: `${dateRange.to} 23:59:59`,
+          },
         ]
       : null,
     ([url, body]) => fetcher(url, body)
@@ -72,7 +76,11 @@ export default function ClientPage() {
     dateRange && client_id
       ? [
           `/api/fetchAgentReport`,
-          { client_id, from_date: dateRange.from, to_date: dateRange.to },
+          {
+            client_id,
+            from_date: dateRange.from,
+            to_date: `${dateRange.to} 23:59:59`,
+          },
         ]
       : null,
     ([url, body]) => fetcher(url, body)

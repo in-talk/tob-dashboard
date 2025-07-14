@@ -13,8 +13,8 @@ export default async function handler(
 
   const {
     client_id,
-    from_date = "2025-06-20",
-    to_date = defaultToData,
+    from_date = defaultToData,
+    to_date = `${defaultToData} 23:59:59`,
   } = req.body;
 
   if (!client_id) {
@@ -26,7 +26,7 @@ export default async function handler(
       `SELECT * FROM get_agent_disposition_report($1,$2, $3);`,
       [client_id, from_date, to_date]
     );
-    
+
     res.status(200).json({
       agentRecords: result.rows,
     });
