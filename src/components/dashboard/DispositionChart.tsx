@@ -133,6 +133,8 @@ const DispositionChart = ({
         HP: Math.min(100, Math.max(0, entry.hpPercentage)),
         DNC: Math.min(100, Math.max(0, entry.dncPercentage)),
         DAIR: Math.min(100, Math.max(0, entry.dairPercentage)),
+        FAS: Math.min(100, Math.max(0, entry.fasPercentage)),
+
         RI: Math.min(100, Math.max(0, entry.riPercentage)),
         OTHER: Math.min(100, Math.max(0, entry.otherPercentage)),
       }));
@@ -231,7 +233,10 @@ const DispositionChart = ({
               dataKey="CallTime"
               angle={-45}
               textAnchor="end"
-              height={80}
+              style={{
+                fontSize:'12px'
+              }}
+              height={50}
             />
             <YAxis
               domain={[0, 100]}

@@ -19,6 +19,8 @@ export interface AgentDispositionData {
   lb_percentage: string;
   np_count: string;
   np_percentage: string;
+  na_count: string;
+  na_percentage: string;
   fas_count: string;
   fas_percentage: string;
   dnq_count: string;
