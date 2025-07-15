@@ -26,7 +26,13 @@ const dispositionColors: Record<string, string> = {
   RI: "bg-slate-100 text-slate-800",
 };
 
-const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
+const CallDataTable = ({
+  callRecords,
+  dateRange,
+}: {
+  callRecords: CallRecord[];
+  dateRange: { from: string; to: string };
+}) => {
   const [data, setData] = useState<CallRecord[]>(callRecords);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDisposition, setFilterDisposition] = useState("");
@@ -35,13 +41,18 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
   const { theme } = useTheme();
   const dispositions = [...new Set(data.map((item) => item.disposition))];
   const [callsLoading, setCallsLoading] = useState(false);
+  const [rowsPerPage, setRowperPage] = useState(10);
+
   const { data: session } = useSession();
 
   useEffect(() => {
     setData(callRecords);
   }, [callRecords]);
 
-  const fetchCallRecords = async (page: number) => {
+  const fetchNextCallRecords = async (
+    page: number,
+    num_of_records = rowsPerPage
+  ) => {
     try {
       setCallsLoading(true);
       const client_id = session?.user?.client_id;
@@ -58,9 +69,11 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
         },
         body: JSON.stringify({
           client_id,
-          page,
-          num_of_records: 10,
+          from_date: dateRange.from,
+          to_date: dateRange.to,
           caller_id: null,
+          page,
+          num_of_records,
         }),
       });
 
@@ -107,6 +120,12 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
     a.download = "call-data.csv";
     a.click();
   };
+const handleRowsPerPageChange = (newRowsPerPage: number, page: number) => {
+  if (newRowsPerPage !== rowsPerPage) {
+    setRowperPage(newRowsPerPage);
+    fetchNextCallRecords(page, newRowsPerPage);
+  }
+};
 
   const handleClearRows = () => {
     setToggleCleared(!toggleCleared);
@@ -167,7 +186,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
       name: "Call Recording",
       selector: (row: CallRecord) => row.call_recording_path,
       sortable: false,
-      width: "300px",
+      width: "200px",
       cell: (row: CallRecord) => {
         const audioUrl = generateAudioUrl(row.call_recording_path);
         return <AudioPlayer audioUrl={audioUrl} />;
@@ -198,10 +217,13 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
     columns.push({
       name: "Transcription",
       selector: (row: CallRecord) => row.transcription,
-      sortable: true,
-      width: "100px",
+      style: {
+        justifyContent: "flex-start",
+      },
       cell: (row: CallRecord) => (
-        <span title={row.transcription}>{row.transcription}</span>
+        <span title={row.transcription} className="text-left">
+          {row.transcription}
+        </span>
       ),
     });
   }
@@ -219,7 +241,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
     },
     rows: {
       style: {
-        minHeight: "70px",
+        minHeight: "30px",
         "&:hover": {
           backgroundColor: "#f9fafb",
         },
@@ -323,8 +345,9 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
                 progressComponent={<LoadingComponent />}
                 pagination
                 paginationServer
-                paginationPerPage={10}
-                onChangePage={fetchCallRecords}
+                paginationPerPage={rowsPerPage}
+                onChangeRowsPerPage={handleRowsPerPageChange}
+                onChangePage={(page) => fetchNextCallRecords(page, 10)}
                 paginationTotalRows={Number(filteredData[0]?.total_records)}
                 paginationRowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
                 clearSelectedRows={toggleCleared}

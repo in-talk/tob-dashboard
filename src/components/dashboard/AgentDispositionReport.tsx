@@ -55,7 +55,21 @@ const AgentDispositionReport = ({
   const dynamicDispositionKeys: (keyof Omit<
     AgentReportRow,
     "agentName" | "totalCalls"
-  >)[] = ["dnc", "callbk", "fas", "am", "hp", "dc", "dair", "ri", "other"];
+  >)[] = [
+    "dnc",
+    "callbk",
+    "fas",
+    "a",
+    "hp",
+    "dc",
+    "dair",
+    "ri",
+    "lb",
+    "np",
+    "na",
+    "dnq",
+    "other",
+  ];
 
   const dynamicColumns = useMemo(() => {
     return dynamicDispositionKeys
@@ -64,7 +78,6 @@ const AgentDispositionReport = ({
         name: key.toUpperCase(),
         selector: (row: AgentReportRow) => Number(row[key]?.count),
         sortable: true,
-        width: "120px",
         cell: (row: AgentReportRow) => {
           const { count, percentage } = row[key] || {
             count: "0",
@@ -86,6 +99,7 @@ const AgentDispositionReport = ({
   );
 
   const customStyles = {
+    
     tableWrapper: {
       style: {
         display: "block",
@@ -131,38 +145,42 @@ const AgentDispositionReport = ({
   );
 
   return (
-    <div className="p-6 bg-gray-100 dark:bg-sidebar rounded-xl overflow-x-auto max-w-full">
-      <div className="min-w-full">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">Agent Disposition Report</h1>
-        </div>
-        <div className="bg-light dark:bg-sidebar border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
-          <DataTable
-            title=""
-            columns={columns}
-            data={agentReport}
-            progressComponent={<LoadingComponent />}
-            pagination
-            paginationServer
-            paginationPerPage={10}
-            paginationRowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
-            customStyles={customStyles}
-            theme={theme}
-            highlightOnHover
-            pointerOnHover
-            responsive
-            fixedHeader
-            fixedHeaderScrollHeight="500px"
-            noDataComponent={
-              <div className="flex flex-col items-center justify-center py-12">
-                <Headset className="w-12 h-12 text-gray-300 mb-4" />
-                <p className="text-gray-300 text-lg">No records found</p>
-                <p className="text-gray-300 text-sm">
-                  Try adjusting your search or filter criteria
-                </p>
-              </div>
-            }
-          />
+    <div className="p-6 bg-gray-100 dark:bg-sidebar rounded-xl overflow-hidden">
+      <div className="w-full overflow-x-auto">
+        <div className="min-w-[900px]">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold mb-2">
+              Agent Disposition Report
+            </h1>
+          </div>
+          <div className="bg-light dark:bg-sidebar border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+            <DataTable
+              title=""
+              columns={columns}
+              data={agentReport}
+              progressComponent={<LoadingComponent />}
+              pagination
+              paginationServer
+              paginationPerPage={10}
+              paginationRowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
+              customStyles={customStyles}
+              theme={theme}
+              highlightOnHover
+              pointerOnHover
+              responsive
+              fixedHeader
+              fixedHeaderScrollHeight="500px"
+              noDataComponent={
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Headset className="w-12 h-12 text-gray-300 mb-4" />
+                  <p className="text-gray-300 text-lg">No records found</p>
+                  <p className="text-gray-300 text-sm">
+                    Try adjusting your search or filter criteria
+                  </p>
+                </div>
+              }
+            />
+          </div>
         </div>
       </div>
     </div>

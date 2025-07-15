@@ -52,47 +52,39 @@ export default function Home() {
   });
 
   const callDataQuery = useSWR(
-    dateRange && client_id
-      ? [
-          `/api/fetchCallRecords`,
-          {
-            client_id,
-            from_date: dateRange.from,
-            to_date: `${dateRange.to} 23:59:59`,
-          },
-        ]
+    client_id && dateRange
+      ? `/api/fetchCallRecords?client_id=${client_id}&from=${dateRange.from}&to=${dateRange.to}`
       : null,
-    ([url, body]) => fetcher(url, body)
+    () =>
+      fetcher("/api/fetchCallRecords", {
+        client_id,
+        from_date: dateRange.from,
+        to_date: `${dateRange.to} 23:59:59`,
+      })
   );
 
-  console.log("callDataQuery", callDataQuery.data);
-
   const chartDataQuery = useSWR(
-    dateRange && client_id
-      ? [
-          `/api/fetchDispositionGraphData`,
-          {
-            client_id,
-            from_date: dateRange.from,
-            to_date: `${dateRange.to} 23:59:59`,
-          },
-        ]
+    client_id && dateRange
+      ? `/api/fetchCallRecords?client_id=${client_id}&from=${dateRange.from}&to=${dateRange.to}`
       : null,
-    ([url, body]) => fetcher(url, body)
+    () =>
+      fetcher("`/api/fetchCallRecords", {
+        client_id,
+        from_date: dateRange.from,
+        to_date: `${dateRange.to} 23:59:59`,
+      })
   );
 
   const agentReportQuery = useSWR(
-    dateRange && client_id
-      ? [
-          `/api/fetchAgentReport`,
-          {
-            client_id,
-            from_date: dateRange.from,
-            to_date: `${dateRange.to} 23:59:59`,
-          },
-        ]
+    client_id && dateRange
+      ? `/api/fetchAgentReport?client_id=${client_id}&from=${dateRange.from}&to=${dateRange.to}`
       : null,
-    ([url, body]) => fetcher(url, body)
+    () =>
+      fetcher("/api/fetchAgentReport", {
+        client_id,
+        from_date: dateRange.from,
+        to_date: `${dateRange.to} 23:59:59`,
+      })
   );
 
   const callRecords: CallRecord[] = callDataQuery.data?.callRecords ?? [];
@@ -128,7 +120,7 @@ export default function Home() {
           />
         </div>
         <div className="w-full my-6">
-          <CallDataTable callRecords={callRecords} />
+          <CallDataTable callRecords={callRecords} dateRange={dateRange} />
         </div>
         <div className="w-full">
           <AgentDispositionReport agentReport={agentReport || []} />

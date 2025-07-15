@@ -24,7 +24,7 @@ export default function AudioPlayer({ audioUrl }: { audioUrl: string | null }) {
   if (!audioUrl) return <div>No audio available</div>;
 
   return (
-    <div className="w-full relative">
+    <div className="w-[200px] relative">
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center dark:border-gray-700 backdrop-blur-sm rounded">
           <div className="animate-spin h-6 w-6 border-4 border-indigo-500 border-t-transparent rounded-full" />
@@ -34,7 +34,7 @@ export default function AudioPlayer({ audioUrl }: { audioUrl: string | null }) {
         ref={audioRef}
         controls
         preload="metadata"
-        className={`w-full ${loading ? "opacity-50 pointer-events-none" : ""}`}
+        className={`w-full h-[25px] ${loading ? "opacity-50 pointer-events-none" : ""}`}
       >
         <source src={audioUrl} type="audio/mpeg" />
         <source src={audioUrl} type="audio/wav" />

@@ -10,6 +10,7 @@ export type DispositionGraph = {
   dcPercentage: number;
   dairPercentage: number;
   riPercentage: number;
+  fasPercentage:number;
   otherPercentage: number;
   totalCalls: number;
 };
@@ -27,6 +28,7 @@ export function transformGraphData(rawData: dispositionGraphData[]): Disposition
     dcPercentage: parseFloat(data.dc_pct),
     dairPercentage: parseFloat(data.dair_pct),
     riPercentage: parseFloat(data.ri_pct),
+    fasPercentage: parseFloat(data.fas_pct),
     otherPercentage: parseFloat(data.other_pct),
     totalCalls: parseInt(data.total_calls, 10),
   }));

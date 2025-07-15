@@ -19,7 +19,7 @@ function Stats({ agentReport, isLoading }: StatsProps) {
       acc.totalXfer += parseInt(agent.xfer.count);
       acc.totalDair += parseInt(agent.dair.count);
       acc.totalRi += parseInt(agent.ri.count);
-      acc.totalA += parseInt(agent.am.count);
+      acc.totalA += parseInt(agent.a.count);
       acc.totalOther += parseInt(agent.other.count);
       return acc;
     },
@@ -67,7 +67,7 @@ function Stats({ agentReport, isLoading }: StatsProps) {
       textColor: "text-gray-900",
     },
     {
-      label: "A",
+      label: "Total A",
       icon: User,
       value: totals.totalA,
       bgLight: "bg-cyan-100",
