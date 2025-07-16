@@ -10,6 +10,7 @@ import { formatCallDuration } from "@/utils/formatCallDuration";
 import AudioPlayer from "../AudioPlayer";
 import { generateAudioUrl } from "@/utils/WasabiClient";
 import { formatDateTime } from "@/utils/formatDateTime";
+import CallDetailsModal from "../CallDetailsModal";
 
 const dispositionColors: Record<string, string> = {
   XFER: "bg-blue-100 text-blue-800",
@@ -120,12 +121,12 @@ const CallDataTable = ({
     a.download = "call-data.csv";
     a.click();
   };
-const handleRowsPerPageChange = (newRowsPerPage: number, page: number) => {
-  if (newRowsPerPage !== rowsPerPage) {
-    setRowperPage(newRowsPerPage);
-    fetchNextCallRecords(page, newRowsPerPage);
-  }
-};
+  const handleRowsPerPageChange = (newRowsPerPage: number, page: number) => {
+    if (newRowsPerPage !== rowsPerPage) {
+      setRowperPage(newRowsPerPage);
+      fetchNextCallRecords(page, newRowsPerPage);
+    }
+  };
 
   const handleClearRows = () => {
     setToggleCleared(!toggleCleared);
@@ -134,10 +135,24 @@ const handleRowsPerPageChange = (newRowsPerPage: number, page: number) => {
 
   const columns: TableColumn<CallRecord>[] = [
     {
+      name: "Agent",
+      selector: (row: CallRecord) => row.agent || "-",
+      sortable: true,
+      width: "100px",
+      cell: (row: CallRecord) => (
+        <span className="capitalize px-2" title={row.agent}>
+          {row.agent || "N/A"}
+        </span>
+      ),
+    },
+    {
       name: "Call Id",
       selector: (row: CallRecord) => row.call_id,
       sortable: true,
-      width: "110px",
+      width: "90px",
+      cell: (row: CallRecord) => {
+        return <CallDetailsModal callId={row.call_id} />;
+      },
     },
     {
       name: "D",
@@ -153,7 +168,7 @@ const handleRowsPerPageChange = (newRowsPerPage: number, page: number) => {
       name: "Created at",
       selector: (row: CallRecord) => row.created_at,
       sortable: true,
-      width: "200px",
+      width: "170px",
       cell: (row: CallRecord) => {
         const createdAt = formatDateTime(row.created_at);
         return <span>{createdAt || "-"}</span>;
@@ -199,18 +214,6 @@ const handleRowsPerPageChange = (newRowsPerPage: number, page: number) => {
       width: "100px",
       cell: (row: CallRecord) => row.label || "N/A",
     },
-
-    {
-      name: "Agent",
-      selector: (row: CallRecord) => row.agent || "-",
-      sortable: true,
-      width: "100px",
-      cell: (row: CallRecord) => (
-        <span className="capitalize" title={row.agent}>
-          {row.agent || "N/A"}
-        </span>
-      ),
-    },
   ];
 
   if (session?.user?.role === "admin") {
@@ -254,7 +257,7 @@ const handleRowsPerPageChange = (newRowsPerPage: number, page: number) => {
         fontWeight: "600",
         fontSize: "11px",
         textTransform: "uppercase" as const,
-        justifyContent: "center" as const,
+        justifyContent: "start" as const,
       },
     },
     cells: {
@@ -262,7 +265,7 @@ const handleRowsPerPageChange = (newRowsPerPage: number, page: number) => {
         paddingLeft: "12px",
         paddingRight: "12px",
         fontSize: "13px",
-        justifyContent: "center" as const,
+        justifyContent: "start" as const,
       },
     },
   };
@@ -337,39 +340,37 @@ const handleRowsPerPageChange = (newRowsPerPage: number, page: number) => {
         <div className="bg-light dark:bg-sidebar border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
           <div className="w-full overflow-auto max-w-[100vw] ">
             <div>
-              <DataTable
-                title=""
-                columns={columns}
-                data={filteredData}
-                progressPending={callsLoading}
-                progressComponent={<LoadingComponent />}
-                pagination
-                paginationServer
-                paginationPerPage={rowsPerPage}
-                onChangeRowsPerPage={handleRowsPerPageChange}
-                onChangePage={(page) => fetchNextCallRecords(page, 10)}
-                paginationTotalRows={Number(filteredData[0]?.total_records)}
-                paginationRowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
-                clearSelectedRows={toggleCleared}
-                customStyles={customStyles}
-                theme={theme}
-                highlightOnHover
-                pointerOnHover
-                responsive
-                fixedHeader
-                fixedHeaderScrollHeight="500px"
-                noDataComponent={
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <Headset className="w-12 h-12 text-gray-300 mb-4" />
-                    <p className="text-gray-300 text-lg">
-                      No call records found
-                    </p>
-                    <p className="text-gray-300 text-sm">
-                      Try adjusting your search or filter criteria
-                    </p>
-                  </div>
-                }
-              />
+          <DataTable
+            title=""
+            columns={columns}
+            data={filteredData}
+            progressPending={callsLoading}
+            progressComponent={<LoadingComponent />}
+            pagination
+            paginationServer
+            paginationPerPage={rowsPerPage}
+            onChangeRowsPerPage={handleRowsPerPageChange}
+            onChangePage={(page) => fetchNextCallRecords(page, 10)}
+            paginationTotalRows={Number(filteredData[0]?.total_records)}
+            paginationRowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
+            clearSelectedRows={toggleCleared}
+            customStyles={customStyles}
+            theme={theme}
+            highlightOnHover
+            pointerOnHover
+            responsive
+            fixedHeader
+            fixedHeaderScrollHeight="500px"
+            noDataComponent={
+              <div className="flex flex-col items-center justify-center py-12">
+                <Headset className="w-12 h-12 text-gray-300 mb-4" />
+                <p className="text-gray-300 text-lg">No call records found</p>
+                <p className="text-gray-300 text-sm">
+                  Try adjusting your search or filter criteria
+                </p>
+              </div>
+            }
+          />
             </div>
           </div>
         </div>

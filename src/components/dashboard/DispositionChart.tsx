@@ -13,7 +13,7 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  CartesianGrid,
+  // CartesianGrid,
 } from "recharts";
 import useSWR from "swr";
 import { Button } from "../ui/button";
@@ -28,10 +28,10 @@ const dispositionLabels = [
   "A",
   "LB",
   "NP",
+  "NA",
   "FAS",
   "DNQ",
   "HP",
-  "OTHER",
 ];
 
 const dispositionColors: Record<string, string> = {
@@ -44,14 +44,17 @@ const dispositionColors: Record<string, string> = {
   A: "#17a2b8",
   LB: "#20c997",
   NP: "#6610f2",
+  NA: "#a4abb0",
   FAS: "#e83e8c",
-  DNQ: "#343a40",
+  DNQ: "#fff",
   HP: "#338c48",
-  OTHER: "#adb5bd",
 };
 
 type ChartEntry = {
-  CallTime: string;
+  timeLabel: string;
+  timeSlot: string;
+  breakdown: string;
+  fullTimeLabel: string;
   [key: string]: number | string;
 };
 
@@ -126,7 +129,10 @@ const DispositionChart = ({
   useEffect(() => {
     if (transformedData?.length) {
       const processed = transformedData.map((entry) => ({
-        CallTime: entry.timeLabel,
+        timeLabel: entry.timeLabel,
+        timeSlot: entry.timeSlot,
+        breakdown: entry.breakdown,
+        fullTimeLabel: entry.fullTimeLabel,
         XFER: Math.min(100, Math.max(0, entry.xferPercentage)),
         DC: Math.min(100, Math.max(0, entry.dcPercentage)),
         CALLBK: Math.min(100, Math.max(0, entry.callbkPercentage)),
@@ -134,9 +140,12 @@ const DispositionChart = ({
         DNC: Math.min(100, Math.max(0, entry.dncPercentage)),
         DAIR: Math.min(100, Math.max(0, entry.dairPercentage)),
         FAS: Math.min(100, Math.max(0, entry.fasPercentage)),
-
         RI: Math.min(100, Math.max(0, entry.riPercentage)),
-        OTHER: Math.min(100, Math.max(0, entry.otherPercentage)),
+        A: Math.min(100, Math.max(0, entry.aPercentage)),
+        LB: Math.min(100, Math.max(0, entry.lbPercentage)),
+        NP: Math.min(100, Math.max(0, entry.npPercentage)),
+        NA: Math.min(100, Math.max(0, entry.naPercentage)),
+        DNQ: Math.min(100, Math.max(0, entry.dnqPercentage)),
       }));
 
       setChartData(processed);
@@ -158,6 +167,17 @@ const DispositionChart = ({
     });
   };
 
+  const formatXAxisTick = (value: string, index: number) => {
+    const totalTicks = chartData.length;
+    const maxTicks = 24; // Adjust based on your preference
+    const step = Math.ceil(totalTicks / maxTicks);
+    
+    if (index % step === 0) {
+      return value;
+    }
+    return "";
+  };
+
   if (error) {
     console.error("Error loading disposition data:", error);
     return (
@@ -174,7 +194,7 @@ const DispositionChart = ({
   }
 
   return (
-    <div className="rounded-xl bg-gray-100 dark:bg-sidebar">
+    <div className="rounded-xl  bg-gray-100 dark:bg-sidebar">
       {session?.user.role === "admin" && (
         <div className="py-6 bg-light dark:bg-sidebar flex justify-between px-5">
           <h1 className="text-2xl font-bold mb-2">Disposition Percentage</h1>
@@ -228,13 +248,15 @@ const DispositionChart = ({
             data={chartData}
             margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
           >
-            <CartesianGrid strokeDasharray="3 3" />
+            {/* <CartesianGrid strokeDasharray="3 3" /> */}
             <XAxis
-              dataKey="CallTime"
+              dataKey="fullTimeLabel" 
+              interval={0}
+              tickFormatter={formatXAxisTick}
               angle={-45}
               textAnchor="end"
               style={{
-                fontSize:'12px'
+                fontSize: "12px",
               }}
               height={50}
             />
@@ -250,6 +272,7 @@ const DispositionChart = ({
             />
             <Tooltip
               formatter={(value: number) => `${value.toFixed(2)}%`}
+              labelFormatter={(label) => `Time: ${label}`}
               contentStyle={{
                 backgroundColor: theme === "dark" ? "#1f2937" : "white",
                 color: theme === "dark" ? "white" : "#1f2937",

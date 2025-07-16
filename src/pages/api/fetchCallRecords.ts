@@ -26,7 +26,7 @@ export default async function handler(
   try {
     const result = await db.query(
       `SELECT * FROM get_client_data_paginated($1, $2, $3, $4, $5, $6);`,
-      [client_id, from_date, to_date, caller_id, page, num_of_records]
+      [client_id, from_date, `${to_date} 23:59:59`, caller_id, page, num_of_records]
     );
 
     res.status(200).json({

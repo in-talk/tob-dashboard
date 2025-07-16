@@ -1,8 +1,12 @@
 import { dispositionGraphData } from "@/types/dispositionGraphData";
+import { parseISO, format } from "date-fns";
 
 export type DispositionGraph = {
-  timeSlot: string; 
+  timeSlot: string;
   timeLabel: string;
+  breakdown: string;
+  fullTimeLabel: string; 
+  sortableTime: Date;
   xferPercentage: number;
   dncPercentage: number;
   hpPercentage: number;
@@ -10,28 +14,47 @@ export type DispositionGraph = {
   dcPercentage: number;
   dairPercentage: number;
   riPercentage: number;
-  fasPercentage:number;
-  otherPercentage: number;
-  totalCalls: number;
+  fasPercentage: number;
+  aPercentage: number;
+  lbPercentage: number;
+  npPercentage: number;
+  naPercentage: number;
+  dnqPercentage: number;
 };
 
-export function transformGraphData(rawData: dispositionGraphData[]): DispositionGraph[] | null {
-  if (!rawData || rawData.length === 0) return null;
+export function transformGraphData(
+  data: dispositionGraphData[]
+): DispositionGraph[] | null {
+  const transformedData = data.map((entry) => {
+    const baseTime = parseISO(entry.time_slot);
+    const [hours, minutes] = entry.interval_breakdown.split(":").map(Number);
+    const fullTime = new Date(baseTime);
+    fullTime.setHours(hours);
+    fullTime.setMinutes(minutes);
 
-  const transformedData = rawData.map((data) => ({
-    timeSlot: data.time_slot,
-    timeLabel: data.time_label,
-    xferPercentage: parseFloat(data.xfer_pct),
-    dncPercentage: parseFloat(data.dnc_pct),
-    hpPercentage: parseFloat(data.hp_pct),
-    callbkPercentage: parseFloat(data.callbk_pct),
-    dcPercentage: parseFloat(data.dc_pct),
-    dairPercentage: parseFloat(data.dair_pct),
-    riPercentage: parseFloat(data.ri_pct),
-    fasPercentage: parseFloat(data.fas_pct),
-    otherPercentage: parseFloat(data.other_pct),
-    totalCalls: parseInt(data.total_calls, 10),
-  }));
+    const fullTimeLabel = format(fullTime, "MM/dd HH:mm");
 
-  return transformedData;
+    return {
+      timeSlot: entry.time_slot,
+      timeLabel: entry.time_label,
+      breakdown: entry.interval_breakdown,
+      fullTimeLabel,
+      sortableTime: fullTime,
+      xferPercentage: parseFloat(entry.xfer_pct),
+      dncPercentage: parseFloat(entry.dnc_pct),
+      dcPercentage: parseFloat(entry.dc_pct),
+      dairPercentage: parseFloat(entry.dair_pct),
+      riPercentage: parseFloat(entry.ri_pct),
+      callbkPercentage: parseFloat(entry.callbk_pct),
+      aPercentage: parseFloat(entry.a_pct),
+      lbPercentage: parseFloat(entry.lb_pct),
+      npPercentage: parseFloat(entry.np_pct),
+      naPercentage: parseFloat(entry.na_pct),
+      fasPercentage: parseFloat(entry.fas_pct),
+      dnqPercentage: parseFloat(entry.dnq_pct),
+      hpPercentage: parseFloat(entry.hp_pct),
+    };
+  });
+
+  return transformedData.sort((a, b) => a.sortableTime.getTime() - b.sortableTime.getTime());
 }
