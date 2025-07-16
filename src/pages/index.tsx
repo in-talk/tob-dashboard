@@ -59,7 +59,7 @@ export default function Home() {
       fetcher("/api/fetchCallRecords", {
         client_id,
         from_date: dateRange.from,
-        to_date: `${dateRange.to} 23:59:59`,
+        to_date: dateRange.to,
       })
   );
 
@@ -71,7 +71,7 @@ export default function Home() {
       fetcher("`/api/fetchCallRecords", {
         client_id,
         from_date: dateRange.from,
-        to_date: `${dateRange.to} 23:59:59`,
+        to_date: dateRange.to,
       })
   );
 
@@ -83,7 +83,7 @@ export default function Home() {
       fetcher("/api/fetchAgentReport", {
         client_id,
         from_date: dateRange.from,
-        to_date: `${dateRange.to} 23:59:59`,
+        to_date: dateRange.to,
       })
   );
 

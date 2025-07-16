@@ -1,6 +1,7 @@
 export interface dispositionGraphData {
   time_slot: string; 
   time_label: string;
+  interval_breakdown:string
   xfer_pct: string;
   dnc_pct: string;
   dc_pct: string;
