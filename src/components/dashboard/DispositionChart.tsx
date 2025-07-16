@@ -28,6 +28,7 @@ const dispositionLabels = [
   "A",
   "LB",
   "NP",
+  "NA",
   "FAS",
   "DNQ",
   "HP",
@@ -43,6 +44,7 @@ const dispositionColors: Record<string, string> = {
   A: "#17a2b8",
   LB: "#20c997",
   NP: "#6610f2",
+  NA: "#a4abb0",
   FAS: "#e83e8c",
   DNQ: "#fff",
   HP: "#338c48",
@@ -130,7 +132,7 @@ const DispositionChart = ({
         timeLabel: entry.timeLabel,
         timeSlot: entry.timeSlot,
         breakdown: entry.breakdown,
-        fullTimeLabel: entry.fullTimeLabel, // Use the granular time label
+        fullTimeLabel: entry.fullTimeLabel,
         XFER: Math.min(100, Math.max(0, entry.xferPercentage)),
         DC: Math.min(100, Math.max(0, entry.dcPercentage)),
         CALLBK: Math.min(100, Math.max(0, entry.callbkPercentage)),
@@ -142,6 +144,7 @@ const DispositionChart = ({
         A: Math.min(100, Math.max(0, entry.aPercentage)),
         LB: Math.min(100, Math.max(0, entry.lbPercentage)),
         NP: Math.min(100, Math.max(0, entry.npPercentage)),
+        NA: Math.min(100, Math.max(0, entry.naPercentage)),
         DNQ: Math.min(100, Math.max(0, entry.dnqPercentage)),
       }));
 

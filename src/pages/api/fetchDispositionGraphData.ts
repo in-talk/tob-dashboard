@@ -35,7 +35,7 @@ export default async function handler(
   try {
     const result = await db.query(
       `SELECT * FROM get_disposition_by_intervals_enhanced($1, $2, $3, $4, $5);`,
-      [client_id, from_date, to_date, main_interval, 60]
+      [client_id, from_date, `${to_date} 23:59:59`, main_interval, 60]
     );
     res.status(200).json({
       graphData: result.rows || result,

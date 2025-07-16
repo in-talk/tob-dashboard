@@ -18,6 +18,7 @@ export type DispositionGraph = {
   aPercentage: number;
   lbPercentage: number;
   npPercentage: number;
+  naPercentage: number;
   dnqPercentage: number;
 };
 
@@ -48,6 +49,7 @@ export function transformGraphData(
       aPercentage: parseFloat(entry.a_pct),
       lbPercentage: parseFloat(entry.lb_pct),
       npPercentage: parseFloat(entry.np_pct),
+      naPercentage: parseFloat(entry.na_pct),
       fasPercentage: parseFloat(entry.fas_pct),
       dnqPercentage: parseFloat(entry.dnq_pct),
       hpPercentage: parseFloat(entry.hp_pct),

@@ -14,7 +14,7 @@ export interface dispositionGraphData {
   fas_pct:string
   dnq_pct:string
   hp_pct:string
-  other_pct: string;
+  na_pct: string;
   total_calls: string;
 }
 
