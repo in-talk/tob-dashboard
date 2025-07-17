@@ -21,6 +21,8 @@ import { SessionProvider, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import ThemeToggler from "@/components/ThemeToggler";
 import { ThemeProviders } from "@/theme/ThemeProviders";
+import "rsuite/dist/rsuite-no-reset.min.css";
+import { CustomProvider } from "rsuite";
 // import { CallDataProvider } from "@/context/CallRecordContext";
 import Head from "next/head";
 
@@ -32,11 +34,13 @@ export default function App({
   return (
     <SessionProvider session={session}>
       <ThemeProviders>
-        <MainLayout
-          Component={Component}
-          pageProps={pageProps}
-          router={router}
-        />
+        <CustomProvider theme='dark'>
+          <MainLayout
+            Component={Component}
+            pageProps={pageProps}
+            router={router}
+          />
+        </CustomProvider>
         <Toaster />
       </ThemeProviders>
     </SessionProvider>
@@ -123,7 +127,7 @@ export function MainLayout({ Component, pageProps }: AppProps) {
               <ThemeToggler />
             </header>
             {/* <CallDataProvider> */}
-              <Component {...pageProps} />
+            <Component {...pageProps} />
             {/* </CallDataProvider> */}
             <Toaster />
           </SidebarInset>
@@ -132,7 +136,7 @@ export function MainLayout({ Component, pageProps }: AppProps) {
         <div>
           {/* <SimpleHeader /> */}
           {/* <CallDataProvider> */}
-            <Component {...pageProps} />
+          <Component {...pageProps} />
           {/* </CallDataProvider> */}
         </div>
       )}

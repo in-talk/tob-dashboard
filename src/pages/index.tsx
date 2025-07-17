@@ -65,10 +65,10 @@ export default function Home() {
 
   const chartDataQuery = useSWR(
     client_id && dateRange
-      ? `/api/fetchCallRecords?client_id=${client_id}&from=${dateRange.from}&to=${dateRange.to}`
+      ? `/api/fetchDispositionGraphData?client_id=${client_id}&from=${dateRange.from}&to=${dateRange.to}`
       : null,
     () =>
-      fetcher("`/api/fetchCallRecords", {
+      fetcher("/api/fetchDispositionGraphData", {
         client_id,
         from_date: dateRange.from,
         to_date: dateRange.to,
@@ -91,6 +91,8 @@ export default function Home() {
   const dispositionChartData = transformGraphData(
     chartDataQuery.data?.graphData ?? []
   );
+
+  console.log('dispositionChartData',dispositionChartData)
   const agentReport = transformAgentData(
     agentReportQuery.data?.agentRecords ?? []
   );

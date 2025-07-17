@@ -15,6 +15,7 @@ import {
   ResponsiveContainer,
   // CartesianGrid,
 } from "recharts";
+
 import useSWR from "swr";
 import { Button } from "../ui/button";
 
@@ -121,13 +122,14 @@ const DispositionChart = ({
 
   const [chartData, setChartData] = useState<ChartEntry[]>([]);
   const [focusedLine, setFocusedLine] = useState<string | null>(null);
-
   useEffect(() => {
     setDateRange(initialRange);
   }, [initialRange]);
 
+  console.log("chartData", transformedData,chartData);
+
   useEffect(() => {
-    if (transformedData?.length) {
+    if (transformedData && transformedData.length > 0) {
       const processed = transformedData.map((entry) => ({
         timeLabel: entry.timeLabel,
         timeSlot: entry.timeSlot,
@@ -171,7 +173,7 @@ const DispositionChart = ({
     const totalTicks = chartData.length;
     const maxTicks = 24; // Adjust based on your preference
     const step = Math.ceil(totalTicks / maxTicks);
-    
+
     if (index % step === 0) {
       return value;
     }
@@ -205,7 +207,7 @@ const DispositionChart = ({
         </div>
       )}
 
-      <div className="px-5 py-4 bg-light dark:bg-sidebar border-b border-gray-200 dark:border-gray-700">
+      <div className="px-5 py-4 bg-light dark:bg-sidebar  border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Quick Select:</span>
           <div className="flex gap-2">
@@ -248,9 +250,8 @@ const DispositionChart = ({
             data={chartData}
             margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
           >
-            {/* <CartesianGrid strokeDasharray="3 3" /> */}
             <XAxis
-              dataKey="fullTimeLabel" 
+              dataKey="fullTimeLabel"
               interval={0}
               tickFormatter={formatXAxisTick}
               angle={-45}
@@ -290,7 +291,7 @@ const DispositionChart = ({
                   dataKey={label}
                   stroke={dispositionColors[label]}
                   strokeWidth={focusedLine === label ? 3 : 2}
-                  dot={true}
+                  dot={false}
                   connectNulls={false}
                 />
               );
