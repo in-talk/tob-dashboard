@@ -19,7 +19,7 @@ import { LabelsSchema } from "@/lib/zod";
 import UpdateDocumentForm from "./UpdateDocumentForm";
 import { labels } from "@/types/lables";
 
-export default function UpdateDocument({ document }: { document: labels }) {
+export default function UpdateDocument({ document,collectionType }: { document: labels ,collectionType:string}) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isDialogOpen, setDialogOpen] = useState(false);
@@ -27,7 +27,7 @@ export default function UpdateDocument({ document }: { document: labels }) {
     async (data: LabelsSchema) => {
       setIsSubmitting(true);
       try {
-        const response = await fetch("/api/dashboard", {
+        const response = await fetch(`/api/dashboard?collectionType=${collectionType}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...data, id: document._id }),
@@ -54,7 +54,7 @@ export default function UpdateDocument({ document }: { document: labels }) {
           description: "Document updated successfully.",
         });
         setErrorMessage("");
-        mutate("/api/dashboard");
+        mutate(`/api/dashboard?collectionType=${collectionType}`);
       } catch (error) {
         const errorMessage =
           error instanceof Error
@@ -65,7 +65,7 @@ export default function UpdateDocument({ document }: { document: labels }) {
         setIsSubmitting(false);
       }
     },
-    [document._id]
+    [document._id,collectionType]
   );
 
   return (

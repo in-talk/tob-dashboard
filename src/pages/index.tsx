@@ -92,7 +92,6 @@ export default function Home() {
     chartDataQuery.data?.graphData ?? []
   );
 
-  console.log('dispositionChartData',dispositionChartData)
   const agentReport = transformAgentData(
     agentReportQuery.data?.agentRecords ?? []
   );
@@ -118,7 +117,7 @@ export default function Home() {
         <div className="w-full">
           <DispositionChart
             dispositionChartData={dispositionChartData || []}
-            initialRange={dateRange}
+            isLoading={chartDataQuery.isLoading}
           />
         </div>
         <div className="w-full my-6">

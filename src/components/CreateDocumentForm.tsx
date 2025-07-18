@@ -34,11 +34,13 @@ import { mutate } from "swr";
 interface CreateDocumentFormProps {
   defaultValues: LabelsSchema;
   submitButtonText: string;
+  collectionType: string;
 }
 
 export default function CreateDocumentForm({
   defaultValues,
   submitButtonText,
+  collectionType,
 }: CreateDocumentFormProps) {
   const form = useForm<LabelsSchema>({
     resolver: zodResolver(labelsSchema),
@@ -75,10 +77,14 @@ export default function CreateDocumentForm({
     try {
       const uniqueWords = getUniqueWords();
 
-      const response = await fetch("/api/dashboard", {
+      const response = await fetch(`/api/dashboard?collectionType=${collectionType}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, unique_words: uniqueWords }),
+        body: JSON.stringify({
+          ...data,
+          unique_words: uniqueWords,
+          collectionType: collectionType,
+        }),
       });
 
       const responseData = await response.json();
@@ -95,7 +101,7 @@ export default function CreateDocumentForm({
         description: "Yeyyyy, Document created successfully.",
       });
       form.reset();
-      mutate("/api/dashboard");
+      mutate(`/api/dashboard?collectionType=${collectionType}`);
       setErrorMessage("");
       setDialogOpen(false);
     } catch (error) {
@@ -174,7 +180,11 @@ export default function CreateDocumentForm({
             <FormItem>
               <FormLabel>Label</FormLabel>
               <FormControl>
-                <Input {...field} required className="border dark:border-white" />
+                <Input
+                  {...field}
+                  required
+                  className="border dark:border-white"
+                />
               </FormControl>
               {errorMessage && (
                 <FormMessage className="text-red-500 text-sm">
@@ -192,7 +202,11 @@ export default function CreateDocumentForm({
             <FormItem>
               <FormLabel>File name</FormLabel>
               <FormControl>
-                <Input {...field} required className="border dark:border-white" />
+                <Input
+                  {...field}
+                  required
+                  className="border dark:border-white"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

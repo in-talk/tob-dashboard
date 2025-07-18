@@ -17,12 +17,18 @@ import {
   AlertDialogAction,
 } from "./ui/alert-dialog";
 
-export default function DeleteDocument({ id }: { id: string }) {
+export default function DeleteDocument({
+  id,
+  collectionType,
+}: {
+  id: string;
+  collectionType: string;
+}) {
   const { toast } = useToast();
 
   const handleDelete = async () => {
     try {
-      const response = await fetch(`/api/dashboard?id=${id}`, {
+      const response = await fetch(`/api/dashboard?id=${id}&collectionTye=${collectionType}`, {
         method: "DELETE",
       });
 
@@ -31,7 +37,7 @@ export default function DeleteDocument({ id }: { id: string }) {
           variant: "success",
           description: "Document deleted successfully.",
         });
-        mutate("/api/dashboard");
+        mutate(`/api/dashboard?&collectionTye=${collectionType}`);
       } else {
         const errorData = await response.json();
         toast({

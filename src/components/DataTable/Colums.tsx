@@ -1,13 +1,12 @@
 import UpdateDocument from "../UpdateDocument";
 import DeleteDocument from "../DeleteDocument";
 import { ColumnDef } from "@tanstack/react-table";
-// import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import EditKeywords from "../EditKeywords";
 import React from "react";
 import { labels } from "@/types/lables";
 
-export const columns: ColumnDef<labels>[] = [
+export const getColumns = (collectionType: string): ColumnDef<labels>[] => [
   {
     accessorKey: "label",
     header: "Label",
@@ -25,11 +24,16 @@ export const columns: ColumnDef<labels>[] = [
     header: "Active turns",
     cell: ({ row }) => {
       const activeTurns: number[] = row.getValue("active_turns");
-      return  <div className="max-w-[100px] overflow-auto pb-[10px]">
-          { activeTurns.map((activeTurn,index) => (
-        <React.Fragment key={activeTurn}>{activeTurn}{index !== activeTurns.length - 1 && ","}</React.Fragment>
-      ))}
-      </div>
+      return (
+        <div className="max-w-[100px] overflow-auto pb-[10px]">
+          {activeTurns.map((activeTurn, index) => (
+            <React.Fragment key={activeTurn}>
+              {activeTurn}
+              {index !== activeTurns.length - 1 && ","}
+            </React.Fragment>
+          ))}
+        </div>
+      );
     },
   },
   {
@@ -47,13 +51,18 @@ export const columns: ColumnDef<labels>[] = [
     cell: ({ row }) => {
       const document = row.original;
       const keywords: string[] = row.getValue("keywords");
+
       return (
-        <div className="flex ">
-          <UpdateDocument document={document} />
+        <div className="flex">
+          <UpdateDocument document={document} collectionType={collectionType} />
           <Separator orientation="vertical" className="mx-1" />
-          <DeleteDocument id={document._id} />
+          <DeleteDocument id={document._id} collectionType={collectionType} />
           <Separator orientation="vertical" className="mx-1" />
-          <EditKeywords document={document} documentKeywords={keywords} />
+          <EditKeywords
+            document={document}
+            documentKeywords={keywords}
+            collectionType={collectionType}
+          />
         </div>
       );
     },

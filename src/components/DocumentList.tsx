@@ -2,18 +2,25 @@
 import { Card, CardContent } from "@/components/ui/card";
 import useSWR from "swr";
 import { DataTable } from "./DataTable/DataTable";
-import { columns } from "./DataTable/Colums";
+import { getColumns } from "./DataTable/Colums";
 import { labels } from "@/types/lables";
 import { useMemo } from "react";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default function DocumentList() {
+export default function DocumentList({
+  collectionType,
+}: {
+  collectionType: string;
+}) {
   const {
     data: documents,
     error,
     isLoading,
-  } = useSWR<labels[]>("/api/dashboard", fetcher);
+  } = useSWR<labels[]>(
+    collectionType ? `/api/dashboard?collectionType=${collectionType}` : null,
+    fetcher
+  );
 
   const memoizedData = useMemo(() => {
     return documents ?? [];
@@ -31,8 +38,6 @@ export default function DocumentList() {
 
   if (error) return <div>Failed to load documents.</div>;
 
-
-
   return (
     <div className="space-y-2">
       {memoizedData.length === 0 ? (
@@ -45,7 +50,7 @@ export default function DocumentList() {
         </Card>
       ) : (
         <div className="container mx-auto py-3 px-[30px]">
-          <DataTable columns={columns} data={memoizedData} />
+          <DataTable columns={getColumns(collectionType)} data={memoizedData} />
         </div>
       )}
     </div>

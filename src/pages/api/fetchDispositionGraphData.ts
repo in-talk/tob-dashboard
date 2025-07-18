@@ -31,21 +31,19 @@ export default async function handler(
     fromDate.getDate() === toDate.getDate();
 
   let main_interval: number;
+  function roundUpToNext30(num: number) {
+    return Math.ceil(num / 30) * 30;
+  }
 
   if (isSameDay) {
     main_interval = 60;
   } else {
     const diffInMs = toDate.getTime() - fromDate.getTime();
     const diffInHours = diffInMs / (1000 * 60 * 60);
-    main_interval = (diffInHours / 24) * 60;
-  }
+    const rawInterval = (diffInHours / 24) * 60;
 
-  console.log(
-    "todate",
-    formatDateForDB(from_date),
-    formatDateForDB(to_date),
-    main_interval
-  );
+    main_interval = roundUpToNext30(rawInterval);
+  }
 
   if (!client_id) {
     return res.status(400).json({ error: "client_id is required" });
@@ -62,9 +60,6 @@ export default async function handler(
         5,
       ]
     );
-
-    console.log("result", result);
-
     res.status(200).json({
       graphData: result.rows,
     });

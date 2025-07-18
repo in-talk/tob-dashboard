@@ -20,9 +20,10 @@ import { labels } from "@/types/lables";
 interface EditKeywordProps {
   document: labels;
   documentKeywords: string[];
+  collectionType:string
 }
 
-function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
+function EditKeywords({ document, documentKeywords,collectionType }: EditKeywordProps) {
   const [keywords, setKeywords] = useState<string[]>(documentKeywords ?? []);
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
@@ -33,7 +34,7 @@ function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
   const submitKeywords = useCallback(
     async (updatedKeywords: string[]) => {
       try {
-        const response = await fetch("/api/updateKeywords", {
+        const response = await fetch(`/api/updateKeywords?collectionType=${collectionType}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: document._id, keywords: updatedKeywords }),
@@ -56,7 +57,7 @@ function EditKeywords({ document, documentKeywords }: EditKeywordProps) {
         });
       }
     },
-    [document._id]
+    [document._id,collectionType]
   );
 
   const handleAddKeyword = useCallback(

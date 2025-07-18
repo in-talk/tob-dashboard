@@ -1,12 +1,10 @@
 import { dispositionGraphData } from "@/types/dispositionGraphData";
-import { parseISO, format } from "date-fns";
 
 export type DispositionGraph = {
   timeSlot: string;
   timeLabel: string;
   breakdown: string;
   fullTimeLabel: string; 
-  sortableTime: Date;
   xferPercentage: number;
   dncPercentage: number;
   hpPercentage: number;
@@ -25,21 +23,17 @@ export type DispositionGraph = {
 export function transformGraphData(
   data: dispositionGraphData[]
 ): DispositionGraph[] | null {
+
   const transformedData = data.map((entry) => {
-    const baseTime = parseISO(entry.time_slot);
-    const [hours, minutes] = entry.interval_breakdown.split(":").map(Number);
-    const fullTime = new Date(baseTime);
-    fullTime.setHours(hours);
-    fullTime.setMinutes(minutes);
-
-    const fullTimeLabel = format(fullTime, "MM/dd HH:mm");
-
+    const baseDate= entry.time_label.split(" ")[0]
+    const interval = entry.interval_breakdown
+    const fullTimeLabel = `${baseDate} ${interval}`;
+   
     return {
       timeSlot: entry.time_slot,
       timeLabel: entry.time_label,
       breakdown: entry.interval_breakdown,
       fullTimeLabel,
-      sortableTime: fullTime,
       xferPercentage: parseFloat(entry.xfer_pct),
       dncPercentage: parseFloat(entry.dnc_pct),
       dcPercentage: parseFloat(entry.dc_pct),
@@ -56,5 +50,5 @@ export function transformGraphData(
     };
   });
 
-  return transformedData.sort((a, b) => a.sortableTime.getTime() - b.sortableTime.getTime());
+  return transformedData;
 }

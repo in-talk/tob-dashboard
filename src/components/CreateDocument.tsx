@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import CreateDocumentForm from "./CreateDocumentForm";
 
-export default function CreateDocument() {
+export default function CreateDocument({ collectionType }: { collectionType: string }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -24,6 +24,7 @@ export default function CreateDocument() {
           This form is used create new document with lable and add keywords
         </DialogDescription>
         <CreateDocumentForm
+          collectionType={collectionType} 
           defaultValues={{
             label: "",
             keywords: [],
