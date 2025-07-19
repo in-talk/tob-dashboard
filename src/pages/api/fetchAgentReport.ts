@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import db from "@/lib/db"; // Adjust based on your actual DB wrapper
+import { formatDateForDB } from "@/utils/formatDateTime";
 
 export default async function handler(
   req: NextApiRequest,
@@ -24,7 +25,7 @@ export default async function handler(
   try {
     const result = await db.query(
       `SELECT * FROM get_agent_disposition_report($1,$2, $3);`,
-      [client_id, from_date, `${to_date} 23:59:59`]
+      [client_id, formatDateForDB(from_date), formatDateForDB(to_date)]
     );
 
     res.status(200).json({

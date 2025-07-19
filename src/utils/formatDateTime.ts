@@ -10,3 +10,7 @@ export const formatDateTime = (isoString: string) => {
 
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
+
+export const formatDateForDB = (isoString:string) => {
+  return isoString.replace('T', ' ');
+};

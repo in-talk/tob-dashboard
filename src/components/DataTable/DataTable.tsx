@@ -72,8 +72,7 @@ export function DataTable<TData, TValue>({
     },
   });
 
-  const filterInput =
-    userRole === "admin" ? table.getColumn("email") : table.getColumn("label");
+  const filterInput = table.getColumn("label");
 
   return (
     <div className="w-full">

@@ -65,10 +65,10 @@ export default function ClientPage() {
 
   const chartDataQuery = useSWR(
     client_id && dateRange
-      ? `/api/fetchCallRecords?client_id=${client_id}&from=${dateRange.from}&to=${dateRange.to}`
+      ? `/api/fetchDispositionGraphData?client_id=${client_id}&from=${dateRange.from}&to=${dateRange.to}`
       : null,
     () =>
-      fetcher("`/api/fetchCallRecords", {
+      fetcher("/api/fetchDispositionGraphData", {
         client_id,
         from_date: dateRange.from,
         to_date: dateRange.to,
@@ -77,10 +77,10 @@ export default function ClientPage() {
 
   const agentReportQuery = useSWR(
     client_id && dateRange
-      ? `/api/fetchCallRecords?client_id=${client_id}&from=${dateRange.from}&to=${dateRange.to}`
+      ? `/api/fetchAgentReport?client_id=${client_id}&from=${dateRange.from}&to=${dateRange.to}`
       : null,
     () =>
-      fetcher("/api/fetchCallRecords", {
+      fetcher("/api/fetchAgentReport", {
         client_id,
         from_date: dateRange.from,
         to_date: dateRange.to,
@@ -91,6 +91,7 @@ export default function ClientPage() {
   const dispositionChartData = transformGraphData(
     chartDataQuery.data?.graphData ?? []
   );
+
   const agentReport = transformAgentData(
     agentReportQuery.data?.agentRecords ?? []
   );
@@ -116,7 +117,7 @@ export default function ClientPage() {
         <div className="w-full">
           <DispositionChart
             dispositionChartData={dispositionChartData || []}
-            initialRange={dateRange}
+            isLoading={chartDataQuery.isLoading}
           />
         </div>
         <div className="w-full my-6">
@@ -132,4 +133,4 @@ export default function ClientPage() {
 
 export const getServerSideProps: GetServerSideProps = withAuth(async () => {
   return { props: {} };
-}, ["admin"]);
+}, ["admin", "user"]);

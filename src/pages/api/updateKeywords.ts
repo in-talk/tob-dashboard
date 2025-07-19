@@ -12,6 +12,8 @@ export default async function handleUpdateKeywords(
 
   try {
     const { id, keywords } = req.body;
+    const { collectionType } = req.query;
+    const labels = `labels_${collectionType === "CGM" ? "10000" : "20000"}`;
 
     // Validate inputs
     if (!id) {
@@ -24,8 +26,8 @@ export default async function handleUpdateKeywords(
 
     const client = await clientPromise;
     const db = client.db();
-    const collection = db.collection("labels_10000");
-    
+    const collection = db.collection(labels);
+
     const result = await collection.updateOne(
       { _id: new ObjectId(String(id)) },
       { $set: { keywords } }
@@ -35,7 +37,9 @@ export default async function handleUpdateKeywords(
       return res.status(404).json({ message: "Document not found" });
     }
 
-    const updatedDocument = await collection.findOne({ _id: new ObjectId(String(id)) });
+    const updatedDocument = await collection.findOne({
+      _id: new ObjectId(String(id)),
+    });
 
     return res.status(200).json({
       message: "Keywords updated successfully",

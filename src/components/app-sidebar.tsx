@@ -43,8 +43,18 @@ const data = {
     },
     {
       name: "Label Managment",
-      url: "/label_managment",
+      url: "#",
       icon: LayoutDashboard,
+      items:[
+         {
+          title: "CGM",
+          url: "/label_managment/?CGM",
+        },
+        {
+          title: "ACM",
+          url: "/label_managment/?ACM",
+        },
+      ]
     },
     {
       name: "Audio Formatter",

@@ -1,7 +1,4 @@
-import {
-  DispositionGraph,
-  transformGraphData,
-} from "@/utils/transformGraphData";
+import { DispositionGraph } from "@/utils/transformGraphData";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
@@ -13,12 +10,9 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  // CartesianGrid,
 } from "recharts";
-import useSWR from "swr";
-import { Button } from "../ui/button";
 
-const dispositionLabels = [
+const allDispositionLabels = [
   "XFER",
   "DNC",
   "DC",
@@ -78,57 +72,45 @@ export const fetcher = async (url: string, options?: RequestInit) => {
 
 const DispositionChart = ({
   dispositionChartData,
-  initialRange,
+  isLoading,
 }: {
   dispositionChartData: DispositionGraph[];
-  initialRange: { from: string; to: string };
+  isLoading: boolean;
 }) => {
   const { data: session } = useSession();
   const { theme } = useTheme();
 
-  const [dateRange, setDateRange] = useState(initialRange);
+  // const cacheKey = session?.user?.client_id
+  //   ? `disposition-graph-${session.user.client_id}-${dateRange.from}-${dateRange.to}`
+  //   : null;
 
-  const cacheKey = session?.user?.client_id
-    ? `disposition-graph-${session.user.client_id}-${dateRange.from}-${dateRange.to}`
-    : null;
+  // const fetchDispositionData = useCallback(() => {
+  //   return fetcher("/api/fetchDispositionGraphData", {
+  //     body: JSON.stringify({
+  //       client_id: session?.user?.client_id,
+  //       from_date: dateRange.from,
+  //       to_date: dateRange.to,
+  //     }),
+  //   });
+  // }, [session?.user?.client_id, dateRange.from, dateRange.to]);
 
-  const fetchDispositionData = useCallback(() => {
-    return fetcher("/api/fetchDispositionGraphData", {
-      body: JSON.stringify({
-        client_id: session?.user?.client_id,
-        from_date: dateRange.from,
-        to_date: dateRange.to,
-      }),
-    });
-  }, [session?.user?.client_id, dateRange.from, dateRange.to]);
-
-  const { data, isLoading, mutate, error } = useSWR(
-    cacheKey,
-    fetchDispositionData,
-    {
-      fallbackData: dispositionChartData,
-      refreshInterval: 300000,
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-    }
-  );
-
-  const transformedData = useMemo(() => {
-    return data
-      ? transformGraphData(data.graphData || [])
-      : dispositionChartData;
-  }, [data, dispositionChartData]);
+  // const { data, isLoading, mutate, error } = useSWR(
+  //   cacheKey,
+  //   fetchDispositionData,
+  //   {
+  //     fallbackData: dispositionChartData,
+  //     refreshInterval: 300000,
+  //     revalidateOnFocus: false,
+  //     revalidateOnReconnect: true,
+  //   }
+  // );
 
   const [chartData, setChartData] = useState<ChartEntry[]>([]);
   const [focusedLine, setFocusedLine] = useState<string | null>(null);
 
   useEffect(() => {
-    setDateRange(initialRange);
-  }, [initialRange]);
-
-  useEffect(() => {
-    if (transformedData?.length) {
-      const processed = transformedData.map((entry) => ({
+    if (dispositionChartData && dispositionChartData.length > 0) {
+      const processed = dispositionChartData.map((entry) => ({
         timeLabel: entry.timeLabel,
         timeSlot: entry.timeSlot,
         breakdown: entry.breakdown,
@@ -150,86 +132,86 @@ const DispositionChart = ({
 
       setChartData(processed);
     }
-  }, [transformedData]);
+  }, [dispositionChartData]);
+
+  const activeDispositionLabels = useMemo(() => {
+    if (!chartData.length) return [];
+
+    const keys = new Set<string>();
+    chartData.forEach((entry) => {
+      allDispositionLabels.forEach((label) => {
+        if (entry[label] !== undefined) {
+          keys.add(label);
+        }
+      });
+    });
+
+    return Array.from(keys);
+  }, [chartData]);
+
+  const formatXAxisTick = useCallback(
+    (value: string, index: number) => {
+      const item = chartData[index];
+      if (!item) return "";
+      if (item.timeLabel === item.fullTimeLabel) {
+        return item.timeLabel;
+      }
+
+      return "";
+    },
+    [chartData]
+  );
 
   const handleLegendClick = (label: string) => {
     setFocusedLine((prev) => (prev === label ? null : label));
   };
 
-  const handleQuickDateSelect = (days: number) => {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - days);
+  const maxYValue = useMemo(() => {
+    if (!chartData || chartData.length === 0) return 0;
 
-    setDateRange({
-      from: startDate.toISOString().split("T")[0],
-      to: endDate.toISOString().split("T")[0],
+    let max = 0;
+
+    chartData.forEach((entry) => {
+      const labels = focusedLine ? [focusedLine] : activeDispositionLabels;
+
+      labels.forEach((label) => {
+        const value = Number(entry[label] || 0);
+        if (!isNaN(value)) {
+          max = Math.max(max, value);
+        }
+      });
     });
-  };
 
-  const formatXAxisTick = (value: string, index: number) => {
-    const totalTicks = chartData.length;
-    const maxTicks = 24; // Adjust based on your preference
-    const step = Math.ceil(totalTicks / maxTicks);
-    
-    if (index % step === 0) {
-      return value;
-    }
-    return "";
-  };
+    return max;
+  }, [chartData, focusedLine, activeDispositionLabels]);
 
-  if (error) {
-    console.error("Error loading disposition data:", error);
+  if (!dispositionChartData) {
     return (
       <div className="rounded-xl bg-gray-100 dark:bg-sidebar p-5">
         <div className="text-red-500 text-center">
           <p className="text-lg font-semibold">Error loading data</p>
-          <p className="text-sm mt-2">{error.message}</p>
+          {/* <p className="text-sm mt-2">{error.message}</p>
           <Button onClick={mutate} className="mt-4">
             Retry
-          </Button>
+          </Button> */}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl  bg-gray-100 dark:bg-sidebar">
+    <div className="rounded-xl bg-gray-100 dark:bg-sidebar">
       {session?.user.role === "admin" && (
         <div className="py-6 bg-light dark:bg-sidebar flex justify-between px-5">
           <h1 className="text-2xl font-bold mb-2">Disposition Percentage</h1>
-          <Button onClick={mutate} className="flex gap-2 items-center">
-            <ReloadIcon />
-            {isLoading ? "Refreshing..." : "Refresh"}
-          </Button>
+          {isLoading ? (
+            <span className="flex gap-2 items-center">
+              <ReloadIcon />
+              Fetching...
+            </span>
+          ) : null}
         </div>
       )}
-
-      <div className="px-5 py-4 bg-light dark:bg-sidebar border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Quick Select:</span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleQuickDateSelect(7)}
-              className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
-            >
-              Last 7 Days
-            </button>
-            <button
-              onClick={() => handleQuickDateSelect(30)}
-              className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
-            >
-              Last 30 Days
-            </button>
-            <button
-              onClick={() => handleQuickDateSelect(90)}
-              className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
-            >
-              Last 90 Days
-            </button>
-          </div>
-        </div>
-      </div>
 
       <ResponsiveContainer
         width="100%"
@@ -248,20 +230,17 @@ const DispositionChart = ({
             data={chartData}
             margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
           >
-            {/* <CartesianGrid strokeDasharray="3 3" /> */}
             <XAxis
-              dataKey="fullTimeLabel" 
+              dataKey="fullTimeLabel"
               interval={0}
               tickFormatter={formatXAxisTick}
               angle={-45}
               textAnchor="end"
-              style={{
-                fontSize: "12px",
-              }}
+              style={{ fontSize: "12px" }}
               height={50}
             />
             <YAxis
-              domain={[0, 100]}
+              domain={[0, maxYValue]}
               tickFormatter={(value) => `${value}%`}
               label={{
                 value: "Disposition Percentage",
@@ -278,8 +257,7 @@ const DispositionChart = ({
                 color: theme === "dark" ? "white" : "#1f2937",
               }}
             />
-
-            {dispositionLabels.map((label) => {
+            {activeDispositionLabels.map((label) => {
               const shouldRender = !focusedLine || focusedLine === label;
               if (!shouldRender) return null;
 
@@ -290,7 +268,7 @@ const DispositionChart = ({
                   dataKey={label}
                   stroke={dispositionColors[label]}
                   strokeWidth={focusedLine === label ? 3 : 2}
-                  dot={true}
+                  dot={false}
                   connectNulls={false}
                 />
               );
@@ -300,7 +278,7 @@ const DispositionChart = ({
       </ResponsiveContainer>
 
       <div className="flex items-center justify-center flex-wrap gap-2 my-5">
-        {dispositionLabels.map((label) => (
+        {activeDispositionLabels.map((label) => (
           <div
             key={label}
             onClick={() => handleLegendClick(label)}

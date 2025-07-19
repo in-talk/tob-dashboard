@@ -1,59 +1,82 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import clientPromise from '@/lib/mongodb';
-import { labelsSchema } from '@/lib/zod';
-import { ObjectId } from 'mongodb';
-import { NextApiRequest, NextApiResponse } from 'next';
+import clientPromise from "@/lib/mongodb";
+import { labelsSchema } from "@/lib/zod";
+import { ObjectId } from "mongodb";
+import { NextApiRequest, NextApiResponse } from "next";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const { collectionType } = req.query;
+
+  const labels = `labels_${collectionType === "CGM" ? "10000" : "20000"}`;
+
   try {
     const client = await clientPromise;
     const db = client.db();
-    const collection = db.collection('labels_10000');
-
+    const collection = db.collection(labels);
+    
     switch (req.method) {
-      case 'GET':
+      case "GET":
         return await handleGet(req, res, collection);
-      case 'POST':
+      case "POST":
         return await handlePost(req, res, collection);
-      case 'DELETE':
+      case "DELETE":
         return await handleDelete(req, res, collection);
-      case 'PUT':
+      case "PUT":
         return await handlePut(req, res, collection);
       default:
-        res.setHeader('Allow', ['GET', 'POST', 'DELETE', 'PUT']);
-        return res.status(405).json({ message: `Method ${req.method} not allowed` });
+        res.setHeader("Allow", ["GET", "POST", "DELETE", "PUT"]);
+        return res
+          .status(405)
+          .json({ message: `Method ${req.method} not allowed` });
     }
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return res.status(500).json({ message: 'An unexpected error occurred' });
+    console.error("Unexpected error:", error);
+    return res.status(500).json({ message: "An unexpected error occurred" });
   }
 }
 
-async function handleGet(req: NextApiRequest, res: NextApiResponse, collection: any) {
+async function handleGet(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  collection: any
+) {
   try {
     const documents = await collection.find({}).sort({ _id: -1 }).toArray();
     return res.status(200).json(documents);
   } catch (error) {
-    console.error('Error fetching documents:', error);
-    return res.status(500).json({ message: 'An unexpected error occurred' });
+    console.error("Error fetching documents:", error);
+    return res.status(500).json({ message: "An unexpected error occurred" });
   }
 }
 
-async function handlePost(req: NextApiRequest, res: NextApiResponse, collection: any) {
+async function handlePost(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  collection: any
+) {
   try {
     const body = req.body;
     const result = labelsSchema.safeParse(body);
 
     if (!result.success) {
-      return res.status(400).json({ message: 'Invalid input', errors: result.error.errors });
+      return res
+        .status(400)
+        .json({ message: "Invalid input", errors: result.error.errors });
     }
 
     const documentData = result.data;
 
-    const existingDocument = await collection.findOne({ label: documentData.label });
+    const existingDocument = await collection.findOne({
+      label: documentData.label,
+    });
 
     if (existingDocument) {
-      return res.status(409).json({ message: `Document with label "${documentData.label}" already exists.` });
+      return res.status(409).json({
+        message: `Document with label "${documentData.label}" already exists.`,
+      });
     }
 
     const { insertedId } = await collection.insertOne(documentData);
@@ -61,45 +84,57 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, collection:
 
     return res.status(201).json(newDoc);
   } catch (error) {
-    console.error('Error adding document:', error);
-    return res.status(500).json({ message: 'An unexpected error occurred' });
+    console.error("Error adding document:", error);
+    return res.status(500).json({ message: "An unexpected error occurred" });
   }
 }
 
-async function handleDelete(req: NextApiRequest, res: NextApiResponse, collection: any) {
+async function handleDelete(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  collection: any
+) {
   try {
     const { id } = req.query;
 
-    if (!id || typeof id !== 'string') {
-      return res.status(400).json({ message: 'Document ID is required' });
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({ message: "Document ID is required" });
     }
     if (!ObjectId.isValid(id)) {
-        return res.status(400).json({ message: 'Invalid document ID' });
-      }
-
-    const result = await collection.deleteOne({ _id: new ObjectId(String(id)) });
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ message: 'Document not found' });
+      return res.status(400).json({ message: "Invalid document ID" });
     }
 
-    return res.status(200).json({ message: 'Document deleted successfully' });
+    const result = await collection.deleteOne({
+      _id: new ObjectId(String(id)),
+    });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    return res.status(200).json({ message: "Document deleted successfully" });
   } catch (error) {
-    console.error('Error deleting document:', error);
-    return res.status(500).json({ message: 'An unexpected error occurred' });
+    console.error("Error deleting document:", error);
+    return res.status(500).json({ message: "An unexpected error occurred" });
   }
 }
 
-async function handlePut(req: NextApiRequest, res: NextApiResponse, collection: any) {
+async function handlePut(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  collection: any
+) {
   try {
     const { id, ...rest } = req.body;
 
     if (!id) {
-      return res.status(400).json({ message: 'Document ID is required' });
+      return res.status(400).json({ message: "Document ID is required" });
     }
 
     const result = labelsSchema.safeParse(rest);
     if (!result.success) {
-      return res.status(400).json({ message: 'Invalid input', errors: result.error.errors });
+      return res
+        .status(400)
+        .json({ message: "Invalid input", errors: result.error.errors });
     }
 
     const documentData = result.data;
@@ -110,7 +145,9 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse, collection: 
     });
 
     if (existingDocument) {
-      return res.status(409).json({ message: `Label "${documentData.label}" already exists.` });
+      return res
+        .status(409)
+        .json({ message: `Label "${documentData.label}" already exists.` });
     }
 
     const updateResult = await collection.updateOne(
@@ -119,13 +156,15 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse, collection: 
     );
 
     if (updateResult.matchedCount === 0) {
-      return res.status(404).json({ message: 'Document not found' });
+      return res.status(404).json({ message: "Document not found" });
     }
 
-    const updatedDocument = await collection.findOne({ _id: new ObjectId(String(id)) });
+    const updatedDocument = await collection.findOne({
+      _id: new ObjectId(String(id)),
+    });
     return res.status(200).json(updatedDocument);
   } catch (error) {
-    console.error('Error updating document:', error);
-    return res.status(500).json({ message: 'An unexpected error occurred' });
+    console.error("Error updating document:", error);
+    return res.status(500).json({ message: "An unexpected error occurred" });
   }
 }
