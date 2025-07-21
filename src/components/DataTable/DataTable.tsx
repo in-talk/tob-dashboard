@@ -31,7 +31,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ChevronDown } from "lucide-react";
-import { useSession } from "next-auth/react";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -46,8 +45,6 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
-  const { data: session } = useSession();
-  const userRole = session?.user.role;
 
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -78,16 +75,14 @@ export function DataTable<TData, TValue>({
     <div className="w-full">
       <div className="flex items-center py-4">
         <Input
-          placeholder={`Filter ${
-            userRole === "admin" ? "Users" : "Documents"
-          }....`}
+          placeholder="Filter Documents ..."
           value={(filterInput?.getFilterValue() as string) ?? ""}
           onChange={(event) => filterInput?.setFilterValue(event.target.value)}
           className="max-w-sm"
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button  className="ml-auto">
+            <Button className="ml-auto">
               View <ChevronDown />
             </Button>
           </DropdownMenuTrigger>
@@ -166,7 +161,6 @@ export function DataTable<TData, TValue>({
         </div>
         <div className="space-x-2">
           <Button
-           
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
@@ -174,7 +168,6 @@ export function DataTable<TData, TValue>({
             Previous
           </Button>
           <Button
-           
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}

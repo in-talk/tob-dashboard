@@ -28,7 +28,7 @@ export default function DeleteDocument({
 
   const handleDelete = async () => {
     try {
-      const response = await fetch(`/api/dashboard?id=${id}&collectionTye=${collectionType}`, {
+      const response = await fetch(`/api/dashboard?id=${id}&collectionType=${collectionType}`, {
         method: "DELETE",
       });
 
@@ -37,7 +37,7 @@ export default function DeleteDocument({
           variant: "success",
           description: "Document deleted successfully.",
         });
-        mutate(`/api/dashboard?&collectionTye=${collectionType}`);
+        mutate(`/api/dashboard?&collectionType=${collectionType}`);
       } else {
         const errorData = await response.json();
         toast({

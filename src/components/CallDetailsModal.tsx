@@ -22,7 +22,6 @@ import {
 } from "./ui/table";
 import { formatDateTime } from "@/utils/formatDateTime";
 import AudioPlayer from "./AudioPlayer";
-import { generateAudioUrl } from "@/utils/WasabiClient";
 
 interface CallDetailsModalProps {
   callId: string;
@@ -110,11 +109,7 @@ export default function CallDetailsModal({ callId }: CallDetailsModalProps) {
                     {callDetail.detected_label}
                   </TableCell>
                   <TableCell className="p-0  px-1">
-                    <AudioPlayer
-                      audioUrl={generateAudioUrl(
-                        callDetail.response_audio_path
-                      )}
-                    />
+                    <AudioPlayer audioPath={callDetail.response_audio_path} />
                   </TableCell>
                   <TableCell className="w-[200px] p-0  px-1">
                     {formatDateTime(callDetail.created_at)}

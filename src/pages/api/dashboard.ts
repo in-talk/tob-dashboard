@@ -9,7 +9,6 @@ export default async function handler(
   res: NextApiResponse
 ) {
   const { collectionType } = req.query;
-
   const labels = `labels_${collectionType === "CGM" ? "10000" : "20000"}`;
 
   try {
@@ -103,7 +102,7 @@ async function handleDelete(
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid document ID" });
     }
-
+    console.log('collection',collection)
     const result = await collection.deleteOne({
       _id: new ObjectId(String(id)),
     });
