@@ -43,7 +43,7 @@ const data = {
     },
     {
       name: "Label Managment",
-      url: "#",
+      url: "/label_managment",
       icon: LayoutDashboard,
       items:[
          {
