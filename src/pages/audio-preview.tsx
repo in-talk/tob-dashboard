@@ -1,13 +1,13 @@
 import { generateAudioUrl } from "@/utils/WasabiClient";
-import { useRef, useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import { useEffect, useRef, useState } from "react";
 
-export default function AudioPlayer({
-  audioPath,
-}: {
-  audioPath: string | null;
-}) {
+export default function AudioPreview() {
+  const { query } = useRouter();
+  const audioPath = query.url as string;
+  const audioUrl = generateAudioUrl(audioPath);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrl = generateAudioUrl(audioPath ?? "");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function AudioPlayer({
   if (!audioUrl) return <div>No audio available</div>;
 
   return (
-    <div className="w-[200px] relative">
+    <div className=" h-full relative flex justify-center items-center">
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center dark:border-gray-700 backdrop-blur-sm rounded">
           <div className="animate-spin h-6 w-6 border-4 border-indigo-500 border-t-transparent rounded-full" />
@@ -40,9 +40,7 @@ export default function AudioPlayer({
         ref={audioRef}
         controls
         preload="metadata"
-        className={`w-full h-[25px] ${
-          loading ? "opacity-50 pointer-events-none" : ""
-        }`}
+        className={`w-[500px] ${loading ? "opacity-50 pointer-events-none" : ""}`}
       >
         <source src={audioUrl} type="audio/mpeg" />
         <source src={audioUrl} type="audio/wav" />

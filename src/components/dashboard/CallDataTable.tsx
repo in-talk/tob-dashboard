@@ -8,7 +8,6 @@ import { CallRecord } from "@/types/callRecord";
 import { useSession } from "next-auth/react";
 import { formatCallDuration } from "@/utils/formatCallDuration";
 import AudioPlayer from "../AudioPlayer";
-import { generateAudioUrl } from "@/utils/WasabiClient";
 import { formatDateTime } from "@/utils/formatDateTime";
 import CallDetailsModal from "../CallDetailsModal";
 
@@ -45,6 +44,8 @@ const CallDataTable = ({
   const [rowsPerPage, setRowperPage] = useState(10);
 
   const { data: session } = useSession();
+
+  const role = session?.user?.role
 
   useEffect(() => {
     setData(callRecords);
@@ -133,6 +134,11 @@ const CallDataTable = ({
     setSelectedRows([]);
   };
 
+  const handleOpenPlayer = (url: string) => {
+    const playerUrl = `/audio-preview?url=${encodeURIComponent(url)}`;
+    window.open(playerUrl, "_blank");
+  };
+
   const columns: TableColumn<CallRecord>[] = [
     {
       name: "Agent",
@@ -151,7 +157,11 @@ const CallDataTable = ({
       sortable: true,
       width: "90px",
       cell: (row: CallRecord) => {
-        return <CallDetailsModal callId={row.call_id} />;
+        return role === "admin" ? (
+          <CallDetailsModal callId={row.call_id} />
+        ) : (
+          <span>{row.call_id}</span>
+        );
       },
     },
     {
@@ -198,13 +208,21 @@ const CallDataTable = ({
       ),
     },
     {
-      name: "Call Recording",
+      name: "Call Audio",
       selector: (row: CallRecord) => row.call_recording_path,
       sortable: false,
-      width: "200px",
+      width: role === "admin" ? "200px" : "100px",
       cell: (row: CallRecord) => {
-        const audioUrl = generateAudioUrl(row.call_recording_path);
-        return <AudioPlayer audioUrl={audioUrl} />;
+        return role === "admin" ? (
+          <AudioPlayer audioPath={row.call_recording_path} />
+        ) : (
+          <span
+            className="text-blue-500 underline"
+            onClick={() => handleOpenPlayer(row.call_recording_path)}
+          >
+            Call Audio
+          </span>
+        );
       },
     },
     {
@@ -216,7 +234,7 @@ const CallDataTable = ({
     },
   ];
 
-  if (session?.user?.role === "admin") {
+  if (role === "admin") {
     columns.push({
       name: "Transcription",
       selector: (row: CallRecord) => row.transcription,
@@ -286,7 +304,7 @@ const CallDataTable = ({
           <h1 className="text-2xl font-bold mb-2">Call Records</h1>
         </div>
 
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="mb-2 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -295,7 +313,7 @@ const CallDataTable = ({
                 placeholder="Search calls..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="pl-10 pr-4 py-0 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -305,9 +323,11 @@ const CallDataTable = ({
               <select
                 value={filterDisposition}
                 onChange={(e) => setFilterDisposition(e.target.value)}
-                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                className="pl-10 pr-8 py-0 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
               >
-                <option value="">All Dispositions</option>
+                <option value="" className="text-sm">
+                  All Dispositions
+                </option>
                 {dispositions.map((disposition) => (
                   <option key={disposition} value={disposition}>
                     {disposition}
@@ -328,9 +348,9 @@ const CallDataTable = ({
             )}
             <button
               onClick={exportData}
-              className="px-5 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-300 flex items-center gap-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)]"
+              className="px-5 py-1 rounded-lg cursor-pointer text-sm font-medium transition-all duration-300 flex items-center gap-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)]"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-2 h-2" />
               Export CSV
             </button>
           </div>
@@ -340,37 +360,39 @@ const CallDataTable = ({
         <div className="bg-light dark:bg-sidebar border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
           <div className="w-full overflow-auto max-w-[100vw] ">
             <div>
-          <DataTable
-            title=""
-            columns={columns}
-            data={filteredData}
-            progressPending={callsLoading}
-            progressComponent={<LoadingComponent />}
-            pagination
-            paginationServer
-            paginationPerPage={rowsPerPage}
-            onChangeRowsPerPage={handleRowsPerPageChange}
-            onChangePage={(page) => fetchNextCallRecords(page, 10)}
-            paginationTotalRows={Number(filteredData[0]?.total_records)}
-            paginationRowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
-            clearSelectedRows={toggleCleared}
-            customStyles={customStyles}
-            theme={theme}
-            highlightOnHover
-            pointerOnHover
-            responsive
-            fixedHeader
-            fixedHeaderScrollHeight="500px"
-            noDataComponent={
-              <div className="flex flex-col items-center justify-center py-12">
-                <Headset className="w-12 h-12 text-gray-300 mb-4" />
-                <p className="text-gray-300 text-lg">No call records found</p>
-                <p className="text-gray-300 text-sm">
-                  Try adjusting your search or filter criteria
-                </p>
-              </div>
-            }
-          />
+              <DataTable
+                title=""
+                columns={columns}
+                data={filteredData}
+                progressPending={callsLoading}
+                progressComponent={<LoadingComponent />}
+                pagination
+                paginationServer
+                paginationPerPage={rowsPerPage}
+                onChangeRowsPerPage={handleRowsPerPageChange}
+                onChangePage={(page) => fetchNextCallRecords(page, 10)}
+                paginationTotalRows={Number(filteredData[0]?.total_records)}
+                paginationRowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
+                clearSelectedRows={toggleCleared}
+                customStyles={customStyles}
+                theme={theme}
+                highlightOnHover
+                pointerOnHover
+                responsive
+                fixedHeader
+                fixedHeaderScrollHeight="500px"
+                noDataComponent={
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Headset className="w-12 h-12 text-gray-300 mb-4" />
+                    <p className="text-gray-300 text-lg">
+                      No call records found
+                    </p>
+                    <p className="text-gray-300 text-sm">
+                      Try adjusting your search or filter criteria
+                    </p>
+                  </div>
+                }
+              />
             </div>
           </div>
         </div>

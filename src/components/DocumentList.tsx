@@ -19,7 +19,8 @@ export default function DocumentList({
     isLoading,
   } = useSWR<labels[]>(
     collectionType ? `/api/dashboard?collectionType=${collectionType}` : null,
-    fetcher
+    fetcher,
+    { revalidateOnFocus: false }
   );
 
   const memoizedData = useMemo(() => {
