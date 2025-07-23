@@ -25,18 +25,20 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid date format" });
   }
 
+ // Calculate if it's the same day in UTC
   const isSameDay =
-    fromDate.getFullYear() === toDate.getFullYear() &&
-    fromDate.getMonth() === toDate.getMonth() &&
-    fromDate.getDate() === toDate.getDate();
+    fromDate.getUTCFullYear() === toDate.getUTCFullYear() &&
+    fromDate.getUTCMonth() === toDate.getUTCMonth() &&
+    fromDate.getUTCDate() === toDate.getUTCDate();
 
   let main_interval: number;
+  
   function roundUpToNext30(num: number) {
     return Math.ceil(num / 30) * 30;
   }
 
   if (isSameDay) {
-    main_interval = 60;
+    main_interval = 60; // 1 hour intervals for same day
   } else {
     const diffInMs = toDate.getTime() - fromDate.getTime();
     const diffInHours = diffInMs / (1000 * 60 * 60);
@@ -44,11 +46,12 @@ export default async function handler(
 
     main_interval = roundUpToNext30(rawInterval);
   }
+  
 
   if (!client_id) {
     return res.status(400).json({ error: "client_id is required" });
   }
-
+ console.log('UTCDate=>', formatDateForDB(from_date),formatDateForDB(to_date),main_interval)
   try {
     const result = await db.query(
       `SELECT * FROM get_disposition_by_intervals_enhanced($1, $2, $3, $4, $5);`,

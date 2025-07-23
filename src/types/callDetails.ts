@@ -5,7 +5,7 @@ export interface CallDetails {
   detected_label: string;
   response_audio_path: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata: Record<string, any>; 
+  metadata: any; 
   interaction_timestamp: string;
   created_at: string;
   turn: number;

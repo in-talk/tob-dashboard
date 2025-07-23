@@ -37,10 +37,10 @@ const dispositionColors: Record<string, string> = {
   CALLBK: "#fd7e14",
   A: "#17a2b8",
   LB: "#20c997",
-  NP: "#6610f2",
-  NA: "#a4abb0",
+  NP: "#f5aee9",
+  NA: "#e7471f",
   FAS: "#e83e8c",
-  DNQ: "#fff",
+  DNQ: "#80624a",
   HP: "#338c48",
 };
 
@@ -52,24 +52,6 @@ type ChartEntry = {
   [key: string]: number | string;
 };
 
-export const fetcher = async (url: string, options?: RequestInit) => {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-    ...options,
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to fetch data");
-  }
-
-  return response.json();
-};
-
 const DispositionChart = ({
   dispositionChartData,
   isLoading,
@@ -79,32 +61,6 @@ const DispositionChart = ({
 }) => {
   const { data: session } = useSession();
   const { theme } = useTheme();
-
-  // const cacheKey = session?.user?.client_id
-  //   ? `disposition-graph-${session.user.client_id}-${dateRange.from}-${dateRange.to}`
-  //   : null;
-
-  // const fetchDispositionData = useCallback(() => {
-  //   return fetcher("/api/fetchDispositionGraphData", {
-  //     body: JSON.stringify({
-  //       client_id: session?.user?.client_id,
-  //       from_date: dateRange.from,
-  //       to_date: dateRange.to,
-  //     }),
-  //   });
-  // }, [session?.user?.client_id, dateRange.from, dateRange.to]);
-
-  // const { data, isLoading, mutate, error } = useSWR(
-  //   cacheKey,
-  //   fetchDispositionData,
-  //   {
-  //     fallbackData: dispositionChartData,
-  //     refreshInterval: 300000,
-  //     revalidateOnFocus: false,
-  //     revalidateOnReconnect: true,
-  //   }
-  // );
-
   const [chartData, setChartData] = useState<ChartEntry[]>([]);
   const [focusedLine, setFocusedLine] = useState<string | null>(null);
 
@@ -189,11 +145,7 @@ const DispositionChart = ({
     return (
       <div className="rounded-xl bg-gray-100 dark:bg-sidebar p-5">
         <div className="text-red-500 text-center">
-          <p className="text-lg font-semibold">Error loading data</p>
-          {/* <p className="text-sm mt-2">{error.message}</p>
-          <Button onClick={mutate} className="mt-4">
-            Retry
-          </Button> */}
+          <p className="text-lg font-semibold">Error loading data</p> 
         </div>
       </div>
     );

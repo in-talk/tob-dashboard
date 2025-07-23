@@ -10,6 +10,7 @@ import { formatCallDuration } from "@/utils/formatCallDuration";
 import AudioPlayer from "../AudioPlayer";
 import { formatDateTime } from "@/utils/formatDateTime";
 import CallDetailsModal from "../CallDetailsModal";
+import { utcToCurrentTimezone } from "@/utils/timezone";
 
 const dispositionColors: Record<string, string> = {
   XFER: "bg-blue-100 text-blue-800",
@@ -180,7 +181,8 @@ const CallDataTable = ({
       sortable: true,
       width: "170px",
       cell: (row: CallRecord) => {
-        const createdAt = formatDateTime(row.created_at);
+        const CurrentTimezone = utcToCurrentTimezone(row.created_at)
+        const createdAt = formatDateTime(CurrentTimezone);
         return <span>{createdAt || "-"}</span>;
       },
     },
@@ -370,7 +372,7 @@ const CallDataTable = ({
                 paginationServer
                 paginationPerPage={rowsPerPage}
                 onChangeRowsPerPage={handleRowsPerPageChange}
-                onChangePage={(page) => fetchNextCallRecords(page, 10)}
+                onChangePage={(page) => fetchNextCallRecords(page, rowsPerPage)}
                 paginationTotalRows={Number(filteredData[0]?.total_records)}
                 paginationRowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
                 clearSelectedRows={toggleCleared}

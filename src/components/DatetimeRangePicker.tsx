@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Calendar,
   Clock,
@@ -6,13 +6,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Globe,
 } from "lucide-react";
-
-interface Timezone {
-  value: string;
-  label: string;
-}
+import { useTimezone } from "@/hooks/useTimezone";
 
 interface RecentSelection {
   id: number;
@@ -21,40 +16,10 @@ interface RecentSelection {
   startTime: string;
   endDate: string;
   endTime: string;
-  timezone: string;
-  formatted: {
-    start: string;
-    end: string;
-  };
-  converted: {
-    start: string;
-    end: string;
-    timezone: string;
-  };
-}
-
-interface Selection {
-  start: string;
-  end: string;
-  startDate: string;
-  startTime: string;
-  endDate: string;
-  endTime: string;
-  timezone: string;
-  formatted: {
-    start: string;
-    end: string;
-  };
-  converted: {
-    start: string;
-    end: string;
-    timezone: string;
-  };
 }
 
 interface DateTimeRangePickerProps {
   onDateChange?: (range: { from: string; to: string }) => void;
-  defaultTimezone?: string;
   initialStartDate?: string;
   initialStartTime?: string;
   initialEndDate?: string;
@@ -63,7 +28,6 @@ interface DateTimeRangePickerProps {
 
 const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
   onDateChange,
-  defaultTimezone,
   initialStartDate = "",
   initialStartTime = "",
   initialEndDate = "",
@@ -73,86 +37,13 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endDate, setEndDate] = useState<string>(initialEndDate);
   const [endTime, setEndTime] = useState<string>(initialEndTime);
-  const [recentSelections, setRecentSelections] = useState<RecentSelection[]>(
-    []
-  );
+  const [recentSelections, setRecentSelections] = useState<RecentSelection[]>([]);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectingStart, setSelectingStart] = useState<boolean>(true);
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
-  const [selectedTimezone, setSelectedTimezone] = useState<string>("UTC");
-
-  // Common timezones
-  const timezones: Timezone[] = [
-    { value: "UTC", label: "UTC (Coordinated Universal Time)" },
-    { value: "America/New_York", label: "Eastern Time (ET)" },
-    { value: "America/Chicago", label: "Central Time (CT)" },
-    { value: "America/Denver", label: "Mountain Time (MT)" },
-    { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-    { value: "Europe/London", label: "London (GMT/BST)" },
-    { value: "Europe/Paris", label: "Paris (CET/CEST)" },
-    { value: "Europe/Berlin", label: "Berlin (CET/CEST)" },
-    { value: "Asia/Tokyo", label: "Tokyo (JST)" },
-    { value: "Asia/Shanghai", label: "Shanghai (CST)" },
-    { value: "Asia/Dubai", label: "Dubai (GST)" },
-    { value: "Asia/Kolkata", label: "India (IST)" },
-    { value: "Asia/Karachi", label: "Pakistan (PKT)" },
-    { value: "Australia/Sydney", label: "Sydney (AEST/AEDT)" },
-    { value: "America/Sao_Paulo", label: "São Paulo (BRT)" },
-  ];
-
-  // Get user's local timezone on component mount
-  useEffect(() => {
-    const userTimezone =
-      defaultTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-    setSelectedTimezone(userTimezone);
-  }, [defaultTimezone]);
-
-  const formatDateTimeForOutput = (date: string, time: string): string => {
-    if (!date || !time) return "";
-    return `${date} ${time}:00`;
-  };
-
-  const convertToTimezone = (
-    date: string,
-    time: string,
-    timezone: string
-  ): string => {
-    if (!date || !time) return "";
-
-    try {
-      // Create a date object from the input
-      const inputDateTime = new Date(`${date}T${time}:00`);
-
-      // Convert to the selected timezone
-      const options: Intl.DateTimeFormatOptions = {
-        timeZone: timezone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      };
-
-      const formatter = new Intl.DateTimeFormat("en-CA", options);
-      const parts = formatter.formatToParts(inputDateTime);
-
-      const year = parts.find((part) => part.type === "year")?.value || "";
-      const month = parts.find((part) => part.type === "month")?.value || "";
-      const day = parts.find((part) => part.type === "day")?.value || "";
-      const hour = parts.find((part) => part.type === "hour")?.value || "";
-      const minute = parts.find((part) => part.type === "minute")?.value || "";
-      const second = parts.find((part) => part.type === "second")?.value || "";
-
-      return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
-    } catch (error) {
-      console.error("Timezone conversion error:", error);
-      return `${date} ${time}:00`;
-    }
-  };
+  const { timezone } = useTimezone();
 
   const isValidDateRange = (
     startDate: string,
@@ -168,45 +59,15 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
     return startDateTime <= endDateTime;
   };
 
-  const getCurrentSelection = (): Selection => {
-    const start = formatDateTimeForOutput(startDate, startTime);
-    const end = formatDateTimeForOutput(endDate, endTime);
-
-    // Convert to selected timezone
-    const startConverted = convertToTimezone(
-      startDate,
-      startTime,
-      selectedTimezone
-    );
-    const endConverted = convertToTimezone(endDate, endTime, selectedTimezone);
-
-    return {
-      start,
-      end,
-      startDate,
-      startTime,
-      endDate,
-      endTime,
-      timezone: selectedTimezone,
-      formatted: {
-        start: start,
-        end: end,
-      },
-      converted: {
-        start: startConverted,
-        end: endConverted,
-        timezone: selectedTimezone,
-      },
-    };
-  };
-
   const saveToRecent = (): void => {
-    const selection = getCurrentSelection();
-    if (selection.start && selection.end) {
+    if (startDate && startTime && endDate && endTime) {
       const newSelection: RecentSelection = {
         id: Date.now(),
-        label: `${selection.converted.start} - ${selection.converted.end} (${selectedTimezone})`,
-        ...selection,
+        label: `${startDate} ${startTime} - ${endDate} ${endTime}`,
+        startDate,
+        startTime,
+        endDate,
+        endTime,
       };
 
       setRecentSelections((prev) => {
@@ -223,7 +84,6 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
     setStartTime(selection.startTime);
     setEndDate(selection.endDate);
     setEndTime(selection.endTime);
-    setSelectedTimezone(selection.timezone);
     setError("");
   };
 
@@ -241,27 +101,18 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
       setError("End date/time cannot be before start date/time");
       return;
     }
+
     saveToRecent();
     setIsOpen(false);
     setError("");
 
-    const selection = getCurrentSelection();
-    console.log("Selected range:", selection);
-    console.log("Local time:", {
-      start: selection.formatted.start,
-      end: selection.formatted.end,
-    });
-    console.log("Converted to timezone:", {
-      start: selection.converted.start,
-      end: selection.converted.end,
-      timezone: selection.converted.timezone,
-    });
+    if (onDateChange && startDate && startTime && endDate && endTime) {
+      const startDateTime = `${startDate}T${startTime}:00`;
+      const endDateTime = `${endDate}T${endTime}:00`;
 
-    // Call the callback if provided
-    if (onDateChange) {
       onDateChange({
-        from: selection.formatted.start,
-        to: selection.formatted.end,
+        from: startDateTime,
+        to: endDateTime,
       });
     }
   };
@@ -278,22 +129,6 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
       .padStart(2, "0")}`;
   };
 
-  const getCurrentTimeInTimezone = (timezone: string): string => {
-    try {
-      const now = new Date();
-      const options: Intl.DateTimeFormatOptions = {
-        timeZone: timezone,
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      };
-      return new Intl.DateTimeFormat("en-GB", options).format(now);
-    } catch (error) {
-      console.error("Error getting current time in timezone:", error);
-      return getCurrentTime();
-    }
-  };
-
   const getTodayDate = (): string => {
     const now = new Date();
     const year = now.getFullYear();
@@ -304,7 +139,7 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
 
   const setToNow = (type: "start" | "end"): void => {
     const today = getTodayDate();
-    const now = getCurrentTimeInTimezone(selectedTimezone);
+    const now = getCurrentTime();
 
     if (type === "start") {
       setStartDate(today);
@@ -316,7 +151,6 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
     setError("");
   };
 
-  // Calendar functions
   const getDaysInMonth = (date: Date): (Date | null)[] => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -327,12 +161,10 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
 
     const days: (Date | null)[] = [];
 
-    // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
 
-    // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(new Date(year, month, day));
     }
@@ -353,11 +185,11 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
 
     if (selectingStart) {
       setStartDate(dateStr);
-      if (!startTime) setStartTime(getCurrentTimeInTimezone(selectedTimezone));
+      if (!startTime) setStartTime(getCurrentTime());
       setSelectingStart(false);
     } else {
       setEndDate(dateStr);
-      if (!endTime) setEndTime(getCurrentTimeInTimezone(selectedTimezone));
+      if (!endTime) setEndTime(getCurrentTime());
       setSelectingStart(true);
     }
     setError("");
@@ -404,18 +236,8 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
   };
 
   const monthNames: string[] = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
   ];
 
   const dayNames: string[] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -429,8 +251,8 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
   };
 
   return (
-    <div className="flex gap-2 items-center justify-end mb-4 flex-wrap">
-      <div className="relative w-full max-w-md ">
+    <div className="flex items-center justify-end mb-4">
+      <div className="relative w-full max-w-md">
         {/* Trigger Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -440,15 +262,7 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
             <Calendar className="w-5 h-5 text-purple-600 transition-colors duration-300" />
             <span className="text-sm text-gray-700">
               {startDate && startTime && endDate && endTime
-                ? `${convertToTimezone(
-                    startDate,
-                    startTime,
-                    selectedTimezone
-                  )} - ${convertToTimezone(
-                    endDate,
-                    endTime,
-                    selectedTimezone
-                  )} (${selectedTimezone})`
+                ? `${startDate} ${startTime} - ${endDate} ${endTime} (${timezone})`
                 : "Select date & time range"}
             </span>
           </div>
@@ -470,25 +284,6 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
                 <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
-
-            {/* Timezone Selection */}
-            <div className="mb-4">
-              <label className=" text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Globe className="w-4 h-4 text-blue-600" />
-                Timezone
-              </label>
-              <select
-                value={selectedTimezone}
-                onChange={(e) => setSelectedTimezone(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-gradient-to-r from-blue-50 to-purple-50"
-              >
-                {timezones.map((tz) => (
-                  <option key={tz.value} value={tz.value}>
-                    {tz.label}
-                  </option>
-                ))}
-              </select>
-            </div>
 
             {/* Selection Status */}
             <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-md">
@@ -612,7 +407,7 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
             {/* Recent Selections */}
             {recentSelections.length > 0 && (
               <div className="mb-4">
-                <label className=" text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <RotateCcw className="w-4 h-4 text-green-600" />
                   Recent Selections
                 </label>
