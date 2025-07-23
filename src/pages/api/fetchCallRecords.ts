@@ -23,7 +23,6 @@ export default async function handler(
   if (!client_id) {
     return res.status(400).json({ error: "client_id is required" });
   }
-
   try {
     const result = await db.query(
       `SELECT * FROM get_client_data_paginated($1, $2, $3, $4, $5, $6);`,

@@ -1,10 +1,12 @@
 import { dispositionGraphData } from "@/types/dispositionGraphData";
+import {utcToCurrentTimezone } from "./timezone";
+import { format } from "date-fns";
 
 export type DispositionGraph = {
   timeSlot: string;
   timeLabel: string;
   breakdown: string;
-  fullTimeLabel: string; 
+  fullTimeLabel: string;
   xferPercentage: number;
   dncPercentage: number;
   hpPercentage: number;
@@ -23,15 +25,28 @@ export type DispositionGraph = {
 export function transformGraphData(
   data: dispositionGraphData[]
 ): DispositionGraph[] | null {
-
   const transformedData = data.map((entry) => {
-    const baseDate= entry.time_label.split(" ")[0]
-    const interval = entry.interval_breakdown
-    const fullTimeLabel = `${baseDate} ${interval}`;
-   
+    const utcToCurrent = utcToCurrentTimezone(entry.time_slot);
+    const formattedDate = format(utcToCurrent, "M/d HH:mm");
+    const baseDate = formattedDate.split(" ")[0];
+    const [intervalHour, intervalMinute] = entry.interval_breakdown.split(":");
+    const utcIntervalTime = new Date(entry.time_slot);
+    utcIntervalTime.setUTCHours(
+      parseInt(intervalHour),
+      parseInt(intervalMinute),
+      0,
+      0
+    );
+    const localIntervalTime = utcToCurrentTimezone(
+      utcIntervalTime.toISOString()
+    );
+    const localTimeString = format(localIntervalTime, "HH:mm");
+
+    const fullTimeLabel = `${baseDate} ${localTimeString}`;
+
     return {
       timeSlot: entry.time_slot,
-      timeLabel: entry.time_label,
+      timeLabel: formattedDate,
       breakdown: entry.interval_breakdown,
       fullTimeLabel,
       xferPercentage: parseFloat(entry.xfer_pct),

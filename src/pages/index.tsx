@@ -1,9 +1,12 @@
 import DispositionChart from "@/components/dashboard/DispositionChart";
 import Stats from "@/components/dashboard/Stats";
-import DateFilter from "@/components/DateFilter";
+// import DateFilter from "@/components/DateFilter";
+import NewDateFilter from "@/components/NewDateFilter";
+import { useTimezone } from "@/hooks/useTimezone";
 import { CallRecord } from "@/types/callRecord";
 // import GaugeChart from "@/components/dashboard/GaugeChart";
 import { withAuth } from "@/utils/auth";
+import { getUTCDateRange } from "@/utils/timezone";
 import { transformAgentData } from "@/utils/transformAgentData";
 import { transformGraphData } from "@/utils/transformGraphData";
 import { GetServerSideProps } from "next";
@@ -35,6 +38,8 @@ const AgentDispositionReport = dynamic(
 
 export default function Home() {
   const { data: session } = useSession();
+  const { timezone } = useTimezone();
+
   const client_id = session?.user?.client_id;
 
   const [dateRange, setDateRange] = useState<{
@@ -51,40 +56,51 @@ export default function Home() {
     };
   });
 
-  const callDataQuery = useSWR(
-    client_id && dateRange
-      ? `/api/fetchCallRecords?client_id=${client_id}&from=${dateRange.from}&to=${dateRange.to}`
-      : null,
-    () =>
-      fetcher("/api/fetchCallRecords", {
-        client_id,
-        from_date: dateRange.from,
-        to_date: dateRange.to,
-      })
-  );
+  const utcDateRange = getUTCDateRange(dateRange.from, dateRange.to, timezone);
 
   const chartDataQuery = useSWR(
-    client_id && dateRange
-      ? `/api/fetchDispositionGraphData?client_id=${client_id}&from=${dateRange.from}&to=${dateRange.to}`
+    client_id && utcDateRange
+      ? `/api/fetchDispositionGraphData?client_id=${client_id}&from=${utcDateRange.from}&to=${utcDateRange.to}`
       : null,
     () =>
       fetcher("/api/fetchDispositionGraphData", {
         client_id,
-        from_date: dateRange.from,
-        to_date: dateRange.to,
-      })
+        from_date: utcDateRange.from,
+        to_date: utcDateRange.to,
+      }),
+    {
+      revalidateOnFocus: false,
+    }
+  );
+
+  const callDataQuery = useSWR(
+    client_id && utcDateRange
+      ? `/api/fetchCallRecords?client_id=${client_id}&from=${utcDateRange.from}&to=${utcDateRange.to}`
+      : null,
+    () =>
+      fetcher("/api/fetchCallRecords", {
+        client_id,
+        from_date: utcDateRange.from,
+        to_date: utcDateRange.to,
+      }),
+    {
+      revalidateOnFocus: false,
+    }
   );
 
   const agentReportQuery = useSWR(
-    client_id && dateRange
-      ? `/api/fetchAgentReport?client_id=${client_id}&from=${dateRange.from}&to=${dateRange.to}`
+    client_id && utcDateRange
+      ? `/api/fetchAgentReport?client_id=${client_id}&from=${utcDateRange.from}&to=${utcDateRange.to}`
       : null,
     () =>
       fetcher("/api/fetchAgentReport", {
         client_id,
-        from_date: dateRange.from,
-        to_date: dateRange.to,
-      })
+        from_date: utcDateRange.from,
+        to_date: utcDateRange.to,
+      }),
+    {
+      revalidateOnFocus: false,
+    }
   );
 
   const callRecords: CallRecord[] = callDataQuery.data?.callRecords ?? [];
@@ -106,7 +122,8 @@ export default function Home() {
           {session?.user.role} Dashboard
         </h1>
 
-        <DateFilter onDateChange={setDateRange} initialRange={dateRange} />
+        {/* <DateFilter onDateChange={setDateRange} initialRange={dateRange} /> */}
+        <NewDateFilter onDateChange={setDateRange} initialRange={dateRange} />
 
         <div className="w-full">
           <Stats

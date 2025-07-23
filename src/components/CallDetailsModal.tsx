@@ -22,6 +22,9 @@ import {
 } from "./ui/table";
 import { formatDateTime } from "@/utils/formatDateTime";
 import AudioPlayer from "./AudioPlayer";
+import { utcToCurrentTimezone } from "@/utils/timezone";
+import { ScrollArea } from "./ui/scrollArea";
+import { parseNestedJSON } from "@/utils/parseMetaData";
 
 interface CallDetailsModalProps {
   callId: string;
@@ -69,7 +72,7 @@ export default function CallDetailsModal({ callId }: CallDetailsModalProps) {
           {callId}
         </Button>
       </DialogTrigger>
-      <DialogContent className=" max-w-[950px] min-h-[200px] bg-white dark:bg-sidebar">
+      <DialogContent className=" max-w-[950px] max-h-[700px] overflow-auto bg-white dark:bg-sidebar">
         <DialogHeader>
           <DialogTitle>Call details for {callId}</DialogTitle>
         </DialogHeader>
@@ -78,55 +81,76 @@ export default function CallDetailsModal({ callId }: CallDetailsModalProps) {
         ) : error ? (
           <div className="text-red-500">Error loading call details</div>
         ) : callDetails?.length ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[120px]">Agent Name</TableHead>
-                <TableHead className="w-[120px]">Interaction ID</TableHead>
-                <TableHead>Transcription</TableHead>
-                <TableHead className="text-center">Detected Label</TableHead>
-                <TableHead className="text-center">Call Audio</TableHead>
-                <TableHead className="text-center">Created At</TableHead>
-                <TableHead className="text-center">Interaction time</TableHead>
-                <TableHead className="text-center">Turn</TableHead>
-                <TableHead className="text-center">Response Label</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {callDetails.map((callDetail, i) => (
-                <TableRow key={i} className="p-0 px-1">
-                  <TableCell className="p-0  px-1 capitalize">
-                    {callDetail.agent}
-                  </TableCell>
-                  <TableCell className="p-0  px-1">
-                    {callDetail.interaction_id}
-                  </TableCell>
-
-                  <TableCell className=" p-0  px-1">
-                    {callDetail.transcription || "N/A"}
-                  </TableCell>
-                  <TableCell className="p-0  px-1">
-                    {callDetail.detected_label}
-                  </TableCell>
-                  <TableCell className="p-0  px-1">
-                    <AudioPlayer audioPath={callDetail.response_audio_path} />
-                  </TableCell>
-                  <TableCell className="w-[200px] p-0  px-1">
-                    {formatDateTime(callDetail.created_at)}
-                  </TableCell>
-                  <TableCell className="w-[200px] p-0 px-1">
-                    {formatDateTime(callDetail.interaction_timestamp)}
-                  </TableCell>
-                  <TableCell className="text-center p-0  px-1">
-                    {callDetail.turn}
-                  </TableCell>
-                  <TableCell className="text-center p-0  px-1">
-                    {callDetail.response_file_label}
-                  </TableCell>
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[120px]">Agent Name</TableHead>
+                  <TableHead className="w-[120px]">Interaction ID</TableHead>
+                  <TableHead>Transcription</TableHead>
+                  <TableHead className="text-center">Detected Label</TableHead>
+                  <TableHead className="text-center">Call Audio</TableHead>
+                  <TableHead className="text-center">Created At</TableHead>
+                  <TableHead className="text-center">
+                    Interaction time
+                  </TableHead>
+                  <TableHead className="text-center">Turn</TableHead>
+                  <TableHead className="text-center">Response Label</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {callDetails.map((callDetail, i) => (
+                  <TableRow key={i} className="p-0 px-1">
+                    <TableCell className="p-0  px-1 capitalize">
+                      {callDetail.agent}
+                    </TableCell>
+                    <TableCell className="p-0  px-1">
+                      {callDetail.interaction_id}
+                    </TableCell>
+
+                    <TableCell className=" p-0  px-1">
+                      {callDetail.transcription || "N/A"}
+                    </TableCell>
+                    <TableCell className="p-0  px-1">
+                      {callDetail.detected_label}
+                    </TableCell>
+                    <TableCell className="p-0  px-1">
+                      <AudioPlayer audioPath={callDetail.response_audio_path} />
+                    </TableCell>
+                    <TableCell className="w-[200px] p-0  px-1">
+                      {formatDateTime(
+                        utcToCurrentTimezone(callDetail.created_at)
+                      )}
+                    </TableCell>
+                    <TableCell className="w-[200px] p-0 px-1">
+                      {formatDateTime(
+                        utcToCurrentTimezone(callDetail.interaction_timestamp)
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center p-0  px-1">
+                      {callDetail.turn}
+                    </TableCell>
+                    <TableCell className="text-center p-0  px-1">
+                      {callDetail.response_file_label}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <h2 className="font-bold">Metadata</h2>
+            {callDetails.map((details, index) => {
+              const normalized = parseNestedJSON(details.metadata);
+              const prettyJson = JSON.stringify(normalized, null, 2);
+              return (
+                <ScrollArea
+                  key={index}
+                  className="h-[300px] max-w-[850px] font-mono whitespace-pre text-sm rounded-md border p-4"
+                >
+                  <code>{prettyJson}</code>
+                </ScrollArea>
+              );
+            })}
+          </>
         ) : (
           <div>No data found</div>
         )}
