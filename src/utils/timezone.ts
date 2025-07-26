@@ -1,20 +1,21 @@
+import { format } from "date-fns";
 
 /**
  * Get the current timezone from cookies or default to system timezone
  */
 export function getCurrentTimezone(): string {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     // Client-side: check cookies first, then system timezone
     const cookieTimezone = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('timezone='))
-      ?.split('=')[1];
-    
+      .split("; ")
+      .find((row) => row.startsWith("timezone="))
+      ?.split("=")[1];
+
     return cookieTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   }
-  
+
   // Server-side: default to UTC if no timezone provided
-  return 'UTC';
+  return "UTC";
 }
 
 /**
@@ -24,39 +25,39 @@ export function getCurrentTimezone(): string {
  * @returns UTC date string in ISO format
  */
 export function currentTimezoneToUTC(
-  dateInput: string | Date | number, 
+  dateInput: string | Date | number,
   timezone?: string
 ): string {
   const targetTimezone = timezone || getCurrentTimezone();
-  
+
   let date: Date;
-  
-  if (typeof dateInput === 'string') {
+
+  if (typeof dateInput === "string") {
     // If it's a date string (YYYY-MM-DD), treat it as local date at start of day
     if (dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
       date = new Date(`${dateInput}`);
     } else {
       date = new Date(dateInput);
     }
-  } else if (typeof dateInput === 'number') {
+  } else if (typeof dateInput === "number") {
     date = new Date(dateInput);
   } else {
     date = new Date(dateInput);
   }
-  
+
   // Create a date in the target timezone
-  const localDateString = date.toLocaleString('sv-SE', { 
+  const localDateString = date.toLocaleString("sv-SE", {
     timeZone: targetTimezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
-  
+
   // Convert to UTC
-  const utcDate = new Date(localDateString + 'Z');
+  const utcDate = new Date(localDateString + "Z");
   return utcDate.toISOString();
 }
 
@@ -71,28 +72,28 @@ export function utcToCurrentTimezone(
   timezone?: string
 ): Date {
   const targetTimezone = timezone || getCurrentTimezone();
-  
+
   let utcDate: Date;
-  
-  if (typeof utcDateInput === 'string') {
+
+  if (typeof utcDateInput === "string") {
     utcDate = new Date(utcDateInput);
-  } else if (typeof utcDateInput === 'number') {
+  } else if (typeof utcDateInput === "number") {
     utcDate = new Date(utcDateInput);
   } else {
     utcDate = new Date(utcDateInput);
   }
-  
+
   // Convert UTC to target timezone
-  const localDateString = utcDate.toLocaleString('en-US', {
+  const localDateString = utcDate.toLocaleString("en-US", {
     timeZone: targetTimezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
-  
+
   return new Date(localDateString);
 }
 
@@ -109,28 +110,28 @@ export function formatDateInTimezone(
   options?: Intl.DateTimeFormatOptions
 ): string {
   const targetTimezone = timezone || getCurrentTimezone();
-  
+
   let utcDate: Date;
-  
-  if (typeof utcDateInput === 'string') {
+
+  if (typeof utcDateInput === "string") {
     utcDate = new Date(utcDateInput);
-  } else if (typeof utcDateInput === 'number') {
+  } else if (typeof utcDateInput === "number") {
     utcDate = new Date(utcDateInput);
   } else {
     utcDate = new Date(utcDateInput);
   }
-  
+
   const defaultOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    timeZone: targetTimezone
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone: targetTimezone,
   };
-  
-  return utcDate.toLocaleString('en-US', { ...defaultOptions, ...options });
+
+  return utcDate.toLocaleString("en-US", { ...defaultOptions, ...options });
 }
 
 /**
@@ -151,15 +152,11 @@ export function getUTCDateRange(
   const isDateOnly = (val: any) =>
     typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val);
 
-  const from = isDateOnly(fromDate)
-    ? `${fromDate}T00:00:00`
-    : fromDate;
+  const from = isDateOnly(fromDate) ? `${fromDate}T00:00:00` : fromDate;
 
   const to = isDateOnly(toDate)
-    ? `${toDate}T00:00:00`
+    ? `${toDate}T${format(new Date(), "HH:mm")}`
     : toDate;
-
-    console.log('abc=>',fromDate,toDate)
 
   return {
     from: currentTimezoneToUTC(from, targetTimezone),

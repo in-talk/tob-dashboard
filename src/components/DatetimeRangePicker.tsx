@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import {
   Calendar,
   Clock,
-  RotateCcw,
-  X,
+  // RotateCcw,
+  // X,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -20,6 +20,7 @@ interface RecentSelection {
 
 interface DateTimeRangePickerProps {
   onDateChange?: (range: { from: string; to: string }) => void;
+  autoRefresh: boolean;
   initialStartDate?: string;
   initialStartTime?: string;
   initialEndDate?: string;
@@ -28,6 +29,7 @@ interface DateTimeRangePickerProps {
 
 const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
   onDateChange,
+  autoRefresh,
   initialStartDate = "",
   initialStartTime = "",
   initialEndDate = "",
@@ -37,7 +39,10 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endDate, setEndDate] = useState<string>(initialEndDate);
   const [endTime, setEndTime] = useState<string>(initialEndTime);
-  const [recentSelections, setRecentSelections] = useState<RecentSelection[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [recentSelections, setRecentSelections] = useState<RecentSelection[]>(
+    []
+  );
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -79,13 +84,13 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
     }
   };
 
-  const loadRecentSelection = (selection: RecentSelection): void => {
-    setStartDate(selection.startDate);
-    setStartTime(selection.startTime);
-    setEndDate(selection.endDate);
-    setEndTime(selection.endTime);
-    setError("");
-  };
+  // const loadRecentSelection = (selection: RecentSelection): void => {
+  //   setStartDate(selection.startDate);
+  //   setStartTime(selection.startTime);
+  //   setEndDate(selection.endDate);
+  //   setEndTime(selection.endTime);
+  //   setError("");
+  // };
 
   const clearSelection = (): void => {
     setStartDate("");
@@ -117,9 +122,9 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
     }
   };
 
-  const removeRecentSelection = (id: number): void => {
-    setRecentSelections((prev) => prev.filter((item) => item.id !== id));
-  };
+  // const removeRecentSelection = (id: number): void => {
+  //   setRecentSelections((prev) => prev.filter((item) => item.id !== id));
+  // };
 
   const getCurrentTime = (): string => {
     const now = new Date();
@@ -236,8 +241,18 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
   };
 
   const monthNames: string[] = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   const dayNames: string[] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -251,10 +266,11 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-end mb-4">
-      <div className="relative w-full max-w-md">
+    <div className="flex items-center justify-end mb-4 ">
+      <div className="relative w-full max-w-md z-10">
         {/* Trigger Button */}
         <button
+          disabled={autoRefresh}
           onClick={() => setIsOpen(!isOpen)}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 flex items-center justify-between transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg"
         >
@@ -277,7 +293,7 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
 
         {/* Dropdown Panel */}
         {isOpen && (
-          <div className="absolute top-full mt-2 w-full bg-white border border-gray-300 rounded-lg shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 duration-300">
+          <div className="absolute top-full mt-2 w-full bg-white border border-gray-300 rounded-lg shadow-2xl z-[1000] p-4 animate-in slide-in-from-top-2 duration-300">
             {/* Error Message */}
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md animate-in fade-in duration-300">
@@ -405,7 +421,7 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
             </div>
 
             {/* Recent Selections */}
-            {recentSelections.length > 0 && (
+            {/* {recentSelections.length > 0 && (
               <div className="mb-4">
                 <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <RotateCcw className="w-4 h-4 text-green-600" />
@@ -437,7 +453,7 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
                   ))}
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Action Buttons */}
             <div className="flex gap-2 pt-2 border-t border-gray-200">

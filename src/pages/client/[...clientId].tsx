@@ -2,9 +2,17 @@ import DispositionChart from "@/components/dashboard/DispositionChart";
 import Stats from "@/components/dashboard/Stats";
 // import DateFilter from "@/components/DateFilter";
 import NewDateFilter from "@/components/NewDateFilter";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import { useTimezone } from "@/hooks/useTimezone";
 import { CallRecord } from "@/types/callRecord";
-// import GaugeChart from "@/components/dashboard/GaugeChart";
 import { withAuth } from "@/utils/auth";
 import { getUTCDateRange } from "@/utils/timezone";
 import { transformAgentData } from "@/utils/transformAgentData";
@@ -13,7 +21,7 @@ import { GetServerSideProps } from "next";
 import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import Head from "next/head";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 
 const fetcher = (url: string, body: Record<string, unknown>) =>
@@ -41,7 +49,9 @@ export default function ClientPage() {
   const { timezone } = useTimezone();
 
   const client_id = session?.user?.client_id;
-
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState(5);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [dateRange, setDateRange] = useState<{
     from: string;
     to: string;
@@ -112,18 +122,76 @@ export default function ClientPage() {
     agentReportQuery.data?.agentRecords ?? []
   );
 
+  const getTimeAgo = () => {
+    if (!lastUpdated) return "Never";
+    const diffMs = Date.now() - lastUpdated.getTime();
+    const diffMin = Math.floor(diffMs / 1000 / 60);
+    if (diffMin === 0) return "Just now";
+    return `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
+  };
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      chartDataQuery.mutate();
+      callDataQuery.mutate();
+      agentReportQuery.mutate();
+      setLastUpdated(new Date());
+    }, refreshInterval * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval]);
+
   return (
     <>
       <Head>
         <title>InTalk Dashboard - Smart Customer Service Management</title>
       </Head>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <h1 className="text-4xl font-bold capitalize">
-          {session?.user.role} Dashboard
-        </h1>
+        <div className="w-full flex justify-between items-start sticky top-0 z-10 bg-gray-100 dark:bg-sidebar p-3 rounded-sm ">
+          <div className="flex items-center gap-4 flex-wrap py-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => {
+                  setAutoRefresh(e.target.checked);
+                  if (e.target.checked) setLastUpdated(new Date());
+                }}
+              />
+              Auto Refresh
+            </label>
+            <Select
+              disabled={!autoRefresh}
+              value={`${refreshInterval}`}
+              onValueChange={(value) => setRefreshInterval(Number(value))}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select interval" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Refresh Interval</SelectLabel>
+                  <SelectItem value="5">Every 5 minutes</SelectItem>
+                  <SelectItem value="10">Every 10 minutes</SelectItem>
+                  <SelectItem value="15">Every 15 minutes</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
 
-        {/* <DateFilter onDateChange={setDateRange} initialRange={dateRange} /> */}
-        <NewDateFilter onDateChange={setDateRange} initialRange={dateRange} />
+            {autoRefresh && (
+              <span className="text-sm block text-gray-500">
+                Updated {getTimeAgo()}
+              </span>
+            )}
+          </div>
+          <NewDateFilter
+            onDateChange={setDateRange}
+            autoRefresh={autoRefresh}
+            initialRange={dateRange}
+          />
+        </div>
 
         <div className="w-full">
           <Stats
@@ -138,7 +206,7 @@ export default function ClientPage() {
           />
         </div>
         <div className="w-full my-6">
-          <CallDataTable callRecords={callRecords} dateRange={dateRange} />
+          <CallDataTable callRecords={callRecords} />
         </div>
         <div className="w-full">
           <AgentDispositionReport agentReport={agentReport || []} />

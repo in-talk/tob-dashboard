@@ -17,7 +17,7 @@ export default async function handler(
     to_date = `${defaultToDate} 23:59:59`,
     caller_id = null,
     page = 1,
-    num_of_records = 10,
+    num_of_records = null,
   } = req.body;
 
   if (!client_id) {

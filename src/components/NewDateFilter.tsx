@@ -1,18 +1,26 @@
 import { useState, useEffect } from "react";
 import DateTimeRangePicker from "./DatetimeRangePicker";
+import { format } from "date-fns";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 export default function NewDateFilter({
   onDateChange,
   initialRange,
+  autoRefresh=false,
 }: {
   onDateChange: (range: { from: string; to: string }) => void;
   initialRange: { from: string; to: string };
+  autoRefresh: boolean;
 }) {
   const [appliedRange, setAppliedRange] = useState<{
     from: string;
     to: string;
   }>(initialRange);
-  
 
   useEffect(() => {
     if (appliedRange.from && appliedRange.to) {
@@ -35,31 +43,45 @@ export default function NewDateFilter({
   };
 
   return (
-    <>
+    <div>
       <DateTimeRangePicker
         onDateChange={onDateChange}
         initialStartDate={initialRange.from}
         initialEndDate={initialRange.to}
         initialStartTime="00:00"
-        initialEndTime="00:00"
+        initialEndTime={format(new Date(), "HH:mm")}
+        autoRefresh={autoRefresh}
       />
-
-      <div className="px-5 py-4 bg-light dark:bg-sidebar rounded-lg">
+      <TooltipProvider>
         <div className="flex items-center justify-end gap-2">
           <span className="text-sm font-medium">Quick Filters:</span>
           <div className="flex gap-2">
-            {[7, 15, 30, 60].map((days) => (
-              <button
-                key={days}
-                onClick={() => handleQuickDateSelect(days)}
-                className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
-              >
-                Last {days} Days
-              </button>
-            ))}
+            {[7, 15, 30, 60].map((days) => {
+              const button = (
+                <button
+                  disabled={autoRefresh}
+                  key={days}
+                  onClick={() => handleQuickDateSelect(days)}
+                  className="bg-gray-100 dark:bg-dark p-2 rounded-md  text-sm disabled:cursor-not-allowed"
+                >
+                  Last {days} Days
+                </button>
+              );
+
+              return autoRefresh ? (
+                <Tooltip key={days}>
+                  <TooltipTrigger asChild>{button}</TooltipTrigger>
+                  <TooltipContent>
+                    <p>Uncheck Auto Refresh</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                button
+              );
+            })}
           </div>
         </div>
-      </div>
-    </>
+      </TooltipProvider>
+    </div>
   );
 }

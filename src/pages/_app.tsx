@@ -8,6 +8,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { PrimeReactProvider } from "primereact/api";
+
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -19,10 +21,9 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { SessionProvider, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import ThemeToggler from "@/components/ThemeToggler";
 import { ThemeProviders } from "@/theme/ThemeProviders";
-import "rsuite/dist/rsuite-no-reset.min.css";
-import { CustomProvider } from "rsuite";
+import "primereact/resources/themes/lara-dark-indigo/theme.css";
+
 // import { CallDataProvider } from "@/context/CallRecordContext";
 import Head from "next/head";
 
@@ -34,14 +35,15 @@ export default function App({
   return (
     <SessionProvider session={session}>
       <ThemeProviders>
-        <CustomProvider theme='dark'>
+        <PrimeReactProvider>
           <MainLayout
             Component={Component}
             pageProps={pageProps}
             router={router}
           />
-        </CustomProvider>
-        <Toaster />
+
+          <Toaster />
+        </PrimeReactProvider>
       </ThemeProviders>
     </SessionProvider>
   );
@@ -124,7 +126,6 @@ export function MainLayout({ Component, pageProps }: AppProps) {
                   </BreadcrumbList>
                 </Breadcrumb>
               </div>
-              <ThemeToggler />
             </header>
             {/* <CallDataProvider> */}
             <Component {...pageProps} />
