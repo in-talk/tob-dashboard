@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { signIn } from "next-auth/react";
+import { useState, useRef, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { EyeOpenIcon, EyeClosedIcon } from "@radix-ui/react-icons";
 import ReCAPTCHA from "react-google-recaptcha";
@@ -14,9 +14,16 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
+  const { data: session } = useSession();
   const router = useRouter();
 
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+
+  useEffect(() => {
+    if (session) {
+      router.replace("/"); 
+    }
+  }, [session, router]);
 
   const handleRecaptchaChange = (token: string | null) => {
     setRecaptchaToken(token);

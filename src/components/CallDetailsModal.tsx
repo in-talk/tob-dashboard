@@ -85,52 +85,44 @@ export default function CallDetailsModal({ callId }: CallDetailsModalProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[120px]">Agent Name</TableHead>
+                  <TableHead className="w-[80px]">Agent</TableHead>
                   <TableHead className="w-[120px]">Interaction ID</TableHead>
                   <TableHead>Transcription</TableHead>
-                  <TableHead className="text-center">Detected Label</TableHead>
+                  <TableHead className="text-center">DL</TableHead>
                   <TableHead className="text-center">Call Audio</TableHead>
                   <TableHead className="text-center">Created At</TableHead>
-                  <TableHead className="text-center">
-                    Interaction time
-                  </TableHead>
-                  <TableHead className="text-center">Turn</TableHead>
-                  <TableHead className="text-center">Response Label</TableHead>
+                  <TableHead className="text-center">T</TableHead>
+                  <TableHead className="text-center">FN</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {callDetails.map((callDetail, i) => (
                   <TableRow key={i} className="p-0 px-1">
-                    <TableCell className="p-0  px-1 capitalize">
+                    <TableCell className="p-0 border-l px-1 capitalize ">
                       {callDetail.agent}
                     </TableCell>
-                    <TableCell className="p-0  px-1">
+                    <TableCell className="p-0  text-center px-1 border-l">
                       {callDetail.interaction_id}
                     </TableCell>
 
-                    <TableCell className=" p-0  px-1">
+                    <TableCell className=" pb-2 border-l px-1 max-w-[180px] whitespace-nowrap overflow-x-auto">
                       {callDetail.transcription || "N/A"}
                     </TableCell>
-                    <TableCell className="p-0  px-1">
+                    <TableCell className="p-0 border-l px-1">
                       {callDetail.detected_label}
                     </TableCell>
-                    <TableCell className="p-0  px-1">
+                    <TableCell className="p-0 border-l px-1">
                       <AudioPlayer audioPath={callDetail.response_audio_path} />
                     </TableCell>
-                    <TableCell className="w-[200px] p-0  px-1">
+                    <TableCell className="w-[150px] border-l p-0  px-1">
                       {formatDateTime(
                         utcToCurrentTimezone(callDetail.created_at)
                       )}
                     </TableCell>
-                    <TableCell className="w-[200px] p-0 px-1">
-                      {formatDateTime(
-                        utcToCurrentTimezone(callDetail.interaction_timestamp)
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center p-0  px-1">
+                    <TableCell className="text-center border-l p-0  px-1">
                       {callDetail.turn}
                     </TableCell>
-                    <TableCell className="text-center p-0  px-1">
+                    <TableCell className="text-center p-0 border-l border-r px-1">
                       {callDetail.response_file_label}
                     </TableCell>
                   </TableRow>

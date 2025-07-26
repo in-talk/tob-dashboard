@@ -46,12 +46,10 @@ export default async function handler(
 
     main_interval = roundUpToNext30(rawInterval);
   }
-  
 
   if (!client_id) {
     return res.status(400).json({ error: "client_id is required" });
   }
- console.log('UTCDate=>', formatDateForDB(from_date),formatDateForDB(to_date),main_interval)
   try {
     const result = await db.query(
       `SELECT * FROM get_disposition_by_intervals_enhanced($1, $2, $3, $4, $5);`,
