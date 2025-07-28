@@ -18,9 +18,9 @@ import { getUTCDateRange } from "@/utils/timezone";
 import { transformAgentData } from "@/utils/transformAgentData";
 import { transformGraphData } from "@/utils/transformGraphData";
 import { GetServerSideProps } from "next";
-import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 
@@ -45,10 +45,11 @@ const AgentDispositionReport = dynamic(
 );
 
 export default function ClientPage() {
-  const { data: session } = useSession();
   const { timezone } = useTimezone();
+  const router = useRouter();
+  const { clientId } = router.query;
 
-  const client_id = session?.user?.client_id;
+  const client_id = Array.isArray(clientId) ? clientId[0] : clientId;
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(5);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -114,6 +115,7 @@ export default function ClientPage() {
   );
 
   const callRecords: CallRecord[] = callDataQuery.data?.callRecords ?? [];
+  
   const dispositionChartData = transformGraphData(
     chartDataQuery.data?.graphData ?? []
   );
