@@ -638,6 +638,14 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
     );
   };
 
+  const callerIdBodyTemplate = (rowData: CallRecord) => {
+    return (
+      <span className="text-gray-900 dark:text-gray-100">
+        {rowData.caller_id}
+      </span>
+    );
+  };
+
   const durationBodyTemplate = (rowData: CallRecord) => {
     const callDuration = formatCallDuration(rowData?.call_duration);
     return (
@@ -820,7 +828,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
                 headerStyle={{ marginRight: "8px" }}
                 filterPlaceholder="Search by agent"
                 style={{
-                  minWidth: "80px",
+                  minWidth: "60px",
                   padding: "0",
                   background: "transparent",
                 }}
@@ -834,11 +842,24 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
                 filter
                 filterPlaceholder="Search by call ID"
                 style={{
-                  minWidth: "100px",
+                  minWidth: "50px",
                   padding: "0",
                   background: "transparent",
                 }}
                 body={callIdBodyTemplate}
+              />
+              <Column
+                field="caller_id"
+                header="Caller ID"
+                sortable
+                filter
+                filterPlaceholder="Search by caller ID"
+                style={{
+                  minWidth: "100px",
+                  padding: "0",
+                  background: "transparent",
+                }}
+                body={callerIdBodyTemplate}
               />
 
               <Column
@@ -870,6 +891,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
                 field="turn"
                 header="T"
                 sortable
+                filter
                 dataType="numeric"
                 style={{
                   minWidth: "60px",
