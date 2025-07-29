@@ -173,6 +173,10 @@ export default function Home() {
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Refresh Interval</SelectLabel>
+                  <SelectItem value="0.8">Every 5 seconds</SelectItem>
+                  <SelectItem value="0.5">Every 30 seconds</SelectItem>
+                  <SelectItem value="1">Every 1 minute</SelectItem>
+                  <SelectItem value="2">Every 2 minutes</SelectItem>
                   <SelectItem value="5">Every 5 minutes</SelectItem>
                   <SelectItem value="10">Every 10 minutes</SelectItem>
                   <SelectItem value="15">Every 15 minutes</SelectItem>
