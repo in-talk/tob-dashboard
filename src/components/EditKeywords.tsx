@@ -163,7 +163,7 @@ function EditKeywords({ document, documentKeywords,collectionType }: EditKeyword
               className="h-9 w-[50%] border dark:border-white"
               
             />
-            <div className="overflow-y-auto h-[200px]">
+            <div className="overflow-y-auto sm:max-w-[400px] md:max-w-[750px] h-[200px] pb-4">
               {filteredKeywords.map((keyword) => (
                 <Button
                   className="m-1"

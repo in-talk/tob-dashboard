@@ -5,6 +5,7 @@ import {
   ChartArea,
   AudioLines,
   User,
+  Blocks
 } from "lucide-react";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
@@ -45,8 +46,8 @@ const data = {
       name: "Label Managment",
       url: "/label_managment",
       icon: LayoutDashboard,
-      items:[
-         {
+      items: [
+        {
           title: "CGM",
           url: "/label_managment/?CGM",
         },
@@ -54,12 +55,23 @@ const data = {
           title: "ACM",
           url: "/label_managment/?ACM",
         },
-      ]
+      ],
     },
     {
       name: "Audio Formatter",
       url: "/audio-formatter",
       icon: AudioLines,
+    },
+     {
+      name: "Admin Utilities",
+      url: "/admin",
+      icon: Blocks,
+      items: [
+        {
+          title: "Keyword Finder",
+          url: "/keyword_finder",
+        },
+      ],
     },
   ],
 };
@@ -71,9 +83,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const filteredProjects = data.projects.filter((project) => {
     if (userRole === "user") {
-      return !["/users", "/label_managment", "/audio-formatter"].includes(
-        project.url
-      );
+      return ![
+        "/users",
+        "/label_managment",
+        "/audio-formatter",
+        "/admin",
+        "/keyword_finder",
+      ].includes(project.url);
     }
     return true;
   });

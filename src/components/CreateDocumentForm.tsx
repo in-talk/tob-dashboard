@@ -321,7 +321,7 @@ export default function CreateDocumentForm({
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent dark:border-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   />
-                  <div className="overflow-y-auto h-[200px]">
+                  <div className="overflow-y-auto sm:max-w-[400px] md:max-w-[750px] h-[200px]">
                     {filteredKeywords.map((keyword, index) => (
                       <Button
                         variant={"outline"}
