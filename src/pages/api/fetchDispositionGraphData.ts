@@ -25,20 +25,23 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid date format" });
   }
 
- // Calculate if it's the same day in UTC
+  // Normalize both to UTC start of day
+  fromDate.setUTCHours(0, 0, 0, 0);
+  toDate.setUTCHours(0, 0, 0, 0);
+
   const isSameDay =
     fromDate.getUTCFullYear() === toDate.getUTCFullYear() &&
     fromDate.getUTCMonth() === toDate.getUTCMonth() &&
     fromDate.getUTCDate() === toDate.getUTCDate();
 
   let main_interval: number;
-  
+
   function roundUpToNext30(num: number) {
     return Math.ceil(num / 30) * 30;
   }
 
   if (isSameDay) {
-    main_interval = 60; // 1 hour intervals for same day
+    main_interval = 60;
   } else {
     const diffInMs = toDate.getTime() - fromDate.getTime();
     const diffInHours = diffInMs / (1000 * 60 * 60);
@@ -46,6 +49,13 @@ export default async function handler(
 
     main_interval = roundUpToNext30(rawInterval);
   }
+  console.log(
+    "fetchDispositionGraphData==>",
+    main_interval,
+    client_id,
+    formatDateForDB(from_date),
+    formatDateForDB(to_date)
+  );
 
   if (!client_id) {
     return res.status(400).json({ error: "client_id is required" });

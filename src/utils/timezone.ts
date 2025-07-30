@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { DateTime } from "luxon";
 
 /**
  * Get the current timezone from cookies or default to system timezone
@@ -24,41 +25,21 @@ export function getCurrentTimezone(): string {
  * @param timezone - Target timezone (defaults to current timezone from cookie)
  * @returns UTC date string in ISO format
  */
+
 export function currentTimezoneToUTC(
   dateInput: string | Date | number,
-  timezone?: string
+  timezone = "Asia/Karachi"
 ): string {
-  const targetTimezone = timezone || getCurrentTimezone();
+  let dt: DateTime;
 
-  let date: Date;
-
-  if (typeof dateInput === "string") {
-    // If it's a date string (YYYY-MM-DD), treat it as local date at start of day
-    if (dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      date = new Date(`${dateInput}`);
-    } else {
-      date = new Date(dateInput);
-    }
-  } else if (typeof dateInput === "number") {
-    date = new Date(dateInput);
+  if (typeof dateInput === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+    dt = DateTime.fromISO(`${dateInput}T00:00:00`, { zone: timezone });
   } else {
-    date = new Date(dateInput);
+    dt = DateTime.fromJSDate(new Date(dateInput), { zone: timezone });
   }
 
-  // Create a date in the target timezone
-  const localDateString = date.toLocaleString("sv-SE", {
-    timeZone: targetTimezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-
-  // Convert to UTC
-  const utcDate = new Date(localDateString + "Z");
-  return utcDate.toISOString();
+  const utc = dt.toUTC();
+  return utc.toISO() ?? ""; 
 }
 
 /**
@@ -73,28 +54,17 @@ export function utcToCurrentTimezone(
 ): Date {
   const targetTimezone = timezone || getCurrentTimezone();
 
-  let utcDate: Date;
+  let utcDate: DateTime;
 
   if (typeof utcDateInput === "string") {
-    utcDate = new Date(utcDateInput);
-  } else if (typeof utcDateInput === "number") {
-    utcDate = new Date(utcDateInput);
+    utcDate = DateTime.fromISO(utcDateInput, { zone: "utc" });
   } else {
-    utcDate = new Date(utcDateInput);
+    utcDate = DateTime.fromJSDate(new Date(utcDateInput), { zone: "utc" });
   }
 
-  // Convert UTC to target timezone
-  const localDateString = utcDate.toLocaleString("en-US", {
-    timeZone: targetTimezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  const converted = utcDate.setZone(targetTimezone);
 
-  return new Date(localDateString);
+  return converted.toJSDate();
 }
 
 /**
@@ -147,12 +117,11 @@ export function getUTCDateRange(
   timezone?: string
 ): { from: string; to: string } {
   const targetTimezone = timezone || getCurrentTimezone();
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isDateOnly = (val: any) =>
     typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val);
 
-  const from = isDateOnly(fromDate) ? `${fromDate}T00:00:00` : fromDate;
+  const from = isDateOnly(fromDate) ? `${fromDate}T05:00:00` : fromDate;
 
   const to = isDateOnly(toDate)
     ? `${toDate}T${format(new Date(), "HH:mm")}`

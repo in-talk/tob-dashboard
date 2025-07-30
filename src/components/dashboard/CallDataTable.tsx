@@ -418,7 +418,13 @@ import { Column, ColumnFilterElementTemplateOptions } from "primereact/column";
 import { FilterMatchMode, FilterOperator } from "primereact/api";
 import { InputText } from "primereact/inputtext";
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
-import { Search, Download, Headset } from "lucide-react";
+import {
+  Search,
+  Download,
+  Headset,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import { CallRecord } from "@/types/callRecord";
 import { useSession } from "next-auth/react";
 import { formatCallDuration } from "@/utils/formatCallDuration";
@@ -445,8 +451,14 @@ const dispositionColors: Record<string, string> = {
 const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
   const [data, setData] = useState<CallRecord[]>(callRecords);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
   const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
   const [first, setFirst] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const toggleAccordion = () => {
+    setIsExpanded(!isExpanded);
+  };
 
   // const { theme } = useTheme();
   const { data: session } = useSession();
@@ -590,10 +602,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
   // Header template
   const renderHeader = () => {
     return (
-      <div className="flex flex-wrap gap-4 justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Call Records
-        </h1>
+      <div className="flex flex-wrap gap-4 justify-end items-center mb-6">
         <div className="flex gap-4 items-center">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -658,6 +667,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
   const createdAtBodyTemplate = (rowData: CallRecord) => {
     const CurrentTimezone = utcToCurrentTimezone(rowData.created_at);
     const createdAt = formatDateTime(CurrentTimezone);
+
     return (
       <span className="text-gray-900 text-sm dark:text-gray-100">
         {createdAt || "-"}
@@ -667,9 +677,9 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
 
   const turnBodyTemplate = (rowData: CallRecord) => {
     return (
-      <span className="text-gray-900 text-sm dark:text-gray-100">
+      <p className="text-gray-900 text-sm text-center dark:text-gray-100">
         {rowData.turn || -1}
-      </span>
+      </p>
     );
   };
 
@@ -752,211 +762,247 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
     <div className="p-6 bg-gray-100 dark:bg-sidebar rounded-xl">
       <div className="max-w-full mx-auto">
         <div className=" border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
-          <div className="p-4">
-            <DataTable
-              value={data}
-              header={header}
-              totalRecords={Number(data[0]?.total_records)}
-              scrollable
-              scrollHeight="600px"
-              paginator
-              first={first}
-              onPage={onPageChange}
-              paginatorLeft
-              paginatorTemplate="RowsPerPageDropdown CurrentPageReport PrevPageLink NextPageLink"
-              rows={rowsPerPage}
-              rowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
-              currentPageReportTemplate=" {first} - {last} of {totalRecords}"
-              dataKey="call_id"
-              filters={filters}
-              filterDisplay="menu"
-              globalFilterFields={[
-                "agent",
-                "call_id",
-                "disposition",
-                "label",
-                "transcription",
-              ]}
-              emptyMessage={
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Headset className="w-12 h-12 text-gray-300 mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400 text-lg">
-                    No call records found
-                  </p>
-                  <p className="text-gray-400 dark:text-gray-500 text-sm">
-                    Try adjusting your search or filter criteria
+          <div
+            className="p-4 bg-white dark:bg-sidebar border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+            onClick={toggleAccordion}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Headset className="w-5 h-5 " />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Call Records
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {(data && data[0]?.total_records) || 0} total records
                   </p>
                 </div>
-              }
-              stripedRows
-              size="small"
-              showGridlines
-              className="custom-datatable"
-              pt={{
-                header: {
-                  className: "bg-white dark:bg-sidebar",
-                },
-                thead: {
-                  className: "dark:bg-sidebar",
-                },
-                tbody: {
-                  className: "dark:bg-sidebar",
-                },
-                headerRow: {
-                  className: "border-b dark:bg-sidebar text-sm border-gray-200",
-                },
-                emptyMessage: {
-                  className: "dark:bg-sidebar",
-                },
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {isExpanded ? "Collapse" : "Expand"}
+                </span>
+                {isExpanded ? (
+                  <ChevronUp className="w-5 h-5 text-gray-500 transition-transform duration-200" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-500 transition-transform duration-200" />
+                )}
+              </div>
+            </div>
+          </div>
 
-                paginator: {
-                  root: {
+          <div
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              isExpanded ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+            }`}
+          >
+            <div className="p-4">
+              <DataTable
+                value={data}
+                header={header}
+                totalRecords={Number(data && data[0]?.total_records)}
+                scrollable
+                scrollHeight="600px"
+                paginator
+                first={first}
+                onPage={onPageChange}
+                paginatorLeft
+                paginatorTemplate="RowsPerPageDropdown CurrentPageReport PrevPageLink NextPageLink"
+                rows={rowsPerPage}
+                rowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
+                currentPageReportTemplate=" {first} - {last} of {totalRecords}"
+                dataKey="call_id"
+                filters={filters}
+                filterDisplay="menu"
+                globalFilterFields={[
+                  "agent",
+                  "call_id",
+                  "disposition",
+                  "label",
+                  "transcription",
+                ]}
+                emptyMessage={
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Headset className="w-12 h-12 text-gray-300 mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400 text-lg">
+                      No call records found
+                    </p>
+                    <p className="text-gray-400 dark:text-gray-500 text-sm">
+                      Try adjusting your search or filter criteria
+                    </p>
+                  </div>
+                }
+                stripedRows
+                size="small"
+                showGridlines
+                className="custom-datatable"
+                pt={{
+                  header: {
+                    className: "bg-white dark:bg-sidebar",
+                  },
+                  thead: {
                     className: "dark:bg-sidebar",
                   },
-                },
-                bodyRow: {
-                  className:
-                    "border-b border-gray-200 dark:bg-sidebar dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700",
-                },
-              }}
-            >
-              <Column
-                field="agent"
-                header="Agent"
-                sortable
-                filter
-                headerStyle={{ marginRight: "8px" }}
-                filterPlaceholder="Search by agent"
-                style={{
-                  minWidth: "60px",
-                  padding: "0",
-                  background: "transparent",
-                }}
-                body={agentBodyTemplate}
-              />
+                  tbody: {
+                    className: "dark:bg-sidebar",
+                  },
+                  headerRow: {
+                    className:
+                      "border-b dark:bg-sidebar text-sm border-gray-200",
+                  },
+                  emptyMessage: {
+                    className: "dark:bg-sidebar",
+                  },
 
-              <Column
-                field="call_id"
-                header="Call ID"
-                sortable
-                filter
-                filterPlaceholder="Search by call ID"
-                style={{
-                  minWidth: "50px",
-                  padding: "0",
-                  background: "transparent",
+                  paginator: {
+                    root: {
+                      className: "dark:bg-sidebar",
+                    },
+                  },
+                  bodyRow: {
+                    className:
+                      "border-b border-gray-200 dark:bg-sidebar dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700",
+                  },
                 }}
-                body={callIdBodyTemplate}
-              />
-              <Column
-                field="caller_id"
-                header="Caller ID"
-                sortable
-                filter
-                filterPlaceholder="Search by caller ID"
-                style={{
-                  minWidth: "100px",
-                  padding: "0",
-                  background: "transparent",
-                }}
-                body={callerIdBodyTemplate}
-              />
-
-              <Column
-                field="call_duration"
-                header="Duration"
-                sortable
-                style={{
-                  minWidth: "80px",
-                  padding: "0",
-                  background: "transparent",
-                }}
-                body={durationBodyTemplate}
-              />
-
-              <Column
-                field="created_at"
-                header="Created At"
-                sortable
-                filterField="created_at"
-                style={{
-                  minWidth: "120px",
-                  padding: "0",
-                  background: "transparent",
-                }}
-                body={createdAtBodyTemplate}
-              />
-
-              <Column
-                field="turn"
-                header="T"
-                sortable
-                filter
-                dataType="numeric"
-                style={{
-                  minWidth: "60px",
-                  padding: "0",
-                  background: "transparent",
-                }}
-                body={turnBodyTemplate}
-              />
-
-              <Column
-                field="disposition"
-                header="D"
-                sortable
-                filter
-                filterMenuStyle={{ width: "14rem" }}
-                style={{
-                  minWidth: "70px",
-                  padding: "0",
-                  background: "transparent",
-                }}
-                body={dispositionBodyTemplate}
-                filterElement={dispositionFilterTemplate}
-              />
-
-              <Column
-                field="call_recording_path"
-                header="Call Audio"
-                style={{
-                  minWidth: role === "admin" ? "200px" : "120px",
-                  padding: "0",
-                  background: "transparent",
-                }}
-                body={audioBodyTemplate}
-              />
-
-              <Column
-                field="label"
-                header="Label"
-                sortable
-                filter
-                filterPlaceholder="Search by label"
-                style={{
-                  minWidth: "100px",
-                  padding: "0",
-                  background: "transparent",
-                }}
-                className="p-1"
-                body={labelBodyTemplate}
-              />
-
-              {role === "admin" && (
+              >
                 <Column
-                  field="transcription"
-                  header="Transcription"
+                  field="agent"
+                  header="Agent"
+                  sortable
                   filter
-                  filterPlaceholder="Search transcription"
+                  headerStyle={{ marginRight: "8px" }}
+                  filterPlaceholder="Search by agent"
                   style={{
-                    minWidth: "200px",
+                    minWidth: "0px",
                     padding: "0",
                     background: "transparent",
                   }}
-                  body={transcriptionBodyTemplate}
+                  body={agentBodyTemplate}
                 />
-              )}
-            </DataTable>
+
+                <Column
+                  field="call_id"
+                  header="Call ID"
+                  sortable
+                  filter
+                  filterPlaceholder="Search by call ID"
+                  style={{
+                    minWidth: "80px",
+                    padding: "0",
+                    background: "transparent",
+                  }}
+                  body={callIdBodyTemplate}
+                />
+                <Column
+                  field="caller_id"
+                  header="Caller ID"
+                  sortable
+                  filter
+                  filterPlaceholder="Search by caller ID"
+                  style={{
+                    minWidth: "100px",
+                    padding: "0",
+                    background: "transparent",
+                  }}
+                  body={callerIdBodyTemplate}
+                />
+
+                <Column
+                  field="call_duration"
+                  header="Duration"
+                  sortable
+                  style={{
+                    minWidth: "80px",
+                    padding: "0",
+                    background: "transparent",
+                  }}
+                  body={durationBodyTemplate}
+                />
+
+                <Column
+                  field="created_at"
+                  header="Created At"
+                  sortable
+                  filterField="created_at"
+                  style={{
+                    minWidth: "120px",
+                    padding: "0",
+                    background: "transparent",
+                  }}
+                  body={createdAtBodyTemplate}
+                />
+
+                <Column
+                  field="turn"
+                  header="T"
+                  sortable
+                  filter
+                  dataType="numeric"
+                  style={{
+                    minWidth: "60px",
+                    padding: "0",
+                    background: "transparent",
+                  }}
+                  body={turnBodyTemplate}
+                />
+
+                <Column
+                  field="disposition"
+                  header="D"
+                  sortable
+                  filter
+                  filterMenuStyle={{ width: "14rem" }}
+                  style={{
+                    minWidth: "70px",
+                    padding: "0",
+                    background: "transparent",
+                  }}
+                  body={dispositionBodyTemplate}
+                  filterElement={dispositionFilterTemplate}
+                />
+
+                <Column
+                  field="call_recording_path"
+                  header="Call Audio"
+                  style={{
+                    minWidth: role === "admin" ? "200px" : "120px",
+                    padding: "0",
+                    background: "transparent",
+                  }}
+                  body={audioBodyTemplate}
+                />
+
+                <Column
+                  field="label"
+                  header="Label"
+                  sortable
+                  filter
+                  filterPlaceholder="Search by label"
+                  style={{
+                    minWidth: "100px",
+                    padding: "0",
+                    background: "transparent",
+                  }}
+                  className="p-1"
+                  body={labelBodyTemplate}
+                />
+
+                {role === "admin" && (
+                  <Column
+                    field="transcription"
+                    header="Transcription"
+                    filter
+                    filterPlaceholder="Search transcription"
+                    style={{
+                      minWidth: "200px",
+                      padding: "0",
+                      background: "transparent",
+                    }}
+                    body={transcriptionBodyTemplate}
+                  />
+                )}
+              </DataTable>
+            </div>
           </div>
         </div>
       </div>

@@ -1,6 +1,5 @@
 import DispositionChart from "@/components/dashboard/DispositionChart";
 import Stats from "@/components/dashboard/Stats";
-// import DateFilter from "@/components/DateFilter";
 import NewDateFilter from "@/components/NewDateFilter";
 import {
   Select,
@@ -14,6 +13,7 @@ import {
 import { useTimezone } from "@/hooks/useTimezone";
 import { CallRecord } from "@/types/callRecord";
 import { withAuth } from "@/utils/auth";
+import { formatLocalDate } from "@/utils/formatDateTime";
 import { getUTCDateRange } from "@/utils/timezone";
 import { transformAgentData } from "@/utils/transformAgentData";
 import { transformGraphData } from "@/utils/transformGraphData";
@@ -21,96 +21,105 @@ import { GetServerSideProps } from "next";
 import dynamic from "next/dynamic";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-
-const fetcher = (url: string, body: Record<string, unknown>) =>
-  fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  }).then((res) => res.json());
 
 const CallDataTable = dynamic(
   () => import("@/components/dashboard/CallDataTable"),
-  {
-    ssr: false,
-  }
+  { ssr: false }
 );
 const AgentDispositionReport = dynamic(
   () => import("@/components/dashboard/AgentDispositionReport"),
-  {
-    ssr: false,
-  }
+  { ssr: false }
 );
 
 export default function ClientPage() {
   const { timezone } = useTimezone();
   const router = useRouter();
-  const { clientId } = router.query;
-
-  const client_id = Array.isArray(clientId) ? clientId[0] : clientId;
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(5);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [dateRange, setDateRange] = useState<{
-    from: string;
-    to: string;
-  }>(() => {
+  const [dateRange, setDateRange] = useState(() => {
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - 1);
 
     return {
-      from: startDate.toISOString().split("T")[0],
-      to: endDate.toISOString().split("T")[0],
+      from: formatLocalDate(startDate),
+      to: formatLocalDate(endDate),
     };
   });
 
-  const utcDateRange = getUTCDateRange(dateRange.from, dateRange.to, timezone);
+  const { clientId } = router.query;
+  const client_id = Array.isArray(clientId) ? clientId[0] : clientId;
+
+  const utcDateRange = useMemo(
+    () => getUTCDateRange(dateRange.from, dateRange.to, timezone),
+    [dateRange.from, dateRange.to, timezone]
+  );
+
+  const postFetcher = useCallback(
+    (url: string, body: Record<string, unknown>) =>
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }).then((res) => res.json()),
+    []
+  );
+
+  const chartKey =
+    client_id && utcDateRange
+      ? `chart-${client_id}-${utcDateRange.from}-${utcDateRange.to}`
+      : null;
+  const callKey =
+    client_id && utcDateRange
+      ? `call-${client_id}-${utcDateRange.from}-${utcDateRange.to}`
+      : null;
+  const agentKey =
+    client_id && utcDateRange
+      ? `agent-${client_id}-${utcDateRange.from}-${utcDateRange.to}`
+      : null;
 
   const chartDataQuery = useSWR(
-    client_id && utcDateRange
-      ? `/api/fetchDispositionGraphData?client_id=${client_id}&from=${utcDateRange.from}&to=${utcDateRange.to}`
-      : null,
+    chartKey,
     () =>
-      fetcher("/api/fetchDispositionGraphData", {
+      postFetcher("/api/fetchDispositionGraphData", {
         client_id,
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
       }),
     {
       revalidateOnFocus: false,
+      revalidateOnReconnect: true,
     }
   );
 
   const callDataQuery = useSWR(
-    client_id && utcDateRange
-      ? `/api/fetchCallRecords?client_id=${client_id}&from=${utcDateRange.from}&to=${utcDateRange.to}`
-      : null,
+    callKey,
     () =>
-      fetcher("/api/fetchCallRecords", {
+      postFetcher("/api/fetchCallRecords", {
         client_id,
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
       }),
     {
       revalidateOnFocus: false,
+      revalidateOnReconnect: true,
     }
   );
 
   const agentReportQuery = useSWR(
-    client_id && utcDateRange
-      ? `/api/fetchAgentReport?client_id=${client_id}&from=${utcDateRange.from}&to=${utcDateRange.to}`
-      : null,
+    agentKey,
     () =>
-      fetcher("/api/fetchAgentReport", {
+      postFetcher("/api/fetchAgentReport", {
         client_id,
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
       }),
     {
       revalidateOnFocus: false,
+      revalidateOnReconnect: true,
     }
   );
 
@@ -128,8 +137,9 @@ export default function ClientPage() {
     if (!lastUpdated) return "Never";
     const diffMs = Date.now() - lastUpdated.getTime();
     const diffMin = Math.floor(diffMs / 1000 / 60);
-    if (diffMin === 0) return "Just now";
-    return `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
+    return diffMin === 0
+      ? "Just now"
+      : `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
   };
 
   useEffect(() => {
@@ -143,7 +153,13 @@ export default function ClientPage() {
     }, refreshInterval * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]);
+  }, [
+    autoRefresh,
+    refreshInterval,
+    chartDataQuery,
+    callDataQuery,
+    agentReportQuery,
+  ]);
 
   return (
     <>
@@ -175,10 +191,6 @@ export default function ClientPage() {
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Refresh Interval</SelectLabel>
-                  <SelectItem value="0.8">Every 5 seconds</SelectItem>
-                  <SelectItem value="0.5">Every 30 seconds</SelectItem>
-                  <SelectItem value="1">Every 1 minute</SelectItem>
-                  <SelectItem value="2">Every 2 minutes</SelectItem>
                   <SelectItem value="5">Every 5 minutes</SelectItem>
                   <SelectItem value="10">Every 10 minutes</SelectItem>
                   <SelectItem value="15">Every 15 minutes</SelectItem>
@@ -205,6 +217,7 @@ export default function ClientPage() {
             isLoading={agentReportQuery.isLoading}
           />
         </div>
+
         <div className="w-full">
           <DispositionChart
             dispositionChartData={dispositionChartData || []}

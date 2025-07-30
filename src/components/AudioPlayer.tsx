@@ -30,7 +30,7 @@ export default function AudioPlayer({
   if (!audioUrl) return <div>No audio available</div>;
 
   return (
-    <div className="w-[200px] relative">
+    <div className="w-[160px] relative">
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center dark:border-gray-700 backdrop-blur-sm rounded">
           <div className="animate-spin h-6 w-6 border-4 border-indigo-500 border-t-transparent rounded-full" />
