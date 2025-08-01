@@ -1,15 +1,7 @@
 import DispositionChart from "@/components/dashboard/DispositionChart";
 import Stats from "@/components/dashboard/Stats";
 import NewDateFilter from "@/components/NewDateFilter";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/Select";
+import AutoRefresh from "@/components/ui/autoRefresh";
 import { useTimezone } from "@/hooks/useTimezone";
 import { CallRecord } from "@/types/callRecord";
 import { withAuth } from "@/utils/auth";
@@ -39,6 +31,9 @@ export default function ClientPage() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(5);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [previousCallRecords, setPreviousCallRecords] = useState<CallRecord[]>(
+    []
+  );
   const [dateRange, setDateRange] = useState(() => {
     const endDate = new Date();
     const startDate = new Date();
@@ -161,6 +156,12 @@ export default function ClientPage() {
     agentReportQuery,
   ]);
 
+  useEffect(() => {
+    if (callDataQuery.data?.callRecords?.length) {
+      setPreviousCallRecords(callDataQuery.data.callRecords);
+    }
+  }, [callDataQuery.data]);
+
   return (
     <>
       <Head>
@@ -168,42 +169,14 @@ export default function ClientPage() {
       </Head>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         <div className="w-full flex justify-between items-start sticky top-0 z-10 bg-gray-100 dark:bg-sidebar p-3 rounded-sm ">
-          <div className="flex items-center gap-4 flex-wrap py-2">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => {
-                  setAutoRefresh(e.target.checked);
-                  if (e.target.checked) setLastUpdated(new Date());
-                }}
-              />
-              Auto Refresh
-            </label>
-            <Select
-              disabled={!autoRefresh}
-              value={`${refreshInterval}`}
-              onValueChange={(value) => setRefreshInterval(Number(value))}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select interval" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Refresh Interval</SelectLabel>
-                  <SelectItem value="5">Every 5 minutes</SelectItem>
-                  <SelectItem value="10">Every 10 minutes</SelectItem>
-                  <SelectItem value="15">Every 15 minutes</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-
-            {autoRefresh && (
-              <span className="text-sm block text-gray-500">
-                Updated {getTimeAgo()}
-              </span>
-            )}
-          </div>
+          <AutoRefresh
+            refreshInterval={refreshInterval}
+            autoRefresh={autoRefresh}
+            setAutoRefresh={setAutoRefresh}
+            setRefreshInterval={setRefreshInterval}
+            setLastUpdated={setLastUpdated}
+            getTimeAgo={getTimeAgo}
+          />
           <NewDateFilter
             onDateChange={setDateRange}
             autoRefresh={autoRefresh}
@@ -225,10 +198,20 @@ export default function ClientPage() {
           />
         </div>
         <div className="w-full my-6">
-          <CallDataTable callRecords={callRecords} />
+          <CallDataTable
+            callRecords={
+              callDataQuery.isLoading && previousCallRecords.length > 0
+                ? previousCallRecords
+                : callRecords
+            }
+            isLoading={callDataQuery.isLoading}
+          />
         </div>
         <div className="w-full">
-          <AgentDispositionReport agentReport={agentReport || []} />
+          <AgentDispositionReport
+            agentReport={agentReport || []}
+            isLoading={agentReportQuery.isLoading}
+          />
         </div>
       </div>
     </>

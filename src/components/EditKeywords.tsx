@@ -11,7 +11,6 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Separator } from "./ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { mutate } from "swr";
 import { Label } from "./ui/label";
 import ClearAllKeywordsAlert from "./ClearAllKeywordsAlert";
 import { Input } from "./ui/input";
@@ -20,10 +19,14 @@ import { labels } from "@/types/lables";
 interface EditKeywordProps {
   document: labels;
   documentKeywords: string[];
-  collectionType:string
+  collectionType: string;
 }
 
-function EditKeywords({ document, documentKeywords,collectionType }: EditKeywordProps) {
+function EditKeywords({
+  document,
+  documentKeywords,
+  collectionType,
+}: EditKeywordProps) {
   const [keywords, setKeywords] = useState<string[]>(documentKeywords ?? []);
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
@@ -34,19 +37,30 @@ function EditKeywords({ document, documentKeywords,collectionType }: EditKeyword
   const submitKeywords = useCallback(
     async (updatedKeywords: string[]) => {
       try {
-        const response = await fetch(`/api/updateKeywords?collectionType=${collectionType}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: document._id, keywords: updatedKeywords }),
-        });
+        const response = await fetch(
+          `/api/updateKeywords?collectionType=${collectionType}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: document._id,
+              keywords: updatedKeywords,
+            }),
+          }
+        );
 
         if (!response.ok) {
           const responseData = await response.json();
           throw new Error(responseData.message || "Failed to update keywords");
         }
+        const result = await response.json();
+    
+        setKeywords(result.updatedDocument?.keywords);
 
-        toast({ description: "Keywords updated successfully." });
-        mutate("/api/dashboard");
+        toast({
+          variant: "success",
+          description: "Keywords updated successfully.",
+        });
       } catch (error) {
         toast({
           variant: "destructive",
@@ -57,7 +71,7 @@ function EditKeywords({ document, documentKeywords,collectionType }: EditKeyword
         });
       }
     },
-    [document._id,collectionType]
+    [document._id, collectionType]
   );
 
   const handleAddKeyword = useCallback(
@@ -112,10 +126,10 @@ function EditKeywords({ document, documentKeywords,collectionType }: EditKeyword
 
   const filteredKeywords = useMemo(
     () =>
-      documentKeywords.filter((keyword) =>
+      keywords.filter((keyword) =>
         keyword.toLowerCase().includes(searchTerm.toLowerCase())
       ),
-    [documentKeywords, searchTerm]
+    [keywords, searchTerm]
   );
 
   return (
@@ -136,7 +150,6 @@ function EditKeywords({ document, documentKeywords,collectionType }: EditKeyword
               placeholder="Add keywords and press Enter"
               onKeyDown={handleAddKeyword}
               className="border dark:border-white"
-
             />
             <Label>Bulk Keyword Input</Label>
             <Textarea
@@ -153,7 +166,7 @@ function EditKeywords({ document, documentKeywords,collectionType }: EditKeyword
               Add Bulk Keywords
             </Button>
           </div>
-          <Separator  />
+          <Separator />
           <div className="flex flex-col gap-4">
             <Input
               type="text"
@@ -161,7 +174,6 @@ function EditKeywords({ document, documentKeywords,collectionType }: EditKeyword
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="h-9 w-[50%] border dark:border-white"
-              
             />
             <div className="overflow-y-auto sm:max-w-[400px] md:max-w-[750px] h-[200px] pb-4">
               {filteredKeywords.map((keyword) => (

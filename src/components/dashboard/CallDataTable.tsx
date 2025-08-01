@@ -432,6 +432,7 @@ import AudioPlayer from "../AudioPlayer";
 import CallDetailsModal from "../CallDetailsModal";
 import { utcToCurrentTimezone } from "@/utils/timezone";
 import { formatDateTime } from "@/utils/formatDateTime";
+import SyncingProgressBars from "../ui/SyncingProgressBars";
 
 const dispositionColors: Record<string, string> = {
   XFER: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -448,13 +449,19 @@ const dispositionColors: Record<string, string> = {
   RI: "bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200",
 };
 
-const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
+const CallDataTable = ({
+  callRecords,
+  isLoading,
+}: {
+  callRecords: CallRecord[];
+  isLoading: boolean;
+}) => {
   const [data, setData] = useState<CallRecord[]>(callRecords);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(100);
 
   const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
   const [first, setFirst] = useState(0);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const toggleAccordion = () => {
     setIsExpanded(!isExpanded);
@@ -602,7 +609,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
   // Header template
   const renderHeader = () => {
     return (
-      <div className="flex flex-wrap gap-4 justify-end items-center mb-6">
+      <div className="flex flex-wrap gap-4 justify-end items-center mb-2">
         <div className="flex gap-4 items-center">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -759,18 +766,24 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
   const header = renderHeader();
 
   return (
-    <div className="p-6 bg-gray-100 dark:bg-sidebar rounded-xl">
+    <div className="p-2 bg-gray-100 dark:bg-sidebar rounded-xl">
+      <div className="pt-1 min-h-[4px]">
+        {isLoading && <SyncingProgressBars />}
+      </div>
       <div className="max-w-full mx-auto">
         <div className=" border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
           <div
-            className="p-4 bg-white dark:bg-sidebar border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+            className="p-2 bg-white dark:bg-sidebar border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
             onClick={toggleAccordion}
           >
             <div className="flex items-center justify-between">
+              {isLoading && callRecords.length > 0 && (
+                <div className="absolute top-0 left-0 h-1 w-full z-10 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 animate-pulse rounded-t-md" />
+              )}
               <div className="flex items-center gap-3">
                 <Headset className="w-5 h-5 " />
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <h3 className="text-md font-semibold text-gray-900 dark:text-white">
                     Call Records
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -796,11 +809,13 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
               isExpanded ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
             }`}
           >
-            <div className="p-4">
+            <div className="px-4 py-0">
               <DataTable
                 value={data}
                 header={header}
                 totalRecords={Number(data && data[0]?.total_records)}
+                // loading={isLoading && callRecords.length > 0}
+                // loadingIcon=""
                 scrollable
                 scrollHeight="600px"
                 paginator
@@ -809,7 +824,7 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
                 paginatorLeft
                 paginatorTemplate="RowsPerPageDropdown CurrentPageReport PrevPageLink NextPageLink"
                 rows={rowsPerPage}
-                rowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100]}
+                rowsPerPageOptions={[5, 10, 15, 20, 25, 50, 100, 200]}
                 currentPageReportTemplate=" {first} - {last} of {totalRecords}"
                 dataKey="call_id"
                 filters={filters}
@@ -841,14 +856,14 @@ const CallDataTable = ({ callRecords }: { callRecords: CallRecord[] }) => {
                     className: "bg-white dark:bg-sidebar",
                   },
                   thead: {
-                    className: "dark:bg-sidebar",
+                    className: "dark:bg-sidebar ",
                   },
                   tbody: {
                     className: "dark:bg-sidebar",
                   },
                   headerRow: {
                     className:
-                      "border-b dark:bg-sidebar text-sm border-gray-200",
+                      "border-b dark:bg-sidebar text-sm border-gray-200 pb-2",
                   },
                   emptyMessage: {
                     className: "dark:bg-sidebar",
