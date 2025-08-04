@@ -6,7 +6,9 @@ import EditKeywords from "../EditKeywords";
 import React from "react";
 import { labels } from "@/types/lables";
 
-export const getColumns = (collectionType: string): ColumnDef<labels>[] => [
+export const getColumns = (
+  collectionType: string,
+): ColumnDef<labels>[] => [
   {
     accessorKey: "label",
     header: "Label",
@@ -51,7 +53,7 @@ export const getColumns = (collectionType: string): ColumnDef<labels>[] => [
     cell: ({ row }) => {
       const document = row.original;
       const keywords: string[] = row.getValue("keywords");
-
+      
       return (
         <div className="flex">
           <UpdateDocument document={document} collectionType={collectionType} />

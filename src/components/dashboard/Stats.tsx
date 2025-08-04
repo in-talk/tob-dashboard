@@ -77,11 +77,11 @@ function Stats({ agentReport, isLoading }: StatsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-5 gap-4 mb-6">
+    <div className="grid grid-cols-8 gap-4 mb-2">
       {cards.map((card, idx) => (
         <div
           key={idx}
-          className={`${card.bgLight} ${card.bgDark} p-4 rounded-lg`}
+          className={`${card.bgLight} ${card.bgDark} px-4 py-1 rounded-lg `}
         >
           <div className="flex items-center gap-2">
             <card.icon className={`w-5 h-5 ${card.textColor}`} />
@@ -92,7 +92,7 @@ function Stats({ agentReport, isLoading }: StatsProps) {
           {isLoading ? (
             <CustomLoader />
           ) : (
-            <p className={`text-2xl font-bold ${card.textColor}`}>
+            <p className={`text-lg font-bold ${card.textColor}`}>
               {card.value}
             </p>
           )}

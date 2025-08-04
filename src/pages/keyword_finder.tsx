@@ -22,7 +22,7 @@ export default function KeywordFinder() {
 
     try {
       const res = await fetch(
-        process.env.NEXT_PUBLIC_KEYWORD_API_URL as string,
+        `${process.env.NEXT_PUBLIC_KEYWORD_API_URL}/testkeyword`,
         {
           method: "POST",
           headers: {
@@ -95,9 +95,7 @@ export default function KeywordFinder() {
             <div className="flex items-center justify-center py-20">
               <div className="flex items-center gap-3">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                <span className="text-muted-foreground">
-                  Processing ...
-                </span>
+                <span className="text-muted-foreground">Processing ...</span>
               </div>
             </div>
           )}

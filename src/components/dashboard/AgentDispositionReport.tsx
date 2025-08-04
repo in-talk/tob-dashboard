@@ -5,11 +5,14 @@ import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { AgentReportRow } from "@/utils/transformAgentData";
 import { ChevronDown, ChevronUp, FileAudio, Headset } from "lucide-react";
+import SyncingProgressBars from "../ui/SyncingProgressBars";
 
 const AgentDispositionReport = ({
   agentReport,
+  isLoading,
 }: {
   agentReport: AgentReportRow[];
+  isLoading: boolean;
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -94,18 +97,21 @@ const AgentDispositionReport = ({
   }, [agentReport]);
 
   return (
-    <div className="p-6 bg-gray-100 dark:bg-sidebar rounded-xl overflow-hidden">
+    <div className="p-2 bg-gray-100 dark:bg-sidebar rounded-xl overflow-hidden">
+      <div className="pt-1 min-h-[4px]">
+        {isLoading && <SyncingProgressBars />}
+      </div>
       <div className="w-full overflow-x-auto">
         <div className="min-w-[900px] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
           <div
-            className="p-4 bg-white dark:bg-sidebar border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+            className="p-2 bg-white dark:bg-sidebar border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
             onClick={toggleAccordion}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <FileAudio className="w-5 h-5" />
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <h3 className="text-md font-semibold text-gray-900 dark:text-white">
                     Agent Disposition Report
                   </h3>
                 </div>
