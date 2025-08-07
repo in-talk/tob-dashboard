@@ -142,7 +142,7 @@ export default async function handler(
     const backgroundVolume = parseFloat(
       Array.isArray(fields.backgroundVolume)
         ? fields.backgroundVolume[0]
-        : fields.backgroundVolume || "0.5"
+        : fields.backgroundVolume || "0"
     );
 
     const backgroundPath = getBackgroundAudioPath(backgroundType);
