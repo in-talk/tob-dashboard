@@ -76,7 +76,7 @@ export default function KeywordFinder() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ transcript, turn, campaignId }),
+          body: JSON.stringify({ transcript, turn, campaign_id: campaignId }),
         }
       );
 
