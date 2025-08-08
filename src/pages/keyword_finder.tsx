@@ -3,23 +3,71 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scrollArea";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type Campaign = {
+  campaign_id: number;
+  campaign_name: string;
+  campaign_code: number;
+};
 
 export default function KeywordFinder() {
   const [transcript, setTranscript] = useState("");
   const [turn, setTurn] = useState(1);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaignId, setCampaignId] = useState<string | undefined>(undefined);
+
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/fetchCampaigns`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch campaigns");
+        }
+
+        const data = await res.json();
+        setCampaigns(data.campaigns);
+        setLoading(false);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Something went wrong");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCampaigns();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     setResponse(null);
-
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_KEYWORD_API_URL}/testkeyword`,
@@ -28,7 +76,7 @@ export default function KeywordFinder() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ transcript, turn }),
+          body: JSON.stringify({ transcript, turn, campaign_id: campaignId }),
         }
       );
 
@@ -72,15 +120,37 @@ export default function KeywordFinder() {
               className="text-center py-7"
             />
           </div>
+          <div className="w-40">
+            <Select
+              value={campaignId}
+              onValueChange={(value) => setCampaignId(value)}
+            >
+              <SelectTrigger className="py-7 w-full">
+                <SelectValue placeholder="Select Campaign" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {campaigns?.map((campaign) => {
+                    return (
+                      <SelectItem
+                        key={campaign.campaign_id}
+                        value={`${campaign.campaign_code}`}
+                      >
+                        {campaign.campaign_code}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
 
           <Button
             type="submit"
             disabled={loading}
             className="py-7 px-6 flex flex-col items-center gap-1"
           >
-            <span className="text-xs">
-              {loading ? "Finding..." : "Find Keyword"}
-            </span>
+            <span className="text-xs">Find Keyword</span>
           </Button>
         </div>
       </form>
