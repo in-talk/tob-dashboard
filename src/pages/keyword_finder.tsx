@@ -69,16 +69,24 @@ export default function KeywordFinder() {
     setError("");
     setResponse(null);
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_KEYWORD_API_URL}/testkeyword`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ transcript, turn, campaign_id: campaignId }),
-        }
-      );
+      // const res = await fetch(
+      //   `${process.env.NEXT_PUBLIC_KEYWORD_API_URL}/testkeyword`,
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({ transcript, turn, campaign_id: campaignId }),
+      //   }
+      // );
+      const res = await fetch("/api/keyword-proxy", {
+        // Call your proxy instead
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ transcript, turn, campaign_id: campaignId }),
+      });
 
       if (!res.ok) {
         throw new Error("Failed to fetch keywords");

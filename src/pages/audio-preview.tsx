@@ -1,11 +1,11 @@
-import { generateAudioUrl } from "@/utils/WasabiClient";
+import { generateAudioUrlSync } from "@/utils/WasabiClient";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 
 export default function AudioPreview() {
   const { query } = useRouter();
   const audioPath = query.url as string;
-  const audioUrl = generateAudioUrl(audioPath);
+  const audioUrl = generateAudioUrlSync(audioPath);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,9 @@ export default function AudioPreview() {
         ref={audioRef}
         controls
         preload="metadata"
-        className={`w-[500px] ${loading ? "opacity-50 pointer-events-none" : ""}`}
+        className={`w-[500px] ${
+          loading ? "opacity-50 pointer-events-none" : ""
+        }`}
       >
         <source src={audioUrl} type="audio/mpeg" />
         <source src={audioUrl} type="audio/wav" />
