@@ -98,7 +98,7 @@ export default function Home() {
     callKey,
     () =>
       postFetcher("/api/fetchCallRecords", {
-        user_id,
+        client_id: user_id,
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
       }),
