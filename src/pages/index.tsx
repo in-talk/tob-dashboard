@@ -30,6 +30,9 @@ export default function Home() {
   const { timezone } = useTimezone();
 
   const client_id = session?.user?.client_id;
+  const user_id = Number(session?.user?.id);
+
+  console.log("client_id in Home:", session?.user);
 
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(0.5);
@@ -95,7 +98,7 @@ export default function Home() {
     callKey,
     () =>
       postFetcher("/api/fetchCallRecords", {
-        client_id,
+        user_id,
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
       }),
@@ -198,7 +201,6 @@ export default function Home() {
             isLoading={chartDataQuery.isLoading}
           />
         </div>
-        
 
         <div className="w-full my-6">
           <CallDataTable
@@ -211,7 +213,10 @@ export default function Home() {
           />
         </div>
         <div className="w-full">
-          <AgentDispositionReport agentReport={agentReport || []} isLoading={agentReportQuery.isLoading}/>
+          <AgentDispositionReport
+            agentReport={agentReport || []}
+            isLoading={agentReportQuery.isLoading}
+          />
         </div>
       </div>
     </>
