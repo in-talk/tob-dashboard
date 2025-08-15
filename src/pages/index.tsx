@@ -2,6 +2,7 @@ import DispositionChart from "@/components/dashboard/DispositionChart";
 import Stats from "@/components/dashboard/Stats";
 import NewDateFilter from "@/components/NewDateFilter";
 import AutoRefresh from "@/components/ui/autoRefresh";
+import ClientSelector from "@/components/ui/clientSelector";
 import { useTimezone } from "@/hooks/useTimezone";
 import { CallRecord } from "@/types/callRecord";
 import { withAuth } from "@/utils/auth";
@@ -30,7 +31,7 @@ export default function Home() {
   const { timezone } = useTimezone();
 
   const client_id = session?.user?.client_id;
-  const user_id = Number(session?.user?.id);
+  const user_id = session?.user?.id;
 
   console.log("client_id in Home:", session?.user);
 
@@ -40,6 +41,7 @@ export default function Home() {
   const [previousCallRecords, setPreviousCallRecords] = useState<CallRecord[]>(
     []
   );
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   const [dateRange, setDateRange] = useState(() => {
     const endDate = new Date();
@@ -72,13 +74,28 @@ export default function Home() {
       ? `chart-${client_id}-${utcDateRange.from}-${utcDateRange.to}`
       : null;
   const callKey =
-    client_id && utcDateRange
-      ? `call-${client_id}-${utcDateRange.from}-${utcDateRange.to}`
+    selectedClientId && utcDateRange
+      ? `call-${selectedClientId}-${utcDateRange.from}-${utcDateRange.to}`
       : null;
   const agentKey =
     client_id && utcDateRange
       ? `agent-${client_id}-${utcDateRange.from}-${utcDateRange.to}`
       : null;
+  const clientKey = `client-${user_id}`;
+
+  console.log("user_id:=>", user_id);
+
+  const clientsDataQuery = useSWR(
+    clientKey,
+    () =>
+      fetch(`/api/fetchClientsByUser?user_id=${user_id}`).then((res) =>
+        res.json()
+      ),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
+  );
 
   const chartDataQuery = useSWR(
     chartKey,
@@ -98,7 +115,7 @@ export default function Home() {
     callKey,
     () =>
       postFetcher("/api/fetchCallRecords", {
-        client_id: user_id,
+        client_id: selectedClientId,
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
       }),
@@ -127,6 +144,9 @@ export default function Home() {
   const dispositionChartData = transformGraphData(
     chartDataQuery.data?.graphData ?? []
   );
+
+  const clientData = clientsDataQuery.data?.clients ?? [];
+  console.log("clientData:=>", clientData);
 
   const agentReport = transformAgentData(
     agentReportQuery.data?.agentRecords ?? []
@@ -180,6 +200,13 @@ export default function Home() {
             setRefreshInterval={setRefreshInterval}
             setLastUpdated={setLastUpdated}
             getTimeAgo={getTimeAgo}
+          />
+          <ClientSelector
+            clients={clientData}
+            selectedClientId={selectedClientId}
+            onClientChange={setSelectedClientId}
+            label="Select Client"
+            placeholder="Choose a client..."
           />
           <NewDateFilter
             onDateChange={setDateRange}
