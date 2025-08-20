@@ -64,6 +64,7 @@ const DispositionChart = ({
   const [chartData, setChartData] = useState<ChartEntry[]>([]);
   const [focusedLine, setFocusedLine] = useState<string | null>(null);
 
+  console.log("DispositionChart data:", dispositionChartData);
   useEffect(() => {
     if (dispositionChartData && dispositionChartData.length > 0) {
       const processed = dispositionChartData.map((entry) => ({
@@ -109,7 +110,9 @@ const DispositionChart = ({
     (value: string, index: number) => {
       const item = chartData[index];
       if (!item) return "";
-      if (item.timeLabel === item.fullTimeLabel) {
+
+      // Show every 6th label (or adjust based on your interval)
+      if (index % 6 === 0) {
         return item.timeLabel;
       }
 
@@ -202,12 +205,37 @@ const DispositionChart = ({
               }}
             />
             <Tooltip
-              formatter={(value: number) => `${value.toFixed(2)}%`}
+              formatter={(value: number, name: string) => [
+                `${value.toFixed(2)}%`,
+                name,
+              ]}
               labelFormatter={(label) => `Time: ${label}`}
-              contentStyle={{
-                backgroundColor: theme === "dark" ? "#1f2937" : "white",
-                color: theme === "dark" ? "white" : "#1f2937",
-                fontSize:'12px'
+              content={({ active, payload, label }) => {
+                if (active && payload && payload.length) {
+                  const data = payload[0].payload;
+                  return (
+                    <div
+                      className="bg-white dark:bg-gray-800 p-3 border rounded shadow-lg"
+                      style={{
+                        backgroundColor: theme === "dark" ? "#1f2937" : "white",
+                        color: theme === "dark" ? "white" : "#1f2937",
+                      }}
+                    >
+                      <p className="font-semibold">{`Time: ${label}`}</p>
+                      <p className="text-sm">{`Large Interval: ${data.largeInterval}`}</p>
+                      <p className="text-sm">{`Position: ${data.intervalPosition}/6`}</p>
+                      <p className="text-sm">{`Interval Total: ${data.intervalTotal}`}</p>
+                      <p className="text-sm">{`Cumulative Total: ${data.cumulativeTotal}`}</p>
+                      <hr className="my-2" />
+                      {payload.map((entry, index) => (
+                        <p key={index} style={{ color: entry.color }}>
+                          {`${entry.name}: ${entry.value?.toFixed(2)}%`}
+                        </p>
+                      ))}
+                    </div>
+                  );
+                }
+                return null;
               }}
             />
             {activeDispositionLabels.map((label) => {

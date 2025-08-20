@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import clientPromise from "@/lib/mongodb";
+import { getCampaignLabel } from "@/lib/utils";
 import { labelsSchema } from "@/lib/zod";
 import { ObjectId } from "mongodb";
 import { NextApiRequest, NextApiResponse } from "next";
@@ -9,13 +10,13 @@ export default async function handler(
   res: NextApiResponse
 ) {
   const { collectionType } = req.query;
-  const labels = `labels_${collectionType === "CGM" ? "10000" : "20000"}`;
+  const labels = getCampaignLabel(collectionType as string);
 
   try {
     const client = await clientPromise;
     const db = client.db();
     const collection = db.collection(labels);
-    
+
     switch (req.method) {
       case "GET":
         return await handleGet(req, res, collection);
@@ -102,7 +103,7 @@ async function handleDelete(
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid document ID" });
     }
-    console.log('collection',collection)
+    console.log("collection", collection);
     const result = await collection.deleteOne({
       _id: new ObjectId(String(id)),
     });

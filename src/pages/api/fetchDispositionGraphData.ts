@@ -60,15 +60,21 @@ export default async function handler(
   if (!client_id) {
     return res.status(400).json({ error: "client_id is required" });
   }
+
+  console.log(`chart params ${client_id}, ${client_id},
+        ${formatDateForDB(from_date)},
+        ${formatDateForDB(to_date)},
+        ${main_interval},
+        5`);
   try {
     const result = await db.query(
-      `SELECT * FROM get_disposition_by_intervals_enhanced($1, $2, $3, $4, $5);`,
+      `SELECT * FROM get_disposition_intervals($1, $2, $3, $4, $5);`,
       [
-        client_id,
         formatDateForDB(from_date),
         formatDateForDB(to_date),
-        main_interval,
         5,
+        main_interval,
+        client_id,
       ]
     );
     res.status(200).json({

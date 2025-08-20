@@ -5,7 +5,7 @@ import {
   ChartArea,
   AudioLines,
   User,
-  Blocks
+  Blocks,
 } from "lucide-react";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ClientSwitcher } from "./client-switcher";
 import { useSession } from "next-auth/react";
+import { Campaign } from "@/lib/utils";
 
 const data = {
   user: {
@@ -48,12 +49,20 @@ const data = {
       icon: LayoutDashboard,
       items: [
         {
-          title: "CGM",
+          title: `CGM - ${Campaign.CGM}`,
           url: "/label_managment/?CGM",
         },
         {
-          title: "ACM",
-          url: "/label_managment/?ACM",
+          title: `ACA - ${Campaign.ACA}`,
+          url: "/label_managment/?ACA",
+        },
+        {
+          title: `SOLAR - ${Campaign.SOLAR}`,
+          url: "/label_managment/?SOLAR",
+        },
+        {
+          title: `FE - ${Campaign.FE}`,
+          url: "/label_managment/?FE",
         },
       ],
     },
@@ -62,7 +71,7 @@ const data = {
       url: "/audio-formatter",
       icon: AudioLines,
     },
-     {
+    {
       name: "Admin Utilities",
       url: "/admin",
       icon: Blocks,
