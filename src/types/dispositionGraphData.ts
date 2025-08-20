@@ -1,6 +1,8 @@
 export interface dispositionGraphData {
-  large_interval_bucket: string;
-  small_interval_bucket: string;
+  time_slot: string;
+
+  time_label: string;
+  interval_breakdown: string;
   interval_position: number;
   interval_total: number; // Keep this - useful for tooltip context
   cumulative_total: number; // Keep this - useful for tooltip context

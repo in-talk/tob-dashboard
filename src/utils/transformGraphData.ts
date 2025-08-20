@@ -20,35 +20,49 @@ export type DispositionGraph = {
   npPercentage: number;
   naPercentage: number;
   dnqPercentage: number;
+  intervalPosition: number;
+  intervalTotal: number;
 };
 
 export function transformGraphData(
   data: dispositionGraphData[]
 ): DispositionGraph[] | null {
   return data.map((entry) => {
-    const utcToCurrent = utcToCurrentTimezone(entry.small_interval_bucket);
+    const utcToCurrent = utcToCurrentTimezone(entry.time_slot);
     const formattedDate = format(utcToCurrent, "M/d HH:mm");
     const baseDate = formattedDate.split(" ")[0];
 
-    const intervalTime = new Date(entry.small_interval_bucket);
-    const intervalHour = intervalTime.getUTCHours().toString().padStart(2, "0");
-    const intervalMinute = intervalTime
-      .getUTCMinutes()
-      .toString()
-      .padStart(2, "0");
-    const intervalBreakdown = `${intervalHour}:${intervalMinute}`;
-
-    const localIntervalTime = utcToCurrentTimezone(entry.small_interval_bucket);
+    const [intervalHour, intervalMinute] = entry.interval_breakdown.split(":");
+    // const intervalTime = new Date(entry.interval_breakdown);
+    // const intervalHour = intervalTime.getUTCHours().toString().padStart(2, "0");
+    // const intervalMinute = intervalTime
+    //   .getUTCMinutes()
+    //   .toString()
+    //   .padStart(2, "0");
+    const utcIntervalTime = new Date(entry.time_slot);
+    utcIntervalTime.setUTCHours(
+      parseInt(intervalHour),
+      parseInt(intervalMinute),
+      0,
+      0
+    );
+    const localIntervalTime = utcToCurrentTimezone(
+      utcIntervalTime.toISOString()
+    );
     const localTimeString = format(localIntervalTime, "HH:mm");
+    // const intervalBreakdown = `${intervalHour}:${intervalMinute}`;
+
+    // const localIntervalTime = utcToCurrentTimezone(entry.interval_breakdown);
+    // const localTimeString = format(localIntervalTime, "HH:mm");
     const fullTimeLabel = `${baseDate} ${localTimeString}`;
 
     return {
-      timeSlot: entry.small_interval_bucket,
+      timeSlot: entry.time_slot,
       timeLabel: formattedDate,
-      breakdown: intervalBreakdown,
+      breakdown: entry.interval_breakdown,
       fullTimeLabel,
-      intervalTotal: entry.interval_total, // Keep for context
-      cumulativeTotal: entry.cumulative_total, // Keep for context
+      intervalPosition: entry.interval_position,
+      intervalTotal: entry.interval_total,
       // Only percentages - no cumulative counts needed
       xferPercentage: parseFloat(entry.xfer_pct || "0"),
       dncPercentage: parseFloat(entry.dnc_pct || "0"),

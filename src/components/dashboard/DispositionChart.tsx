@@ -72,6 +72,8 @@ const DispositionChart = ({
         timeSlot: entry.timeSlot,
         breakdown: entry.breakdown,
         fullTimeLabel: entry.fullTimeLabel,
+        intervalPosition: entry.intervalPosition,
+        intervalTotal: entry.intervalTotal,
         XFER: Math.min(100, Math.max(0, entry.xferPercentage)),
         DC: Math.min(100, Math.max(0, entry.dcPercentage)),
         CALLBK: Math.min(100, Math.max(0, entry.callbkPercentage)),
@@ -109,10 +111,11 @@ const DispositionChart = ({
   const formatXAxisTick = useCallback(
     (value: string, index: number) => {
       const item = chartData[index];
+      console.log("formatXAxisTick item:", item, value);
       if (!item) return "";
 
-      // Show every 6th label (or adjust based on your interval)
-      if (index % 6 === 0) {
+      // Show label only for position 1 (first interval in each large bucket)
+      if (item.intervalPosition === 1) {
         return item.timeLabel;
       }
 
@@ -195,7 +198,7 @@ const DispositionChart = ({
               height={50}
             />
             <YAxis
-              domain={[0, maxYValue]}
+              domain={[0, "dataMax + 5"]} // Auto-scale with 5% padding
               tickFormatter={(value) => `${value}%`}
               label={{
                 value: "Disposition Percentage",
@@ -205,31 +208,23 @@ const DispositionChart = ({
               }}
             />
             <Tooltip
-              formatter={(value: number, name: string) => [
-                `${value.toFixed(2)}%`,
-                name,
-              ]}
-              labelFormatter={(label) => `Time: ${label}`}
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
                   return (
-                    <div
-                      className="bg-white dark:bg-gray-800 p-3 border rounded shadow-lg"
-                      style={{
-                        backgroundColor: theme === "dark" ? "#1f2937" : "white",
-                        color: theme === "dark" ? "white" : "#1f2937",
-                      }}
-                    >
+                    <div className="bg-white dark:bg-gray-800 p-3 border rounded shadow-lg">
                       <p className="font-semibold">{`Time: ${label}`}</p>
-                      <p className="text-sm">{`Large Interval: ${data.largeInterval}`}</p>
-                      <p className="text-sm">{`Position: ${data.intervalPosition}/6`}</p>
+                      <p className="text-sm">{`Time Slot: ${data.timeSlot}`}</p>
+                      <p className="text-sm">{`Position: ${data.intervalPosition}`}</p>
                       <p className="text-sm">{`Interval Total: ${data.intervalTotal}`}</p>
-                      <p className="text-sm">{`Cumulative Total: ${data.cumulativeTotal}`}</p>
                       <hr className="my-2" />
                       {payload.map((entry, index) => (
                         <p key={index} style={{ color: entry.color }}>
-                          {`${entry.name}: ${entry.value?.toFixed(2)}%`}
+                          {`${entry.name}: ${
+                            typeof entry.value === "number"
+                              ? entry.value.toFixed(2)
+                              : entry.value
+                          }%`}
                         </p>
                       ))}
                     </div>
