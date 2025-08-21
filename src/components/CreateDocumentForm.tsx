@@ -77,15 +77,18 @@ export default function CreateDocumentForm({
     try {
       const uniqueWords = getUniqueWords();
 
-      const response = await fetch(`/api/dashboard?collectionType=${collectionType}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          unique_words: uniqueWords,
-          collectionType: collectionType,
-        }),
-      });
+      const response = await fetch(
+        `/api/dashboard?collectionType=${collectionType}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...data,
+            unique_words: uniqueWords,
+            collectionType: collectionType,
+          }),
+        }
+      );
 
       const responseData = await response.json();
 
@@ -274,7 +277,7 @@ export default function CreateDocumentForm({
             aria-describedby=""
           >
             <DialogHeader>
-              <DialogTitle>Add Keywords</DialogTitle>
+              <DialogTitle>Add Keyword</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col gap-[10px] mt-[10px]">
               <div className=" flex flex-col  gap-[10px] border-r-slate-100">
