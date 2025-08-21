@@ -41,6 +41,7 @@ function Stats({ agentReport, isLoading }: StatsProps) {
       bgLight: "bg-blue-100",
       bgDark: "dark:bg-blue-400",
       textColor: "text-blue-900",
+      gradient: "from-blue-500 to-blue-600",
     },
     {
       label: "Total XFER",
@@ -49,6 +50,7 @@ function Stats({ agentReport, isLoading }: StatsProps) {
       bgLight: "bg-yellow-100",
       bgDark: "dark:bg-orange-400",
       textColor: "text-orange-900",
+      gradient: "from-orange-500 to-orange-600",
     },
     {
       label: "Total DAIR",
@@ -57,6 +59,7 @@ function Stats({ agentReport, isLoading }: StatsProps) {
       bgLight: "bg-teal-100",
       bgDark: "dark:bg-teal-400",
       textColor: "text-teal-900",
+      gradient: "from-teal-500 to-teal-600",
     },
     {
       label: "Total RI",
@@ -65,6 +68,7 @@ function Stats({ agentReport, isLoading }: StatsProps) {
       bgLight: "bg-gray-100",
       bgDark: "dark:bg-gray-400",
       textColor: "text-gray-900",
+      gradient: "from-gray-500 to-gray-600",
     },
     {
       label: "Total A",
@@ -73,6 +77,7 @@ function Stats({ agentReport, isLoading }: StatsProps) {
       bgLight: "bg-cyan-100",
       bgDark: "dark:bg-cyan-400",
       textColor: "text-cyan-900",
+      gradient: "from-cyan-500 to-cyan-600",
     },
   ];
 
@@ -81,23 +86,75 @@ function Stats({ agentReport, isLoading }: StatsProps) {
       {cards.map((card, idx) => (
         <div
           key={idx}
-          className={`${card.bgLight} ${card.bgDark} px-4 py-1 rounded-lg `}
+          className={`
+            ${card.bgLight} ${card.bgDark} px-4 py-1 rounded-lg 
+            relative overflow-hidden group transition-all duration-300 
+            hover:shadow-lg hover:scale-105 cursor-pointer
+            bg-gradient-to-br ${card.gradient}
+          `}
+          style={{
+            animationDelay: `${idx * 100}ms`,
+          }}
         >
-          <div className="flex items-center gap-2">
-            <card.icon className={`w-5 h-5 ${card.textColor}`} />
-            <span className={`text-sm font-bold ${card.textColor}`}>
+          {/* Animated background overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+
+          {/* Floating particles */}
+          <div className="absolute top-2 right-2 w-1 h-1 bg-white/40 rounded-full animate-pulse"></div>
+
+          <div className="flex items-center gap-2 relative z-10">
+            <div className="p-1 rounded-lg bg-white/20 backdrop-blur-sm transition-transform duration-300 group-hover:rotate-12">
+              <card.icon className={`w-5 h-5 text-white drop-shadow-sm`} />
+            </div>
+            <span className={`text-sm font-bold text-white drop-shadow-sm`}>
               {card.label}
             </span>
           </div>
-          {isLoading ? (
-            <CustomLoader />
-          ) : (
-            <p className={`text-lg font-bold ${card.textColor}`}>
-              {card.value}
-            </p>
+
+          <div className="relative z-10">
+            {isLoading ? (
+              <CustomLoader />
+            ) : (
+              <p
+                className={`text-lg font-bold text-white drop-shadow-sm transition-all duration-300`}
+              >
+                {card.value.toLocaleString()}
+              </p>
+            )}
+          </div>
+
+          {/* Progress indicator */}
+          {!isLoading && (
+            <div
+              className="absolute bottom-0 left-0 h-1 bg-white/30 transition-all duration-300 group-hover:bg-white/50"
+              style={{
+                width: `${Math.min(
+                  (card.value / Math.max(...cards.map((c) => c.value))) * 100,
+                  100
+                )}%`,
+              }}
+            ></div>
           )}
         </div>
       ))}
+
+      <style jsx>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .grid > div {
+          animation: slideIn 0.5s ease-out forwards;
+          opacity: 0;
+        }
+      `}</style>
     </div>
   );
 }

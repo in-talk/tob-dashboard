@@ -198,7 +198,8 @@ const DispositionChart = ({
               height={50}
             />
             <YAxis
-              domain={[0, "dataMax + 5"]} // Auto-scale with 5% padding
+              domain={[0, "dataMax + 5"]}
+              tickCount={10} // This will create ~5 intervals (0, 20, 40, 60, 80, 100)
               tickFormatter={(value) => `${value}%`}
               label={{
                 value: "Disposition Percentage",
