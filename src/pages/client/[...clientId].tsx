@@ -5,7 +5,6 @@ import AutoRefresh from "@/components/ui/autoRefresh";
 import { useTimezone } from "@/hooks/useTimezone";
 import { CallRecord } from "@/types/callRecord";
 import { withAuth } from "@/utils/auth";
-import { formatLocalDate } from "@/utils/formatDateTime";
 import { getUTCDateRange } from "@/utils/timezone";
 import { transformAgentData } from "@/utils/transformAgentData";
 import { transformGraphData } from "@/utils/transformGraphData";
@@ -35,13 +34,15 @@ export default function ClientPage() {
     []
   );
   const [dateRange, setDateRange] = useState(() => {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 1);
+    const now = new Date();
+
+    const from = new Date(now);
+    from.setDate(from.getDate() - 1);
+    from.setHours(0, 0, 0, 0);
 
     return {
-      from: formatLocalDate(startDate),
-      to: formatLocalDate(endDate),
+      from,
+      to: now,
     };
   });
 
@@ -137,24 +138,20 @@ export default function ClientPage() {
       : `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
   };
 
-  useEffect(() => {
+    useEffect(() => {
     if (!autoRefresh) return;
 
     const interval = setInterval(() => {
-      chartDataQuery.mutate();
-      callDataQuery.mutate();
-      agentReportQuery.mutate();
+      setDateRange((prev) => ({
+        ...prev,
+        to: new Date(),
+      }));
+
       setLastUpdated(new Date());
     }, refreshInterval * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [
-    autoRefresh,
-    refreshInterval,
-    chartDataQuery,
-    callDataQuery,
-    agentReportQuery,
-  ]);
+  }, [autoRefresh, refreshInterval]);
 
   useEffect(() => {
     if (callDataQuery.data?.callRecords?.length) {
