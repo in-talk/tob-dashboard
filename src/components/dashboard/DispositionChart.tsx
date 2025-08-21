@@ -1,7 +1,6 @@
 import { DispositionGraph } from "@/utils/transformGraphData";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import { useSession } from "next-auth/react";
-import { useTheme } from "next-themes";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   LineChart,
@@ -60,7 +59,7 @@ const DispositionChart = ({
   isLoading: boolean;
 }) => {
   const { data: session } = useSession();
-  const { theme } = useTheme();
+  // const { theme } = useTheme();
   const [chartData, setChartData] = useState<ChartEntry[]>([]);
   const [focusedLine, setFocusedLine] = useState<string | null>(null);
 
@@ -128,24 +127,24 @@ const DispositionChart = ({
     setFocusedLine((prev) => (prev === label ? null : label));
   };
 
-  const maxYValue = useMemo(() => {
-    if (!chartData || chartData.length === 0) return 0;
+  // const maxYValue = useMemo(() => {
+  //   if (!chartData || chartData.length === 0) return 0;
 
-    let max = 0;
+  //   let max = 0;
 
-    chartData.forEach((entry) => {
-      const labels = focusedLine ? [focusedLine] : activeDispositionLabels;
+  //   chartData.forEach((entry) => {
+  //     const labels = focusedLine ? [focusedLine] : activeDispositionLabels;
 
-      labels.forEach((label) => {
-        const value = Number(entry[label] || 0);
-        if (!isNaN(value)) {
-          max = Math.max(max, value);
-        }
-      });
-    });
+  //     labels.forEach((label) => {
+  //       const value = Number(entry[label] || 0);
+  //       if (!isNaN(value)) {
+  //         max = Math.max(max, value);
+  //       }
+  //     });
+  //   });
 
-    return max;
-  }, [chartData, focusedLine, activeDispositionLabels]);
+  //   return max;
+  // }, [chartData, focusedLine, activeDispositionLabels]);
 
   if (!dispositionChartData) {
     return (
@@ -198,7 +197,7 @@ const DispositionChart = ({
               height={50}
             />
             <YAxis
-              domain={[0, "dataMax + 5"]}
+              domain={[0, "dataMax + 0"]}
               tickCount={10} // This will create ~5 intervals (0, 20, 40, 60, 80, 100)
               tickFormatter={(value) => `${value}%`}
               label={{
