@@ -1,27 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+
+
 import DateTimeRangePicker from "./DatetimeRangePicker";
 import { format } from "date-fns";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
+import { ChevronDown, Clock } from "lucide-react";
 
 export default function NewDateFilter({
   onDateChange,
   initialRange,
-  autoRefresh=false,
+  autoRefresh = false,
 }: {
-  onDateChange: (range: { from: string; to: string }) => void;
-  initialRange: { from: string; to: string };
+  onDateChange: (range: { from: Date; to: Date }) => void;
+  initialRange: { from: Date; to: Date };
   autoRefresh: boolean;
 }) {
   const [appliedRange, setAppliedRange] = useState<{
-    from: string;
-    to: string;
+    from: Date;
+    to: Date;
   }>(initialRange);
-
+  const [isOpen, setIsOpen] = useState(false);
+  const [selected, setSelected] = useState<number | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (appliedRange.from && appliedRange.to) {
       onDateChange(appliedRange);
@@ -29,59 +28,87 @@ export default function NewDateFilter({
   }, [appliedRange, onDateChange]);
 
   const handleQuickDateSelect = (days: number) => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - days);
-    const startDate = start.toISOString().split("T")[0];
-    const toDate = end.toISOString().split("T")[0];
+    const now = new Date();
+    const toDate = new Date(now.toISOString());
+
+    const start = new Date(now);
+    start.setUTCDate(start.getUTCDate() - days);
+    start.setUTCHours(0, 0, 0, 0);
+
     const newRange = {
-      from: startDate,
+      from: start,
       to: toDate,
     };
 
     setAppliedRange(newRange);
   };
 
+    const filterOptions = [
+    { value: 7, label: "7 days" },
+    { value: 15, label: "15 days" },
+    { value: 30, label: "30 days" },
+    { value: 60, label: "60 days" },
+  ];
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelect = (days: number) => {
+    if (!autoRefresh) {
+      setSelected(days);
+      handleQuickDateSelect(days);
+      setIsOpen(false);
+    }
+  };
+
   return (
     <div>
       <DateTimeRangePicker
-        onDateChange={onDateChange}
+        onDateChange={onDateChange} // range = { from: Date, to: Date }
         initialStartDate={initialRange.from}
         initialEndDate={initialRange.to}
-        initialStartTime="00:00"
-        initialEndTime={format(new Date(), "HH:mm")}
+        initialStartTime={format(initialRange.from, "HH:mm")}
+        initialEndTime={format(initialRange.to, "HH:mm")}
         autoRefresh={autoRefresh}
       />
-      <TooltipProvider>
-        <div className="flex items-center justify-end gap-2">
-          <span className="text-sm font-medium">Quick Filters:</span>
-          <div className="flex gap-2">
-            {[7, 15, 30, 60].map((days) => {
-              const button = (
-                <button
-                  disabled={autoRefresh}
-                  key={days}
-                  onClick={() => handleQuickDateSelect(days)}
-                  className="bg-gray-100 dark:bg-dark p-2 rounded-md  text-sm disabled:cursor-not-allowed"
-                >
-                  Last {days} Days
-                </button>
-              );
+      <div ref={dropdownRef} className="relative inline-block">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={autoRefresh}
+        className="flex items-center w-full gap-1.5 px-2.5 py-2.5 text-xs mt-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <Clock className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" />
+        <span className="font-medium text-gray-700 dark:text-gray-300">
+          {selected ? `Last ${selected} days` : "Quick filters"}
+        </span>
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
 
-              return autoRefresh ? (
-                <Tooltip key={days}>
-                  <TooltipTrigger asChild>{button}</TooltipTrigger>
-                  <TooltipContent>
-                    <p>Uncheck Auto Refresh</p>
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                button
-              );
-            })}
-          </div>
+      {isOpen && !autoRefresh && (
+        <div className="absolute right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 py-1 min-w-[120px]">
+          {filterOptions.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => handleSelect(option.value)}
+              className={`
+                w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
+                ${selected === option.value ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300' : 'text-gray-700 dark:text-gray-300'}
+              `}
+            >
+              Last {option.label}
+            </button>
+          ))}
         </div>
-      </TooltipProvider>
+      )}
+    </div>
     </div>
   );
 }

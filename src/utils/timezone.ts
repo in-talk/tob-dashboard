@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import { DateTime } from "luxon";
 
 /**
@@ -117,18 +116,12 @@ export function getUTCDateRange(
   timezone?: string
 ): { from: string; to: string } {
   const targetTimezone = timezone || getCurrentTimezone();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isDateOnly = (val: any) =>
-    typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val);
 
-  const from = isDateOnly(fromDate) ? `${fromDate}T05:00:00` : fromDate;
-
-  const to = isDateOnly(toDate)
-    ? `${toDate}T${format(new Date(), "HH:mm")}`
-    : toDate;
+  const toDateVal = typeof toDate === "string" ? new Date(toDate) : toDate;
+  const fromDateVal = typeof fromDate === "string" ? new Date(fromDate) : fromDate;
 
   return {
-    from: currentTimezoneToUTC(from, targetTimezone),
-    to: currentTimezoneToUTC(to, targetTimezone),
+    from: currentTimezoneToUTC(fromDateVal, targetTimezone),
+    to: currentTimezoneToUTC(toDateVal, targetTimezone),
   };
 }
