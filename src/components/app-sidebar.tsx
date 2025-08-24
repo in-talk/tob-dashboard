@@ -64,6 +64,10 @@ const data = {
           title: `FE - ${Campaign.FE}`,
           url: "/label_managment/?FE",
         },
+        {
+          title: `MVA - ${Campaign.MVA}`,
+          url: "/label_managment/?MVA",
+        },
       ],
     },
     {

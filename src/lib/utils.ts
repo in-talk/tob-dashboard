@@ -9,6 +9,7 @@ export enum Campaign {
   ACA = 20000,
   SOLAR = 30000,
   FE = 40000,
+  MVA = 50000,
 }
 
 export function getCampaignLabel(campaignName: string): string {
