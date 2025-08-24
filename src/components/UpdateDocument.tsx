@@ -18,6 +18,7 @@ import { toast } from "@/hooks/use-toast";
 import { LabelsSchema } from "@/lib/zod";
 import UpdateDocumentForm from "./UpdateDocumentForm";
 import { labels } from "@/types/lables";
+import { updateDocumentText } from "@/constants";
 
 export default function UpdateDocument({
   document,
@@ -29,6 +30,7 @@ export default function UpdateDocument({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isDialogOpen, setDialogOpen] = useState(false);
+
   const onSubmit = useCallback(
     async (data: LabelsSchema) => {
       setIsSubmitting(true);
@@ -44,33 +46,26 @@ export default function UpdateDocument({
 
         const responseData = await response.json();
 
-        if (!response.ok) {
+        if (!response.ok || response.status === 409) {
           toast({
             variant: "destructive",
-            description: responseData.message || "Failed to update document",
+            description:
+              responseData.message || updateDocumentText.toast.error,
           });
-          throw new Error(responseData.message || "Failed to create document");
+          setErrorMessage(responseData.message || updateDocumentText.toast.error);
+          throw new Error(responseData.message || updateDocumentText.toast.error);
         }
-        if (response.status === 409) {
-          toast({
-            variant: "destructive",
-            description: responseData.message || "Failed to update document",
-          });
-          setErrorMessage(responseData.message);
-          throw new Error(responseData.message);
-        }
+
         toast({
           variant: "success",
-          description: "Document updated successfully.",
+          description: updateDocumentText.toast.success,
         });
         setErrorMessage("");
         mutate(`/api/dashboard?collectionType=${collectionType}`);
       } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred";
-        setErrorMessage(errorMessage);
+        setErrorMessage(
+          error instanceof Error ? error.message : "An unexpected error occurred"
+        );
       } finally {
         setIsSubmitting(false);
       }
@@ -86,14 +81,16 @@ export default function UpdateDocument({
           className="text-blue-500 bg-blue-100 hover:text-blue-700 hover:bg-blue-200"
         >
           <Pencil1Icon className="h-4 w-4 mr-1" />
-          Edit
+          {updateDocumentText.dialog.trigger}
         </Button>
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-[425px] bg-white dark:bg-sidebar">
-        <DialogDescription> Update document form</DialogDescription>
+        <DialogDescription>{updateDocumentText.dialog.description}</DialogDescription>
         <DialogHeader>
-          <DialogTitle>Update Document</DialogTitle>
+          <DialogTitle>{updateDocumentText.dialog.title}</DialogTitle>
         </DialogHeader>
+
         <UpdateDocumentForm
           defaultValues={{
             label: document.label,
@@ -104,7 +101,7 @@ export default function UpdateDocument({
             check_on_all_turns: document.check_on_all_turns,
           }}
           onSubmit={onSubmit}
-          submitButtonText="Update"
+          submitButtonText={updateDocumentText.submitButton.update}
           isSubmitting={isSubmitting}
           errorMessage={errorMessage}
         />

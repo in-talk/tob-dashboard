@@ -1,4 +1,4 @@
-// components/AudioProcessor.tsx
+"use client";
 
 import React, { useState, useCallback, useRef } from "react";
 import { Upload, X, AlertCircle, CheckCircle } from "lucide-react";
@@ -9,6 +9,7 @@ import {
   getStatusClasses,
   validateAudioFile,
 } from "../utils/audioProcessing";
+import { audioProcessorData } from "@/constants";
 
 const AudioProcessor: React.FC = () => {
   const [files, setFiles] = useState<AudioFile[]>([]);
@@ -46,7 +47,7 @@ const AudioProcessor: React.FC = () => {
 
       setFiles((prev) => [...prev, ...newFiles]);
       setStatus({
-        message: `${newFiles.length} files added`,
+        message: audioProcessorData.status.added(newFiles.length),
         type: "success",
       });
     },
@@ -67,7 +68,7 @@ const AudioProcessor: React.FC = () => {
 
     setIsProcessing(true);
     setStatus({
-      message: "Processing files...",
+      message: audioProcessorData.status.processing,
       type: "processing",
     });
 
@@ -97,15 +98,15 @@ const AudioProcessor: React.FC = () => {
       window.URL.revokeObjectURL(url);
 
       setStatus({
-        message: "Processing complete! Files downloaded.",
+        message: audioProcessorData.status.success,
         type: "success",
       });
       setFiles([]);
     } catch (error) {
       setStatus({
-        message: `Error: ${
-          error instanceof Error ? error.message : "Unknown error occurred"
-        }`,
+        message: audioProcessorData.status.error(
+          error instanceof Error ? error.message : undefined
+        ),
         type: "error",
       });
     } finally {
@@ -125,13 +126,13 @@ const AudioProcessor: React.FC = () => {
     <div className="max-w-3xl mx-auto p-6">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Audio File Processor</h1>
+          <h1 className="text-2xl font-bold">{audioProcessorData.title}</h1>
           {files.length > 0 && (
             <button
               onClick={handleReset}
               className="text-gray-600 hover:text-gray-800"
             >
-              Clear All
+              {audioProcessorData.clearAll}
             </button>
           )}
         </div>
@@ -156,17 +157,19 @@ const AudioProcessor: React.FC = () => {
           >
             <Upload className="w-12 h-12 text-gray-400 mb-4" />
             <span className="text-gray-600">
-              Drop audio files here or click to upload
+              {audioProcessorData.upload.dropOrClick}
             </span>
             <span className="text-gray-400 text-sm mt-2">
-              Supports WAV and MP3 files up to 100MB
+              {audioProcessorData.upload.supportedFormats}
             </span>
           </label>
         </div>
 
         {files.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Files ({files.length})</h2>
+            <h2 className="text-lg font-semibold">
+              {audioProcessorData.files.heading(files.length)}
+            </h2>
             <ul className="space-y-2">
               {files.map(({ file, id, status: fileStatus, error }) => (
                 <li
@@ -175,9 +178,17 @@ const AudioProcessor: React.FC = () => {
                 >
                   <div className="flex items-center space-x-3">
                     {fileStatus === "error" ? (
-                      <AlertCircle className="text-red-500" size={20} />
+                      <AlertCircle
+                        className="text-red-500"
+                        size={20}
+                        aria-label={audioProcessorData.files.errorIconLabel}
+                      />
                     ) : fileStatus === "completed" ? (
-                      <CheckCircle className="text-green-500" size={20} />
+                      <CheckCircle
+                        className="text-green-500"
+                        size={20}
+                        aria-label={audioProcessorData.files.completedIconLabel}
+                      />
                     ) : null}
                     <div>
                       <p className="text-sm font-medium">{file.name}</p>
@@ -192,6 +203,7 @@ const AudioProcessor: React.FC = () => {
                   <button
                     onClick={() => removeFile(id)}
                     className="text-gray-400 hover:text-gray-600"
+                    aria-label={audioProcessorData.files.removeButton}
                   >
                     <X size={20} />
                   </button>
@@ -217,7 +229,9 @@ const AudioProcessor: React.FC = () => {
                 : "bg-blue-500 hover:bg-blue-600"
             }`}
         >
-          {isProcessing ? "Processing..." : "Process and Download"}
+          {isProcessing
+            ? audioProcessorData.buttons.processing
+            : audioProcessorData.buttons.process}
         </button>
 
         {status.message && (

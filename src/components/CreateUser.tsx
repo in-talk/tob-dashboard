@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +13,7 @@ import { useState } from "react";
 import { Edit2Icon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import CustomLoader from "./ui/CustomLoader";
+import { createUserData } from "@/constants";
 
 interface CreateUserFormValues {
   email: string;
@@ -43,13 +45,13 @@ export default function CreateUser() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create user");
+        throw new Error(createUserData.message.error);
       }
 
-      setMessage("User created successfully");
+      setMessage(createUserData.message.success);
       reset();
     } catch (error) {
-      setMessage("Failed to create user");
+      setMessage(createUserData.message.error);
       console.error(error);
     }
   };
@@ -58,12 +60,12 @@ export default function CreateUser() {
     <Dialog>
       <DialogTrigger className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0">
         <span className="px-5 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-300 flex items-center gap-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)]">
-          <Edit2Icon /> Create User
+          <Edit2Icon /> {createUserData.trigger.button}
         </span>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-white dark:bg-sidebar">
         <DialogHeader>
-          <DialogTitle>Create New User</DialogTitle>
+          <DialogTitle>{createUserData.dialog.title}</DialogTitle>
         </DialogHeader>
 
         <DialogDescription>
@@ -73,11 +75,14 @@ export default function CreateUser() {
         </DialogDescription>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Email */}
           <div>
-            <label className="block text-sm font-medium">Email</label>
+            <label className="block text-sm font-medium">
+              {createUserData.form.email.label}
+            </label>
             <input
               type="email"
-              {...register("email", { required: "Email is required" })}
+              {...register("email", { required: createUserData.form.email.required })}
               className="mt-1 p-2 w-full border bg-transparent rounded dark:border-white"
             />
             {errors.email && (
@@ -85,26 +90,35 @@ export default function CreateUser() {
             )}
           </div>
 
+          {/* Password */}
           <div>
-            <label className="block text-sm font-medium">Password</label>
+            <label className="block text-sm font-medium">
+              {createUserData.form.password.label}
+            </label>
             <input
               type="password"
               {...register("password", {
-                required: "Password is required",
-                minLength: 6,
+                required: createUserData.form.password.required,
+                minLength: {
+                  value: 6,
+                  message: createUserData.form.password.minLength,
+                },
               })}
-              className="mt-1 p-2 w-full border bg-transparent rounded  dark:border-white"
+              className="mt-1 p-2 w-full border bg-transparent rounded dark:border-white"
             />
             {errors.password && (
               <p className="text-red-500 text-sm">{errors.password.message}</p>
             )}
           </div>
 
+          {/* Name */}
           <div>
-            <label className="block text-sm font-medium">Name</label>
+            <label className="block text-sm font-medium">
+              {createUserData.form.name.label}
+            </label>
             <input
               type="text"
-              {...register("name", { required: "Name is required" })}
+              {...register("name", { required: createUserData.form.name.required })}
               className="mt-1 p-2 w-full border bg-transparent rounded dark:border-white"
             />
             {errors.name && (
@@ -112,45 +126,53 @@ export default function CreateUser() {
             )}
           </div>
 
+          {/* Role */}
           <div>
-            <label className="block text-sm font-medium">Role</label>
+            <label className="block text-sm font-medium">
+              {createUserData.form.role.label}
+            </label>
             <select
               {...register("role")}
-              className="mt-1 p-2 w-full border bg-transparent rounded  dark:border-white"
+              className="mt-1 p-2 w-full border bg-transparent rounded dark:border-white"
             >
-              <option value="admin">Admin</option>
-              <option value="user">User</option>
+              <option value="admin">{createUserData.form.role.options.admin}</option>
+              <option value="user">{createUserData.form.role.options.user}</option>
             </select>
           </div>
 
+          {/* Client Id (only for role=user) */}
           {selectedRole === "user" && (
             <div>
-              <label className="block text-sm font-medium">Client Id</label>
+              <label className="block text-sm font-medium">
+                {createUserData.form.clientId.label}
+              </label>
               <input
                 type="text"
                 {...register("client_id", {
-                  required: "Client ID is required",
+                  required: createUserData.form.clientId.required,
                 })}
-                className="mt-1 p-2 w-full border bg-transparent rounded  dark:border-white"
+                className="mt-1 p-2 w-full border bg-transparent rounded dark:border-white"
               />
-              {errors.name && (
-                <p className="text-red-500 text-sm">{errors.name.message}</p>
+              {errors.client_id && (
+                <p className="text-red-500 text-sm">{errors.client_id.message}</p>
               )}
             </div>
           )}
 
+          {/* Submit Button */}
           <Button
             type="submit"
             variant="outline"
-            className="w-full bg-[#3b65f5] rounded-lg text-dark dark:text-white p-2  mt-2"
+            className="w-full bg-[#3b65f5] rounded-lg text-dark dark:text-white p-2 mt-2"
             disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>
-                <span className="mr-5">Creating...</span> <CustomLoader />
+                <span className="mr-5">{createUserData.button.submitting}</span>{" "}
+                <CustomLoader />
               </>
             ) : (
-              "Create User"
+              createUserData.button.submit
             )}
           </Button>
         </form>

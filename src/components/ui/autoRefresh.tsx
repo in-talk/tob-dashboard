@@ -12,11 +12,14 @@ import {
 
 interface AutoRefreshProps {
   autoRefresh: boolean;
+  
   refreshInterval: number;
   setAutoRefresh: (checked: boolean) => void;
   setLastUpdated: (date: Date) => void;
   setRefreshInterval: (interval: number) => void;
   getTimeAgo: () => string;
+    disabled?: boolean;
+
 }
 
 function AutoRefresh({
@@ -26,6 +29,7 @@ function AutoRefresh({
   setLastUpdated,
   setRefreshInterval,
   getTimeAgo,
+  disabled
 }: AutoRefreshProps) {
   return (
     <div className="flex items-center gap-4 flex-wrap py-2">
@@ -41,7 +45,7 @@ function AutoRefresh({
         Auto Refresh
       </label>
       <Select
-        disabled={!autoRefresh}
+        disabled={disabled}
         value={`${refreshInterval}`}
         onValueChange={(value) => setRefreshInterval(Number(value))}
       >

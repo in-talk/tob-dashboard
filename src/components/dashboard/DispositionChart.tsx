@@ -1,8 +1,7 @@
 import { DispositionGraph } from "@/utils/transformGraphData";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import { useSession } from "next-auth/react";
-import { useTheme } from "next-themes";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 import {
   LineChart,
   Line,
@@ -13,19 +12,8 @@ import {
 } from "recharts";
 
 const allDispositionLabels = [
-  "XFER",
-  "DNC",
-  "DC",
-  "DAIR",
-  "RI",
-  "CALLBK",
-  "A",
-  "LB",
-  "NP",
-  "NA",
-  "FAS",
-  "DNQ",
-  "HP",
+  "XFER", "DNC", "DC", "DAIR", "RI", "CALLBK", "A", "LB",
+  "NP", "NA", "FAS", "DNQ", "HP",
 ];
 
 const dispositionColors: Record<string, string> = {
@@ -49,6 +37,8 @@ type ChartEntry = {
   timeSlot: string;
   breakdown: string;
   fullTimeLabel: string;
+  intervalPosition: number;
+  intervalTotal: number;
   [key: string]: number | string;
 };
 
@@ -60,99 +50,67 @@ const DispositionChart = ({
   isLoading: boolean;
 }) => {
   const { data: session } = useSession();
-  const { theme } = useTheme();
-  const [chartData, setChartData] = useState<ChartEntry[]>([]);
   const [focusedLine, setFocusedLine] = useState<string | null>(null);
 
-  console.log("DispositionChart data:", dispositionChartData);
-  useEffect(() => {
-    if (dispositionChartData && dispositionChartData.length > 0) {
-      const processed = dispositionChartData.map((entry) => ({
-        timeLabel: entry.timeLabel,
-        timeSlot: entry.timeSlot,
-        breakdown: entry.breakdown,
-        fullTimeLabel: entry.fullTimeLabel,
-        intervalPosition: entry.intervalPosition,
-        intervalTotal: entry.intervalTotal,
-        XFER: Math.min(100, Math.max(0, entry.xferPercentage)),
-        DC: Math.min(100, Math.max(0, entry.dcPercentage)),
-        CALLBK: Math.min(100, Math.max(0, entry.callbkPercentage)),
-        HP: Math.min(100, Math.max(0, entry.hpPercentage)),
-        DNC: Math.min(100, Math.max(0, entry.dncPercentage)),
-        DAIR: Math.min(100, Math.max(0, entry.dairPercentage)),
-        FAS: Math.min(100, Math.max(0, entry.fasPercentage)),
-        RI: Math.min(100, Math.max(0, entry.riPercentage)),
-        A: Math.min(100, Math.max(0, entry.aPercentage)),
-        LB: Math.min(100, Math.max(0, entry.lbPercentage)),
-        NP: Math.min(100, Math.max(0, entry.npPercentage)),
-        NA: Math.min(100, Math.max(0, entry.naPercentage)),
-        DNQ: Math.min(100, Math.max(0, entry.dnqPercentage)),
-      }));
-
-      setChartData(processed);
-    }
+  const chartData: ChartEntry[] = useMemo(() => {
+    if (!dispositionChartData?.length) return [];
+    return dispositionChartData.map((entry) => ({
+      timeLabel: entry.timeLabel,
+      timeSlot: entry.timeSlot,
+      breakdown: entry.breakdown,
+      fullTimeLabel: entry.fullTimeLabel,
+      intervalPosition: entry.intervalPosition,
+      intervalTotal: entry.intervalTotal,
+      ...Object.fromEntries(
+        allDispositionLabels.map((label) => {
+          const key = label.toLowerCase() + "Percentage";
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const value = (entry as any)[key];
+          return [label, Math.min(100, Math.max(0, value ?? 0))];
+        })
+      ),
+    }));
   }, [dispositionChartData]);
 
   const activeDispositionLabels = useMemo(() => {
     if (!chartData.length) return [];
-
-    const keys = new Set<string>();
-    chartData.forEach((entry) => {
-      allDispositionLabels.forEach((label) => {
-        if (entry[label] !== undefined) {
-          keys.add(label);
-        }
-      });
-    });
-
-    return Array.from(keys);
+    return allDispositionLabels.filter((label) =>
+      chartData.some((entry) => entry[label] !== undefined)
+    );
   }, [chartData]);
 
   const formatXAxisTick = useCallback(
     (value: string, index: number) => {
       const item = chartData[index];
-      console.log("formatXAxisTick item:", item, value);
-      if (!item) return "";
-
-      // Show label only for position 1 (first interval in each large bucket)
-      if (item.intervalPosition === 1) {
-        return item.timeLabel;
-      }
-
-      return "";
+      return item?.intervalPosition === 1 ? item.timeLabel : "";
     },
     [chartData]
   );
 
-  const handleLegendClick = (label: string) => {
-    setFocusedLine((prev) => (prev === label ? null : label));
-  };
+  const handleLegendClick = useCallback(
+    (label: string) => {
+      setFocusedLine((prev) => (prev === label ? null : label));
+    },
+    []
+  );
 
   const maxYValue = useMemo(() => {
-    if (!chartData || chartData.length === 0) return 0;
-
-    let max = 0;
-
-    chartData.forEach((entry) => {
-      const labels = focusedLine ? [focusedLine] : activeDispositionLabels;
-
-      labels.forEach((label) => {
-        const value = Number(entry[label] || 0);
-        if (!isNaN(value)) {
-          max = Math.max(max, value);
-        }
-      });
-    });
-
-    return max;
+    if (!chartData.length) return 0;
+    const labels = focusedLine ? [focusedLine] : activeDispositionLabels;
+    return Math.max(
+      0,
+      ...chartData.flatMap((entry) =>
+        labels.map((label) => Number(entry[label] || 0))
+      )
+    );
   }, [chartData, focusedLine, activeDispositionLabels]);
 
   if (!dispositionChartData) {
     return (
       <div className="rounded-xl bg-gray-100 dark:bg-sidebar p-5">
-        <div className="text-red-500 text-center">
-          <p className="text-lg font-semibold">Error loading data</p>
-        </div>
+        <p className="text-red-500 text-center font-semibold text-lg">
+          Error loading data
+        </p>
       </div>
     );
   }
@@ -161,21 +119,17 @@ const DispositionChart = ({
     <div className="rounded-xl bg-gray-100 dark:bg-sidebar">
       {session?.user.role === "admin" && (
         <div className="py-6 bg-light dark:bg-sidebar flex justify-between px-5">
-          <h1 className="text-2xl font-bold mb-2">Disposition Percentage</h1>
-          {isLoading ? (
+          <h1 className="text-2xl font-bold">Disposition Percentage</h1>
+          {isLoading && (
             <span className="flex gap-2 items-center">
-              <ReloadIcon />
+              <ReloadIcon className="animate-spin" />
               Fetching...
             </span>
-          ) : null}
+          )}
         </div>
       )}
 
-      <ResponsiveContainer
-        width="100%"
-        height={300}
-        className="bg-light dark:bg-sidebar"
-      >
+      <ResponsiveContainer width="100%" height={300}>
         {isLoading ? (
           <div className="flex justify-center items-center h-full">
             <div className="relative w-12 h-12">
@@ -198,46 +152,31 @@ const DispositionChart = ({
               height={50}
             />
             <YAxis
-              domain={[0, "dataMax + 5"]} // Auto-scale with 5% padding
+              domain={[0, maxYValue + 5]}
               tickFormatter={(value) => `${value}%`}
               label={{
-                value: "Disposition Percentage",
+                value: "Disposition %",
                 angle: -90,
                 position: "insideLeft",
                 style: { textAnchor: "middle" },
               }}
             />
             <Tooltip
-              content={({ active, payload, label }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0].payload;
-                  return (
-                    <div className="bg-white dark:bg-gray-800 p-3 border rounded shadow-lg">
-                      <p className="font-semibold">{`Time: ${label}`}</p>
-                      <p className="text-sm">{`Time Slot: ${data.timeSlot}`}</p>
-                      <p className="text-sm">{`Position: ${data.intervalPosition}`}</p>
-                      <p className="text-sm">{`Interval Total: ${data.intervalTotal}`}</p>
-                      <hr className="my-2" />
-                      {payload.map((entry, index) => (
-                        <p key={index} style={{ color: entry.color }}>
-                          {`${entry.name}: ${
-                            typeof entry.value === "number"
-                              ? entry.value.toFixed(2)
-                              : entry.value
-                          }%`}
-                        </p>
-                      ))}
-                    </div>
-                  );
-                }
-                return null;
-              }}
+              content={({ active, payload, label }) =>
+                active && payload?.length ? (
+                  <div className="bg-white dark:bg-gray-800 p-3 border rounded shadow-lg">
+                    <p className="font-semibold">Time: {label}</p>
+                    {payload.map((entry, i) => (
+                      <p key={i} style={{ color: entry.color }}>
+                        {entry.name}: {Number(entry.value).toFixed(2)}%
+                      </p>
+                    ))}
+                  </div>
+                ) : null
+              }
             />
-            {activeDispositionLabels.map((label) => {
-              const shouldRender = !focusedLine || focusedLine === label;
-              if (!shouldRender) return null;
-
-              return (
+            {activeDispositionLabels.map((label) =>
+              !focusedLine || focusedLine === label ? (
                 <Line
                   key={label}
                   type="monotone"
@@ -247,15 +186,15 @@ const DispositionChart = ({
                   dot={false}
                   connectNulls={false}
                 />
-              );
-            })}
+              ) : null
+            )}
           </LineChart>
         )}
       </ResponsiveContainer>
 
       <div className="flex items-center justify-center flex-wrap gap-2 my-5">
         {activeDispositionLabels.map((label) => (
-          <div
+          <button
             key={label}
             onClick={() => handleLegendClick(label)}
             className={`cursor-pointer px-2 py-1 rounded transition-all duration-200 ${
@@ -267,7 +206,7 @@ const DispositionChart = ({
             }}
           >
             {label}
-          </div>
+          </button>
         ))}
       </div>
     </div>

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useRef, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
@@ -5,6 +7,37 @@ import { EyeOpenIcon, EyeClosedIcon } from "@radix-ui/react-icons";
 import ReCAPTCHA from "react-google-recaptcha";
 import Image from "next/image";
 import CustomLoader from "@/components/ui/CustomLoader";
+import { signInPageData } from "@/constants";
+import {
+  motion,
+  AnimatePresence,
+  type Variants,
+  easeInOut,
+} from "framer-motion";
+const containerVariants: Variants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
+};
+
+const pulseVariants: Variants = {
+  idle: {},
+  pulse: {
+    scale: [1, 1.01, 1],
+    transition: {
+      duration: 1.8,
+      repeat: Infinity,
+      ease: easeInOut,
+    },
+  },
+};
+
+const errorVariants: Variants = {
+  hidden: { opacity: 0, y: -8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.2 } },
+};
+const BUTTON_SCALE_ANIMATION = 0.98 as const;
+const RECAPTCHA_THEME: "light" | "dark" = "light";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -19,44 +52,46 @@ export default function SignIn() {
 
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
+  const [isFormFocused, setIsFormFocused] = useState(false);
+  const handleFocus = () => setIsFormFocused(true);
+  const handleBlur = () => setIsFormFocused(false);
+
+  const togglePasswordVisibility = () => setShowPassword((s) => !s);
+
   useEffect(() => {
     if (session) {
-      router.replace("/"); 
+      router.replace("/");
     }
   }, [session, router]);
 
   const handleRecaptchaChange = (token: string | null) => {
     setRecaptchaToken(token);
-    if (error === "Please complete the reCAPTCHA verification") {
+    if (error === signInPageData.errors.recaptchaRequired) {
       setError(null);
     }
   };
 
   const handleRecaptchaError = () => {
-    console.error("reCAPTCHA error occurred");
-    setError("reCAPTCHA failed to load. Please refresh the page.");
+    setError(signInPageData.errors.recaptchaLoad);
     setRecaptchaToken(null);
   };
 
   const handleRecaptchaExpired = () => {
     setRecaptchaToken(null);
-    setError("reCAPTCHA expired. Please verify again.");
+    setError(signInPageData.errors.recaptchaExpired);
   };
 
   const verifyRecaptcha = async (token: string): Promise<boolean> => {
     try {
       const response = await fetch("/api/verify-recaptcha", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
       });
-
       const data = await response.json();
       return data.success;
-    } catch (error) {
-      console.error("Error verifying reCAPTCHA:", error);
+    } catch (err) {
+      console.error("Error verifying reCAPTCHA:", err);
       return false;
     }
   };
@@ -64,13 +99,14 @@ export default function SignIn() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
     if (!siteKey) {
-      setError("reCAPTCHA is not properly configured");
+      setError(signInPageData.errors.recaptchaConfig);
       return;
     }
 
     if (!recaptchaToken) {
-      setError("Please complete the reCAPTCHA verification");
+      setError(signInPageData.errors.recaptchaRequired);
       return;
     }
 
@@ -80,7 +116,7 @@ export default function SignIn() {
       const isRecaptchaValid = await verifyRecaptcha(recaptchaToken);
 
       if (!isRecaptchaValid) {
-        setError("reCAPTCHA verification failed. Please try again.");
+        setError(signInPageData.errors.recaptchaFailed);
         recaptchaRef.current?.reset();
         setRecaptchaToken(null);
         return;
@@ -94,15 +130,16 @@ export default function SignIn() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        setError(signInPageData.errors.invalidCredentials);
         recaptchaRef.current?.reset();
         setRecaptchaToken(null);
       } else if (result?.url) {
         router.push(result.url);
       }
     } catch (err) {
-      console.error("SignIn error:", err);
-      setError("An unexpected error occurred");
+      if (err instanceof Error) {
+        setError(signInPageData.errors.unexpected);
+      }
       recaptchaRef.current?.reset();
       setRecaptchaToken(null);
     } finally {
@@ -115,121 +152,228 @@ export default function SignIn() {
       <div className="h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-bold text-red-600 mb-2">
-            Configuration Error
+            {signInPageData.configError.title}
           </h2>
           <p className="text-gray-600">
-            reCAPTCHA site key is missing. Please check your environment
-            variables.
+            {signInPageData.configError.description}
           </p>
         </div>
       </div>
     );
   }
 
-  return (
-    <>
-      <div className=" bg-gray-100 dark:bg-sidebar text-gray-900 flex justify-center h-screen items-center">
-        <div className="max-w-screen-xl m-0 sm:m-10 bg-white dark:bg-dark shadow sm:rounded-lg flex justify-center flex-1">
-          <div className="lg:w-1/2 xl:w-5/12 p-6 sm:p-12">
-            <div className="flex items-center justify-center">
-              <Image src="/dashboard.svg" alt="logo" width={80} height={80} />
-            </div>
-            <div className="mt-3 flex flex-col items-center">
-              <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-200">
-                Sign in to your account
-              </h2>
-              <div className="w-full flex-1 mt-8">
-                {error && (
-                  <p className="text-red-500 text-center mb-4 text-sm">
-                    {error}
-                  </p>
-                )}
-                <form
-                  onSubmit={handleSignIn}
-                  className="space-y-4"
-                  autoComplete="on"
-                >
-                  <div className="mx-auto max-w-xs">
-                    <input
-                      className="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white"
-                      type="email"
-                      name="email"
-                      placeholder="Email"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                    <div className="relative">
-                      <input
-                        className="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white mt-5"
-                        type={showPassword ? "text" : "password"}
-                        name="password"
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="absolute inset-y-0 right-0 mt-5 flex items-center pr-3"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeClosedIcon /> : <EyeOpenIcon />}
-                      </button>
-                    </div>
+  const isSubmitDisabled = isLoading || !recaptchaToken;
 
-                    <button
-                      type="submit"
-                      disabled={isLoading || !recaptchaToken}
-                      className={`mt-5 tracking-wide font-semibold bg-[#3b65f5] text-gray-100 w-full py-4 rounded-lg transition-all duration-300 ease-in-out flex items-center justify-center focus:shadow-outline focus:outline-none ${
-                        isLoading || !recaptchaToken
-                          ? "opacity-50 cursor-not-allowed"
-                          : "hover:bg-[#2952d3]"
-                      }`}
-                    >
-                      {isLoading ? (
-                        <>
-                          <span className="mr-5">Signing in....</span>
-                          <CustomLoader />
-                        </>
-                      ) : (
-                        <>
-                          <Image
-                            src="/login.svg"
-                            alt="login"
-                            width={24}
-                            height={24}
-                          />
-                          <span className="ml-3">Sign In</span>
-                        </>
-                      )}
-                    </button>
-                    <div className="mt-8 flex justify-center">
-                      <ReCAPTCHA
-                        ref={recaptchaRef}
-                        sitekey={siteKey}
-                        onChange={handleRecaptchaChange}
-                        onErrored={handleRecaptchaError}
-                        onExpired={handleRecaptchaExpired}
-                        theme="light"
-                      />
-                    </div>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 bg-indigo-100 dark:bg-dark sm:rounded-lg text-center hidden lg:flex">
-            <div
-              className="m-12 xl:m-16 w-full bg-contain bg-center bg-no-repeat"
-              style={{
-                backgroundImage: `url('/website-maintenance.svg')`,
-              }}
-            ></div>
-          </div>
-        </div>
+  const buttonClasses =
+    `group relative w-full py-3 rounded-2xl font-semibold flex items-center justify-center overflow-hidden ` +
+    (isSubmitDisabled
+      ? "bg-white/10 text-white/60 cursor-not-allowed"
+      : "bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 text-white shadow-xl shadow-purple-500/25 hover:opacity-95 transition-all duration-300");
+
+  return (
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <div className="absolute inset-0  bg-gradient-to-br from-slate-950 via-gray-900 to-slate-800">
+        <div
+          className={`absolute inset-0 bg-[url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")] opacity-20`}
+        />
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl animate-pulse [animation-delay:1000ms]" />
+        <div className="absolute top-1/2 right-1/3 w-48 h-48 bg-yellow-500/10 rounded-full blur-3xl animate-pulse [animation-delay:500ms]" />
       </div>
-    </>
+
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="w-full max-w-md mx-4 z-10"
+      >
+        <motion.div
+          variants={pulseVariants}
+          animate={isFormFocused ? "pulse" : "idle"}
+          className="backdrop-blur-2xl bg-white/5 dark:bg-black/20 p-8 rounded-3xl shadow-2xl border border-white/10 hover:border-white/20 transition-all duration-300"
+        >
+          <div className="text-center mb-8">
+            <motion.div
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="inline-block mb-6"
+            >
+              <div className="w-20 h-20 mx-auto bg-gradient-to-br from-white/10 to-white/5 rounded-2xl p-4 backdrop-blur-sm border border-white/10">
+                <Image
+                  src="/dashboard.svg"
+                  alt={signInPageData.alt.logo}
+                  width={48}
+                  height={48}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-2xl font-bold text-white mb-2"
+            >
+              {signInPageData.heading}
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-white/60 text-sm"
+            >
+              {signInPageData.welcomeBack}
+            </motion.p>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {error && (
+              <motion.div
+                variants={errorVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 backdrop-blur-sm"
+              >
+                <div className="flex items-center space-x-2">
+                  <span className="text-red-400 text-sm">⚠️</span>
+                  <p className="text-red-300 text-sm font-medium">{error}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <form onSubmit={handleSignIn} className="space-y-6" autoComplete="on">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="space-y-1"
+            >
+              <label className="text-white/80 text-xs font-medium block">
+                {signInPageData.inputLabel.email}
+              </label>
+              <div className="relative group">
+                <input
+                  type="email"
+                  name="email"
+                  placeholder={signInPageData.emailPlaceholder}
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                  required
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-violet-400/50 focus:border-violet-400/50 transition-all duration-300 backdrop-blur-sm hover:bg-white/10 group-hover:border-white/20"
+                />
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-500/0 via-purple-500/0 to-indigo-500/0 group-focus-within:from-violet-500/10 group-focus-within:via-purple-500/10 group-focus-within:to-indigo-500/10 transition-all duration-300 pointer-events-none" />
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 }}
+              className="space-y-1"
+            >
+              <label className="text-white/80 text-xs  font-medium  block">
+                {" "}
+                {signInPageData.inputLabel.password}
+              </label>
+              <div className="relative group">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder={signInPageData.passwordPlaceholder}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                  required
+                  className="w-full px-4 py-3 pr-12 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-violet-400/50 focus:border-violet-400/50 transition-all duration-300 backdrop-blur-sm hover:bg-white/10 group-hover:border-white/20"
+                />
+                <motion.button
+                  type="button"
+                  whileTap={{ scale: 0.9 }}
+                  className="absolute right-3 top-[8px]  p-2 text-white/50 hover:text-white/80 transition-colors duration-200 rounded-lg hover:bg-white/10"
+                  onClick={togglePasswordVisibility}
+                >
+                  {showPassword ? (
+                    <EyeClosedIcon className="w-5 h-5" />
+                  ) : (
+                    <EyeOpenIcon className="w-5 h-5" />
+                  )}
+                </motion.button>
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-500/0 via-purple-500/0 to-indigo-500/0 group-focus-within:from-violet-500/10 group-focus-within:via-purple-500/10 group-focus-within:to-indigo-500/10 transition-all duration-300 pointer-events-none" />
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="flex justify-center"
+            >
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  sitekey={siteKey}
+                  onChange={handleRecaptchaChange}
+                  onErrored={handleRecaptchaError}
+                  onExpired={handleRecaptchaExpired}
+                  theme={RECAPTCHA_THEME}
+                />
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+            >
+              <motion.button
+                type="submit"
+                disabled={isSubmitDisabled}
+                whileTap={{ scale: BUTTON_SCALE_ANIMATION }}
+                whileHover={!isSubmitDisabled ? { scale: 1.02 } : {}}
+                className={buttonClasses}
+              >
+                {!isSubmitDisabled && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                )}
+
+                {isLoading ? (
+                  <div className="relative z-10 flex items-center space-x-3">
+                    <CustomLoader />
+                    <span className="text-lg font-semibold">
+                      {signInPageData.signingIn}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="relative z-10 flex items-center space-x-3">
+                    <span className="text-lg font-semibold">
+                      {signInPageData.signInButton}
+                    </span>
+                  </div>
+                )}
+              </motion.button>
+            </motion.div>
+          </form>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="mt-8 text-center"
+          >
+            <p className="text-white/40 text-xs">
+              {signInPageData.protectedBy}
+            </p>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+    </div>
   );
 }

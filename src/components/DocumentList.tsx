@@ -5,6 +5,7 @@ import { DataTable } from "./DataTable/DataTable";
 import { getColumns } from "./DataTable/Colums";
 import { labels } from "@/types/lables";
 import { useMemo } from "react";
+import { documentListData } from "@/constants";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -37,7 +38,7 @@ export default function DocumentList({
       </div>
     );
 
-  if (error) return <div>Failed to load documents.</div>;
+  if (error) return <div>{documentListData.emptyState}</div>;
 
   return (
     <div className="space-y-2">
@@ -45,7 +46,7 @@ export default function DocumentList({
         <Card>
           <CardContent className="text-center py-10">
             <p className="text-muted-foreground">
-              No Document is availabe in database!
+             {documentListData.error}
             </p>
           </CardContent>
         </Card>

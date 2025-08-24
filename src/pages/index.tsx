@@ -32,27 +32,18 @@ export default function Home() {
   const client_id = session?.user?.client_id;
   const user_id = session?.user?.id;
 
-  console.log("client_id in Home:", session?.user);
-
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(0.5);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [previousCallRecords, setPreviousCallRecords] = useState<CallRecord[]>(
-    []
-  );
+  const [previousCallRecords, setPreviousCallRecords] = useState<CallRecord[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   const [dateRange, setDateRange] = useState(() => {
     const now = new Date();
-
     const from = new Date(now);
     from.setDate(from.getDate() - 1);
     from.setHours(0, 0, 0, 0);
-
-    return {
-      from,
-      to: now,
-    };
+    return { from, to: now };
   });
 
   const utcDateRange = useMemo(
@@ -84,18 +75,13 @@ export default function Home() {
       : null;
   const clientKey = `client-${user_id}`;
 
-  console.log("user_id:=>", user_id);
-
   const clientsDataQuery = useSWR(
     clientKey,
     () =>
       fetch(`/api/fetchClientsByUser?user_id=${user_id}`).then((res) =>
         res.json()
       ),
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-    }
+    { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
   const chartDataQuery = useSWR(
@@ -106,10 +92,7 @@ export default function Home() {
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
       }),
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-    }
+    { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
   const callDataQuery = useSWR(
@@ -120,10 +103,7 @@ export default function Home() {
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
       }),
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-    }
+    { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
   const agentReportQuery = useSWR(
@@ -134,24 +114,20 @@ export default function Home() {
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
       }),
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-    }
+    { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
+
+  // ------------------ Combined Loading State ------------------
+  const isAnyLoading =
+    clientsDataQuery.isLoading ||
+    chartDataQuery.isLoading ||
+    callDataQuery.isLoading ||
+    agentReportQuery.isLoading;
 
   const callRecords: CallRecord[] = callDataQuery.data?.callRecords ?? [];
-
-  const dispositionChartData = transformGraphData(
-    chartDataQuery.data?.graphData ?? []
-  );
-
+  const dispositionChartData = transformGraphData(chartDataQuery.data?.graphData ?? []);
   const clientData = clientsDataQuery.data?.clients ?? [];
-  console.log("clientData:=>", clientData);
-
-  const agentReport = transformAgentData(
-    agentReportQuery.data?.agentRecords ?? []
-  );
+  const agentReport = transformAgentData(agentReportQuery.data?.agentRecords ?? []);
 
   const getTimeAgo = () => {
     if (!lastUpdated) return "Never";
@@ -164,16 +140,10 @@ export default function Home() {
 
   useEffect(() => {
     if (!autoRefresh) return;
-
     const interval = setInterval(() => {
-      setDateRange((prev) => ({
-        ...prev,
-        to: new Date(),
-      }));
-
+      setDateRange((prev) => ({ ...prev, to: new Date() }));
       setLastUpdated(new Date());
     }, refreshInterval * 60 * 1000);
-
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval]);
 
@@ -182,6 +152,7 @@ export default function Home() {
       setPreviousCallRecords(callDataQuery.data.callRecords);
     }
   }, [callDataQuery.data]);
+
   return (
     <>
       <Head>
@@ -196,6 +167,7 @@ export default function Home() {
             setRefreshInterval={setRefreshInterval}
             setLastUpdated={setLastUpdated}
             getTimeAgo={getTimeAgo}
+            disabled={isAnyLoading}
           />
           <ClientSelector
             clients={clientData}
@@ -203,19 +175,18 @@ export default function Home() {
             onClientChange={setSelectedClientId}
             label="Select Client"
             placeholder="Choose a client..."
+            disabled={isAnyLoading}
           />
           <NewDateFilter
             onDateChange={setDateRange}
             autoRefresh={autoRefresh}
             initialRange={dateRange}
+            disabled={isAnyLoading}
           />
         </div>
 
         <div className="w-full">
-          <Stats
-            agentReport={agentReport || []}
-            isLoading={agentReportQuery.isLoading}
-          />
+          <Stats agentReport={agentReport || []} isLoading={agentReportQuery.isLoading} />
         </div>
 
         <div className="w-full">
@@ -235,11 +206,9 @@ export default function Home() {
             isLoading={callDataQuery.isLoading}
           />
         </div>
+
         <div className="w-full">
-          <AgentDispositionReport
-            agentReport={agentReport || []}
-            isLoading={agentReportQuery.isLoading}
-          />
+          <AgentDispositionReport agentReport={agentReport || []} isLoading={agentReportQuery.isLoading} />
         </div>
       </div>
     </>

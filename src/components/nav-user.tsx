@@ -19,27 +19,22 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/router";
 import CreateUser from "./CreateUser";
 
-export function NavUser({
-  user,
-}: {
-  user: {
-    name: string;
-    email: string;
-    role?: string;
-    avatar: string;
-  };
-}) {
+type NavUser = {
+  name: string;
+  email: string;
+  role?: string;
+  avatar: string;
+};
+
+export function NavUser({ user }: { user: NavUser }) {
   const { isMobile } = useSidebar();
 
-  const router = useRouter();
   const { data: session } = useSession();
 
   function handleLogout() {
-    router.push("/signin");
-    signOut();
+    signOut({ callbackUrl: "/signin" });
   }
 
   return (
@@ -93,7 +88,7 @@ export function NavUser({
                 <DropdownMenuItem asChild>
                   <CreateUser />
                 </DropdownMenuItem>
-               )} 
+              )}
               <DropdownMenuItem>
                 <BadgeCheck />
                 Account
