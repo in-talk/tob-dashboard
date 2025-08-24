@@ -33,7 +33,6 @@ import { LabelsSchema, labelsSchema } from "@/lib/zod";
 import { useKeywords } from "@/hooks/use-keywords";
 import { createDocumentFormData } from "@/constants";
 
-// 🔹 Props
 interface CreateDocumentFormProps {
   defaultValues: LabelsSchema;
   submitButtonText: string;
@@ -82,11 +81,18 @@ const CreateDocumentForm = memo(
       try {
         const uniqueWords = getUniqueWords();
 
-        const response = await fetch(`/api/dashboard?collectionType=${collectionType}`, {
+      const response = await fetch(
+        `/api/dashboard?collectionType=${collectionType}`,
+        {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...data, unique_words: uniqueWords, collectionType }),
-        });
+          body: JSON.stringify({
+            ...data,
+            unique_words: uniqueWords,
+            collectionType: collectionType,
+          }),
+        }
+      );
 
         const responseData = await response.json();
         if (!response.ok)

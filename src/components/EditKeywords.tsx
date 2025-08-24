@@ -1,4 +1,5 @@
 import React, { useRef, useState, useCallback, useMemo } from "react";
+import * as XLSX from "xlsx";
 import {
   Dialog,
   DialogTrigger,
@@ -34,6 +35,7 @@ function EditKeywords({
   const [searchTerm, setSearchTerm] = useState("");
   const keywordInputRef = useRef<HTMLInputElement>(null);
   const bulkInputRef = useRef<HTMLTextAreaElement>(null);
+  console.log("EditKeywords document:", document, collectionType);
 
   const submitKeywords = useCallback(
     async (updatedKeywords: string[]) => {
@@ -127,13 +129,56 @@ function EditKeywords({
     setAlertOpen(false);
   }, [submitKeywords]);
 
-  const filteredKeywords = useMemo(
-    () =>
-      keywords.filter((keyword) =>
-        keyword.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [keywords, searchTerm]
-  );
+  const filteredKeywords = useMemo(() => {
+    if (!searchTerm.trim()) return keywords;
+
+    return keywords.filter((keyword) => {
+      if (!keyword || typeof keyword !== "string") return false;
+
+      return keyword
+        .trim()
+        .toLowerCase()
+        .includes(searchTerm.trim().toLowerCase());
+    });
+  }, [keywords, searchTerm]);
+
+  console.log("Filtered keywords:", filteredKeywords);
+
+  const downloadKeywordsAsExcel = useCallback(() => {
+    if (keywords.length === 0) {
+      toast({
+        variant: "destructive",
+        description: "No keywords to download",
+      });
+      return;
+    }
+
+    // Create worksheet data - each keyword in its own row
+    const worksheetData = [
+      ["Keywords"], // Header
+      ...keywords.map((keyword) => [`${keyword},`]), // Each keyword in separate row
+    ];
+
+    // Create workbook and worksheet
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Keywords");
+
+    // Generate filename with document info
+    const filename = `keywords_${collectionType}_${document.label}_${
+      new Date().toISOString().split("T")[0]
+    }.xlsx`;
+
+    // Download file
+    XLSX.writeFile(workbook, filename);
+
+    toast({
+      variant: "success",
+      description: `Downloaded ${keywords.length} keywords to Excel file`,
+    });
+  }, [keywords, document.label, collectionType]);
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
@@ -142,7 +187,7 @@ function EditKeywords({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] md:max-w-[825px] bg-white dark:bg-sidebar overflow-y-auto ">
         <DialogHeader>
-          <DialogTitle>{editKeywordsData.dialog.title}</DialogTitle>
+          <DialogTitle>Add Keywords ({keywords.length})</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4 mt-4">
           <div className=" flex flex-col gap-4  pr-4">
@@ -171,19 +216,29 @@ function EditKeywords({
           </div>
           <Separator />
           <div className="flex flex-col gap-4">
-            <Input
-              type="text"
-              placeholder={editKeywordsData.placeholders.search}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9 w-[50%] border dark:border-white"
-            />
+            <div className="flex justify-between items-center">
+              <Input
+                type="text"
+                placeholder={editKeywordsData.placeholders.search}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-9 w-[50%] border dark:border-white"
+              />
+              <Button
+                variant="outline"
+                onClick={downloadKeywordsAsExcel}
+                disabled={keywords.length === 0}
+                className="ml-4"
+              >
+                Download Excel
+              </Button>
+            </div>
             <div className="overflow-y-auto sm:max-w-[400px] md:max-w-[750px] h-[200px] pb-4">
-              {filteredKeywords.map((keyword) => (
+              {filteredKeywords.map((keyword, i) => (
                 <Button
                   className="m-1"
                   variant="outline"
-                  key={keyword}
+                  key={`${keyword}-${i}`}
                   onClick={() => handleRemoveKeyword(keyword)}
                 >
                   {keyword} {editKeywordsData.buttons.removeKeywordSuffix}

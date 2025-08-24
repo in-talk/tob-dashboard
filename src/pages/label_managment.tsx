@@ -7,7 +7,14 @@ import { useRouter } from "next/router";
 export default function LabelManagment() {
   const router = useRouter();
   const queryKeys = Object.keys(router.query);
-  const collectionType = queryKeys.length > 0 ? queryKeys[0] : "CGM";
+  const collectionType = queryKeys?.length > 0 ? queryKeys[0] : null;
+  if (!collectionType) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <h1 className="text-2xl font-bold">Collection type not specified</h1>{" "}
+      </div>
+    );
+  }
   return (
     <>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

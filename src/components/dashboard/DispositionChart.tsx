@@ -1,7 +1,7 @@
 import { DispositionGraph } from "@/utils/transformGraphData";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import { useSession } from "next-auth/react";
-import { useMemo, useCallback, useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   LineChart,
   Line,
@@ -153,6 +153,7 @@ const DispositionChart = ({
             />
             <YAxis
               domain={[0, maxYValue + 5]}
+              tickCount={10}
               tickFormatter={(value) => `${value}%`}
               label={{
                 value: "Disposition %",

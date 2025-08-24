@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { getCampaignLabel } from "@/lib/utils";
 
 export default async function handleUpdateKeywords(
   req: NextApiRequest,
@@ -13,7 +14,7 @@ export default async function handleUpdateKeywords(
   try {
     const { id, keywords } = req.body;
     const { collectionType } = req.query;
-    const labels = `labels_${collectionType === "CGM" ? "10000" : "20000"}`;
+    const labels = getCampaignLabel(collectionType as string);
 
     // Validate inputs
     if (!id) {
