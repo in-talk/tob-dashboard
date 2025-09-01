@@ -84,6 +84,10 @@ const data = {
           title: "Keyword Finder",
           url: "/keyword_finder",
         },
+        {
+          title: "Age Classifier",
+          url: "/age_classifier",
+        },
       ],
     },
   ],
