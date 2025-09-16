@@ -22,10 +22,10 @@ import { CallRecord } from "@/types/callRecord";
 import { useSession } from "next-auth/react";
 import { formatCallDuration } from "@/utils/formatCallDuration";
 import AudioPlayer from "../AudioPlayer";
-import CallDetailsModal from "../CallDetailsModal";
 import { utcToCurrentTimezone } from "@/utils/timezone";
 import { formatDateTime } from "@/utils/formatDateTime";
 import SyncingProgressBars from "../ui/SyncingProgressBars";
+import CallDetailsModal from "../CallDetailsModal";
 
 const DISPOSITION_COLORS: Record<string, string> = {
   XFER: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200",
@@ -120,7 +120,6 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
     (data && data[0]?.total_records) || 0, 
     [data]
   );
-
   const getDispositionColor = useCallback((disposition: string) => {
     return DISPOSITION_COLORS[disposition] || DEFAULT_FILTER_COLOR;
   }, []);
@@ -180,7 +179,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
 
   const callIdBodyTemplate = useCallback((rowData: CallRecord) => (
     role === "admin" ? (
-      <CallDetailsModal callId={rowData.call_id} />
+      <CallDetailsModal callId={rowData.call_id} clientId={rowData.client_id} />
     ) : (
       <span className="text-gray-900 dark:text-gray-100">
         {rowData.call_id}

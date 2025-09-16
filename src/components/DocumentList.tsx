@@ -21,7 +21,10 @@ export default function DocumentList({
   } = useSWR<labels[]>(
     collectionType ? `/api/dashboard?collectionType=${collectionType}` : null,
     fetcher,
-    { revalidateOnFocus: false }
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
   );
 
   const memoizedData = useMemo(() => {
@@ -39,15 +42,12 @@ export default function DocumentList({
     );
 
   if (error) return <div>{documentListData.emptyState}</div>;
-
   return (
     <div className="space-y-2">
       {memoizedData.length === 0 ? (
         <Card>
           <CardContent className="text-center py-10">
-            <p className="text-muted-foreground">
-             {documentListData.error}
-            </p>
+            <p className="text-muted-foreground">{documentListData.error}</p>
           </CardContent>
         </Card>
       ) : (

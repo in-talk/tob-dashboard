@@ -19,7 +19,6 @@ interface CreateUserFormValues {
   email: string;
   password: string;
   name: string;
-  client_id?: string;
   role: "admin" | "user";
 }
 
@@ -29,11 +28,9 @@ export default function CreateUser() {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    watch,
   } = useForm<CreateUserFormValues>();
 
   const [message, setMessage] = useState<string | null>(null);
-  const selectedRole = watch("role");
 
   const onSubmit = async (data: CreateUserFormValues) => {
     setMessage(null);
@@ -43,16 +40,19 @@ export default function CreateUser() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-
+      const result = await response.json();
       if (!response.ok) {
-        throw new Error(createUserData.message.error);
+        throw new Error(result.error || "Something went wrong");
       }
 
-      setMessage(createUserData.message.success);
+      setMessage(result.message || createUserData.message.success);
       reset();
     } catch (error) {
-      setMessage(createUserData.message.error);
-      console.error(error);
+      if (error instanceof Error) {
+        setMessage(error.message);
+      } else {
+        setMessage(createUserData.message.error);
+      }
     }
   };
 
@@ -82,7 +82,9 @@ export default function CreateUser() {
             </label>
             <input
               type="email"
-              {...register("email", { required: createUserData.form.email.required })}
+              {...register("email", {
+                required: createUserData.form.email.required,
+              })}
               className="mt-1 p-2 w-full border bg-transparent rounded dark:border-white"
             />
             {errors.email && (
@@ -118,7 +120,9 @@ export default function CreateUser() {
             </label>
             <input
               type="text"
-              {...register("name", { required: createUserData.form.name.required })}
+              {...register("name", {
+                required: createUserData.form.name.required,
+              })}
               className="mt-1 p-2 w-full border bg-transparent rounded dark:border-white"
             />
             {errors.name && (
@@ -135,29 +139,15 @@ export default function CreateUser() {
               {...register("role")}
               className="mt-1 p-2 w-full border bg-transparent rounded dark:border-white"
             >
-              <option value="admin">{createUserData.form.role.options.admin}</option>
-              <option value="user">{createUserData.form.role.options.user}</option>
+              <option value="admin">
+                {createUserData.form.role.options.admin}
+              </option>
+              <option value="user">
+                {createUserData.form.role.options.user}
+              </option>
             </select>
           </div>
 
-          {/* Client Id (only for role=user) */}
-          {selectedRole === "user" && (
-            <div>
-              <label className="block text-sm font-medium">
-                {createUserData.form.clientId.label}
-              </label>
-              <input
-                type="text"
-                {...register("client_id", {
-                  required: createUserData.form.clientId.required,
-                })}
-                className="mt-1 p-2 w-full border bg-transparent rounded dark:border-white"
-              />
-              {errors.client_id && (
-                <p className="text-red-500 text-sm">{errors.client_id.message}</p>
-              )}
-            </div>
-          )}
 
           {/* Submit Button */}
           <Button

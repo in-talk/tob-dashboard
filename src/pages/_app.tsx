@@ -25,6 +25,7 @@ import { ThemeProviders } from "@/theme/ThemeProviders";
 import "primereact/resources/themes/lara-dark-indigo/theme.css";
 import Head from "next/head";
 import { appPageData } from "@/constants";
+import ThemeToggler from "@/components/ThemeToggler";
 
 export default function App({
   Component,
@@ -32,7 +33,11 @@ export default function App({
   router,
 }: AppProps) {
   return (
-    <SessionProvider session={session}>
+    <SessionProvider
+      session={session}
+      refetchOnWindowFocus={false}
+      refetchInterval={0}
+    >
       <ThemeProviders>
         <PrimeReactProvider>
           <MainLayout
@@ -113,6 +118,7 @@ export function MainLayout({ Component, pageProps }: AppProps) {
                   </BreadcrumbList>
                 </Breadcrumb>
               </div>
+              <ThemeToggler />
             </header>
             <Component {...pageProps} />
             <Toaster />
