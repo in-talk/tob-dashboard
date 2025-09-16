@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useRef, useCallback, memo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { mutate } from "swr";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,10 +15,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-
-import { LabelsSchema, labelsSchema } from "@/lib/zod";
-import { useRef, useState } from "react";
-import { Textarea } from "./ui/textarea";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogClose,
@@ -24,12 +24,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
-import { Separator } from "./ui/separator";
-import ClearAllKeywordsAlert from "./ClearAllKeywordsAlert";
-import { Checkbox } from "./ui/checkbox";
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { mutate } from "swr";
+
+import ClearAllKeywordsAlert from "./ClearAllKeywordsAlert";
+import { LabelsSchema, labelsSchema } from "@/lib/zod";
+import { useKeywords } from "@/hooks/use-keywords";
+import { createDocumentFormData } from "@/constants";
 
 interface CreateDocumentFormProps {
   defaultValues: LabelsSchema;
@@ -37,45 +39,47 @@ interface CreateDocumentFormProps {
   collectionType: string;
 }
 
-export default function CreateDocumentForm({
-  defaultValues,
-  submitButtonText,
-  collectionType,
-}: CreateDocumentFormProps) {
-  const form = useForm<LabelsSchema>({
-    resolver: zodResolver(labelsSchema),
-    defaultValues,
-  });
-  const [keywords, setKeywords] = useState<string[]>(
-    defaultValues.keywords ?? []
-  );
+const CreateDocumentForm = memo(
+  ({ defaultValues, submitButtonText, collectionType }: CreateDocumentFormProps) => {
+    const form = useForm<LabelsSchema>({
+      resolver: zodResolver(labelsSchema),
+      defaultValues,
+    });
+    const {
+      keywords,
+      keywordInputRef,
+      bulkInputRef,
+      addKeyword,
+      addBulkKeywords,
+      removeKeyword,
+      clearKeywords,
+    } = useKeywords({
+      form,
+      initialKeywords: defaultValues.keywords,
+      onClear: () => setAlertOpen(false),
+    });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isAlertOpen, setAlertOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isDialogOpen, setDialogOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isAlertOpen, setAlertOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [isDialogOpen, setDialogOpen] = useState(false);
 
-  const keywordInputRef = useRef<HTMLInputElement>(null);
-  const bulkInputRef = useRef<HTMLTextAreaElement>(null);
-  const uniqueWordsRefs = useRef<HTMLTextAreaElement>(null);
+    const uniqueWordsRef = useRef<HTMLTextAreaElement>(null);
 
-  const getUniqueWords = () => {
-    const input = uniqueWordsRefs.current?.value.trim();
-    if (input) {
+    const getUniqueWords = useCallback((): string[] | undefined => {
+      const input = uniqueWordsRef.current?.value.trim();
+      if (!input) return;
       const newWords = input.split(/[\n,]+/).map((word) => word.trim());
-
       if (newWords.length > 0) {
-        uniqueWordsRefs.current!.value = "";
+        uniqueWordsRef.current!.value = "";
         return newWords;
       }
-    }
-  };
+    }, []);
 
-  const onSubmit = async (data: LabelsSchema) => {
-    setIsSubmitting(true);
-    try {
-      const uniqueWords = getUniqueWords();
+    const onSubmit = async (data: LabelsSchema) => {
+      setIsSubmitting(true);
+      try {
+        const uniqueWords = getUniqueWords();
 
       const response = await fetch(
         `/api/dashboard?collectionType=${collectionType}`,
@@ -90,281 +94,193 @@ export default function CreateDocumentForm({
         }
       );
 
-      const responseData = await response.json();
+        const responseData = await response.json();
+        if (!response.ok)
+          throw new Error(
+            responseData.message || createDocumentFormData.messages.error.default
+          );
 
-      if (!response.ok) {
+        toast({
+          variant: "success",
+          description: createDocumentFormData.messages.success,
+        });
+        form.reset();
+        mutate(`/api/dashboard?collectionType=${collectionType}`);
+        setDialogOpen(false);
+      } catch (error) {
         toast({
           variant: "destructive",
-          description: "Failed to create document.",
+          description:
+            error instanceof Error
+              ? error.message
+              : createDocumentFormData.messages.error.unexpected,
         });
-        throw new Error(responseData.message || "Failed to create document");
+      } finally {
+        setIsSubmitting(false);
       }
-      toast({
-        variant: "success",
-        description: "Yeyyyy, Document created successfully.",
-      });
-      form.reset();
-      mutate(`/api/dashboard?collectionType=${collectionType}`);
-      setErrorMessage("");
-      setDialogOpen(false);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "An unexpected error occurred";
-      setErrorMessage(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    };
 
-  const addKeyword = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault(); // Prevent default Enter behavior
-      const input = keywordInputRef.current?.value.trim();
-      if (input) {
-        // Add a single keyword
-        if (!keywords.includes(input)) {
-          setKeywords((prev) => [...prev, input]);
-          const currentKeywords = form.getValues("keywords") || [];
-          form.setValue("keywords", [...currentKeywords, input]);
-        }
-        keywordInputRef.current!.value = "";
-      }
-    }
-  };
-
-  const addBulkKeywords = () => {
-    const input = bulkInputRef.current?.value.trim();
-    if (input) {
-      // Split input by commas or new lines
-      const newKeywords = input
-        .split(/[\n,]+/)
-        .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword.length > 0 && !keywords.includes(keyword)); // Remove duplicates
-      if (newKeywords.length > 0) {
-        setKeywords((prev) => [...prev, ...newKeywords]); // Update state
-        const currentKeywords = form.getValues("keywords") || [];
-        form.setValue("keywords", [...currentKeywords, ...newKeywords]);
-      }
-      bulkInputRef.current!.value = "";
-    }
-  };
-
-  const removeKeyword = (keywordToRemove: string) => {
-    const currentKeywords = form.getValues("keywords") || [];
-    setKeywords((prev) =>
-      prev.filter((keyword) => keyword !== keywordToRemove)
+    const isFormValid = Boolean(
+      form.watch("label")?.trim() && form.watch("file_name")?.trim()
+    );
+    const filteredKeywords = keywords.filter((k) =>
+      k.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    form.setValue(
-      "keywords",
-      currentKeywords.filter((keyword) => keyword !== keywordToRemove)
-    );
-  };
-
-  const isFormValid =
-    form.watch("label")?.trim() && form.watch("file_name")?.trim();
-  const filteredKeywords = keywords.filter((keyword) =>
-    keyword.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleClearAllKeywords = async () => {
-    setKeywords([]);
-    form.setValue("keywords", []);
-    setAlertOpen(false);
-  };
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="label"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Label</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  required
-                  className="border dark:border-white"
-                />
-              </FormControl>
-              {errorMessage && (
-                <FormMessage className="text-red-500 text-sm">
-                  {errorMessage}
-                </FormMessage>
-              )}
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="file_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>File name</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  required
-                  className="border dark:border-white"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="active_turns"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Active Turns (comma-separated)</FormLabel>
-              <FormControl>
-                <Textarea
-                  {...field}
-                  value={
-                    Array.isArray(field.value)
-                      ? field.value.join(", ")
-                      : field.value ?? ""
-                  }
-                  onChange={(e) => field.onChange(e.target.value)} // Store as string
-                  placeholder="Enter numbers separated by commas, e.g., 1, 2, 3"
-                  className="border dark:border-white"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="check_on_all_turns"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0  py-4 ">
-              <FormControl>
-                <Checkbox
-                  id="terms"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  className="border dark:border-white"
-                />
-              </FormControl>
-              <FormLabel htmlFor="terms">Check on all turns :</FormLabel>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormLabel>Unique Keywords</FormLabel>
-
-        <FormControl>
-          <Textarea
-            ref={uniqueWordsRefs}
-            placeholder="Enter unique words separated by commas, e.g., foo, bar"
-            rows={3}
-            className="!ml-0 w-full border dark:border-white"
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="label"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{createDocumentFormData.form.label.label}</FormLabel>
+                <FormControl>
+                  <Input {...field} required className="border dark:border-white" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </FormControl>
 
-        <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button disabled={!isFormValid}>Add Keywords</Button>
-          </DialogTrigger>
-          <DialogContent
-            className="sm:max-w-[425px] md:max-w-[825px] bg-white dark:bg-sidebar"
-            aria-describedby=""
-          >
-            <DialogHeader>
-              <DialogTitle>Add Keyword</DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col gap-[10px] mt-[10px]">
-              <div className=" flex flex-col  gap-[10px] border-r-slate-100">
-                <FormLabel>Single Keyword Input</FormLabel>
+          <FormField
+            control={form.control}
+            name="file_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{createDocumentFormData.form.fileName.label}</FormLabel>
+                <FormControl>
+                  <Input {...field} required className="border dark:border-white" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                <input
-                  ref={keywordInputRef}
-                  type="text"
-                  placeholder="Add keywords press Enter"
-                  onKeyDown={addKeyword}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent  dark:border-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                />
-
-                <FormLabel>Bulk Keyword Input</FormLabel>
+          <FormField
+            control={form.control}
+            name="active_turns"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{createDocumentFormData.form.activeTurns.label}</FormLabel>
                 <FormControl>
                   <Textarea
-                    ref={bulkInputRef}
-                    placeholder="Add multiple keywords (comma-separated or one per line)"
-                    rows={3}
+                    {...field}
+                    value={Array.isArray(field.value) ? field.value.join(", ") : field.value ?? ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    placeholder={createDocumentFormData.form.activeTurns.placeholder}
                     className="border dark:border-white"
                   />
                 </FormControl>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={addBulkKeywords}
-                >
-                  Add Bulk Keywords
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="check_on_all_turns"
+            render={({ field }) => (
+              <FormItem className="flex items-center space-x-3 py-4">
+                <FormControl>
+                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+                <FormLabel>{createDocumentFormData.form.checkOnAllTurns.label}</FormLabel>
+              </FormItem>
+            )}
+          />
+
+          <FormLabel>{createDocumentFormData.form.uniqueKeywords.label}</FormLabel>
+          <FormControl>
+            <Textarea
+              ref={uniqueWordsRef}
+              placeholder={createDocumentFormData.form.uniqueKeywords.placeholder}
+              rows={3}
+              className="border dark:border-white"
+            />
+          </FormControl>
+
+          <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button disabled={!isFormValid}>
+                {createDocumentFormData.keywordsDialog.trigger}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] md:max-w-[825px] bg-white dark:bg-sidebar">
+              <DialogHeader>
+                <DialogTitle>{createDocumentFormData.keywordsDialog.title}</DialogTitle>
+              </DialogHeader>
+
+              <div className="flex flex-col gap-4 mt-2">
+                <FormLabel>{createDocumentFormData.keywordsDialog.singleInput.label}</FormLabel>
+                <Input
+                  ref={keywordInputRef}
+                  type="text"
+                  placeholder={createDocumentFormData.keywordsDialog.singleInput.placeholder}
+                  onKeyDown={addKeyword}
+                  className="border dark:border-white"
+                />
+
+                <FormLabel>{createDocumentFormData.keywordsDialog.bulkInput.label}</FormLabel>
+                <Textarea
+                  ref={bulkInputRef}
+                  placeholder={createDocumentFormData.keywordsDialog.bulkInput.placeholder}
+                  rows={3}
+                  className="border dark:border-white"
+                />
+                <Button variant="outline" type="button" onClick={addBulkKeywords}>
+                  {createDocumentFormData.keywordsDialog.bulkInput.button}
                 </Button>
-              </div>
-              <Separator />
-              <div
-                className="flex justify-between flex-col "
-                style={{ gap: "10px", flexWrap: "wrap" }}
-              >
-                <div
-                  className="flex mt-2"
-                  style={{ gap: "20px", flexWrap: "wrap" }}
-                >
-                  <input
+
+                <Separator />
+
+                <div className="flex flex-col gap-2">
+                  <Input
                     type="text"
-                    placeholder="Search keywords..."
+                    placeholder={createDocumentFormData.keywordsDialog.search.placeholder}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent dark:border-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    className="border dark:border-white"
                   />
-                  <div className="overflow-y-auto sm:max-w-[400px] md:max-w-[750px] h-[200px]">
-                    {filteredKeywords.map((keyword, index) => (
-                      <Button
-                        variant={"outline"}
-                        key={index}
-                        onClick={() => removeKeyword(keyword)}
-                      >
-                        {keyword} ✕
+                  <div className="overflow-y-auto h-[200px] flex flex-wrap gap-2">
+                    {filteredKeywords.map((k) => (
+                      <Button key={k} variant="outline" onClick={() => removeKeyword(k)}>
+                        {k} ✕
                       </Button>
                     ))}
                   </div>
+                  <ClearAllKeywordsAlert
+                    isAlertOpen={isAlertOpen}
+                    setAlertOpen={setAlertOpen}
+                    handleClearAllKeywords={clearKeywords}
+                  />
                 </div>
-                <ClearAllKeywordsAlert
-                  isAlertOpen={isAlertOpen}
-                  setAlertOpen={setAlertOpen}
-                  handleClearAllKeywords={handleClearAllKeywords}
-                />
               </div>
-            </div>
 
-            <DialogClose asChild>
-              <Button onClick={() => setDialogOpen(false)} variant="secondary">
-                Save
-              </Button>
-            </DialogClose>
-          </DialogContent>
-        </Dialog>
+              <DialogClose asChild>
+                <Button onClick={() => setDialogOpen(false)} variant="secondary">
+                  {createDocumentFormData.keywordsDialog.saveButton}
+                </Button>
+              </DialogClose>
+            </DialogContent>
+          </Dialog>
 
-        <Button
-          disabled={isSubmitting}
-          className="w-full relative"
-          type="submit"
-        >
-          {isSubmitting && (
-            <div className="absolute inset-0 flex items-center justify-center bg-primary/50 rounded-md">
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          )}
-          {submitButtonText}
-        </Button>
-      </form>
-    </Form>
-  );
-}
+          <Button disabled={isSubmitting} className="w-full relative" type="submit">
+            {isSubmitting && (
+              <div className="absolute inset-0 flex items-center justify-center bg-primary/50 rounded-md">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+            {isSubmitting
+              ? createDocumentFormData.button.saving
+              : submitButtonText || createDocumentFormData.button.submit}
+          </Button>
+        </form>
+      </Form>
+    );
+  }
+);
+
+CreateDocumentForm.displayName = "CreateDocumentForm";
+export default CreateDocumentForm;

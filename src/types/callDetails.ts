@@ -12,3 +12,13 @@ export interface CallDetails {
   response_file_label: string;
   agent: string;
 }
+
+export interface CallLog {
+  turn: number;
+  emoji: string;
+  action: string;
+  status: string; 
+  timestamp: string;
+  timeFromStart: string; 
+  additionalData?: string; 
+}

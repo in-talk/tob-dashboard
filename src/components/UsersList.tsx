@@ -4,13 +4,16 @@ import { User } from "@/types/user";
 import useSWR from "swr";
 import { usersColumns } from "./DataTable/UsersColumn";
 import { DataTable } from "./DataTable/DataTable";
-
-
+import { usersListData } from "@/constants";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function UsersList() {
-  const { data: users, error, isLoading } = useSWR<User[]>("/api/get-users", fetcher);
+  const {
+    data: users,
+    error,
+    isLoading,
+  } = useSWR<User[]>("/api/get-users", fetcher);
 
   if (isLoading)
     return (
@@ -22,7 +25,7 @@ export default function UsersList() {
       </div>
     );
 
-  if (error) return <div>Failed to load users.</div>;
+  if (error) return <div>{usersListData.emptyState}</div>;
 
   const usersList = users || [];
 
@@ -31,13 +34,13 @@ export default function UsersList() {
       {usersList.length === 0 ? (
         <Card>
           <CardContent className="text-center py-10">
-            <p className="text-muted-foreground">No User in database!</p>
+            <p className="text-muted-foreground">{usersListData.error}</p>
           </CardContent>
         </Card>
       ) : (
         <div className="container mx-auto py-3 px-[30px]">
-                <DataTable columns={usersColumns} data={usersList} />
-              </div>
+          <DataTable columns={usersColumns} data={usersList} />
+        </div>
       )}
     </div>
   );

@@ -16,6 +16,7 @@ import { Label } from "./ui/label";
 import ClearAllKeywordsAlert from "./ClearAllKeywordsAlert";
 import { Input } from "./ui/input";
 import { labels } from "@/types/lables";
+import { editKeywordsData } from "@/constants";
 
 interface EditKeywordProps {
   document: labels;
@@ -53,7 +54,9 @@ function EditKeywords({
 
         if (!response.ok) {
           const responseData = await response.json();
-          throw new Error(responseData.message || "Failed to update keywords");
+          throw new Error(
+            responseData.message || editKeywordsData.toasts.error.default
+          );
         }
         const result = await response.json();
 
@@ -61,7 +64,7 @@ function EditKeywords({
 
         toast({
           variant: "success",
-          description: "Keywords updated successfully.",
+          description: editKeywordsData.toasts.success,
         });
       } catch (error) {
         toast({
@@ -69,7 +72,7 @@ function EditKeywords({
           description:
             error instanceof Error
               ? error.message
-              : "An unexpected error occurred",
+              : editKeywordsData.toasts.error.unexpected,
         });
       }
     },
@@ -180,7 +183,7 @@ function EditKeywords({
   return (
     <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
-        <Button>Edit keywords</Button>
+        <Button>{editKeywordsData.dialog.trigger}</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] md:max-w-[825px] bg-white dark:bg-sidebar overflow-y-auto ">
         <DialogHeader>
@@ -188,18 +191,18 @@ function EditKeywords({
         </DialogHeader>
         <div className="flex flex-col gap-4 mt-4">
           <div className=" flex flex-col gap-4  pr-4">
-            <Label>Single Keyword Input</Label>
+            <Label>{editKeywordsData.labels.singleKeyword}</Label>
             <Input
               ref={keywordInputRef}
               type="text"
-              placeholder="Add keywords and press Enter"
+              placeholder={editKeywordsData.placeholders.singleKeyword}
               onKeyDown={handleAddKeyword}
               className="border dark:border-white"
             />
-            <Label>Bulk Keyword Input</Label>
+            <Label>{editKeywordsData.labels.bulkKeyword}</Label>
             <Textarea
               ref={bulkInputRef}
-              placeholder="Add multiple keywords (comma-separated or one per line)"
+              placeholder={editKeywordsData.placeholders.bulkKeyword}
               rows={3}
               className="border dark:border-white"
             />
@@ -208,7 +211,7 @@ function EditKeywords({
               type="button"
               onClick={handleAddBulkKeywords}
             >
-              Add Bulk Keywords
+              {editKeywordsData.buttons.addBulk}
             </Button>
           </div>
           <Separator />
@@ -216,7 +219,7 @@ function EditKeywords({
             <div className="flex justify-between items-center">
               <Input
                 type="text"
-                placeholder="Search keywords..."
+                placeholder={editKeywordsData.placeholders.search}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="h-9 w-[50%] border dark:border-white"
@@ -238,7 +241,7 @@ function EditKeywords({
                   key={`${keyword}-${i}`}
                   onClick={() => handleRemoveKeyword(keyword)}
                 >
-                  {keyword} ✕
+                  {keyword} {editKeywordsData.buttons.removeKeywordSuffix}
                 </Button>
               ))}
             </div>
@@ -250,7 +253,9 @@ function EditKeywords({
           </div>
         </div>
         <DialogClose asChild>
-          <Button variant="secondary">Close</Button>
+          <Button variant="secondary">
+            {editKeywordsData.dialog.close}
+          </Button>
         </DialogClose>
       </DialogContent>
     </Dialog>

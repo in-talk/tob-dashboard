@@ -3,11 +3,15 @@ import DocumentList from "@/components/DocumentList";
 import { withAuth } from "@/utils/auth";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
+import { useMemo } from "react";
 
 export default function LabelManagment() {
   const router = useRouter();
+  const collectionType = useMemo(() => {
   const queryKeys = Object.keys(router.query);
-  const collectionType = queryKeys?.length > 0 ? queryKeys[0] : null;
+  return queryKeys.length > 0 ? queryKeys[0] : null;
+}, [router.query]);
+
   if (!collectionType) {
     return (
       <div className="flex items-center justify-center h-screen">

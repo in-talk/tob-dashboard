@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useRef } from "react";
 import {
   AlertDialog,
@@ -12,11 +14,12 @@ import {
 } from "./ui/alert-dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { clearAllKeywordsAlertData } from "@/constants";
 
 interface ClearAllKeywordsAlertProps {
   isAlertOpen: boolean;
   setAlertOpen: (value: boolean) => void;
-  handleClearAllKeywords: () => Promise<void>;
+  handleClearAllKeywords: () => void;
 }
 
 function ClearAllKeywordsAlert({
@@ -24,13 +27,13 @@ function ClearAllKeywordsAlert({
   setAlertOpen,
   handleClearAllKeywords,
 }: ClearAllKeywordsAlertProps) {
-  const clearAllInputRef = useRef<HTMLInputElement>(null); // Ref to access the input field
+  const clearAllInputRef = useRef<HTMLInputElement>(null);
 
   function clearAll(event: React.MouseEvent) {
     event.preventDefault();
     const input = clearAllInputRef.current?.value.trim();
 
-    if (input && input.toLowerCase() !== "delete all") {
+    if (input?.toLowerCase() !== clearAllKeywordsAlertData.input.requiredText) {
       setAlertOpen(false);
       return;
     }
@@ -42,28 +45,30 @@ function ClearAllKeywordsAlert({
       <AlertDialogTrigger asChild>
         <Button
           variant="ghost"
-          className="text-white bg-red-700  hover:bg-red-900 hover:text-white"
+          className="text-white bg-red-700 hover:bg-red-900 hover:text-white"
         >
-          Delete All
+          {clearAllKeywordsAlertData.triggerButton}
         </Button>
       </AlertDialogTrigger>
+
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle>{clearAllKeywordsAlertData.title}</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete your
-            document from database.
+            {clearAllKeywordsAlertData.description}
             <Input
               ref={clearAllInputRef}
               className="mt-2"
-              placeholder='Type " Delete all" to delete all keywords '
+              placeholder={clearAllKeywordsAlertData.input.placeholder}
             />
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={(e) => clearAll(e)}>
-            Yes
+          <AlertDialogCancel>
+            {clearAllKeywordsAlertData.actions.cancel}
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={clearAll}>
+            {clearAllKeywordsAlertData.actions.confirm}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

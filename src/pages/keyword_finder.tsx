@@ -14,6 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { SearchIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { keywordFinderPageData } from "@/constants";
 
 type Campaign = {
   campaign_id: number;
@@ -26,7 +27,6 @@ export default function KeywordFinder() {
   const [turn, setTurn] = useState(1);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignId, setCampaignId] = useState<string | undefined>(undefined);
-
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -69,18 +69,7 @@ export default function KeywordFinder() {
     setError("");
     setResponse(null);
     try {
-      // const res = await fetch(
-      //   `${process.env.NEXT_PUBLIC_KEYWORD_API_URL}/testkeyword`,
-      //   {
-      //     method: "POST",
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //     },
-      //     body: JSON.stringify({ transcript, turn, campaign_id: campaignId }),
-      //   }
-      // );
       const res = await fetch("/api/keyword-proxy", {
-        // Call your proxy instead
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -94,9 +83,12 @@ export default function KeywordFinder() {
 
       const data = await res.json();
       setResponse(data);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong");
+      }
     } finally {
       setLoading(false);
     }
@@ -114,40 +106,41 @@ export default function KeywordFinder() {
               onChange={(e) => setTranscript(e.target.value)}
               required
               className="h-10 resize-none"
-              placeholder="Enter your transcript here..."
+              placeholder={keywordFinderPageData.transcriptPlaceholder}
             />
           </div>
 
           <div className="w-40">
             <Input
               type="number"
-              placeholder="Turn"
+              placeholder={keywordFinderPageData.turnPlaceholder}
               value={turn}
               onChange={(e) => setTurn(Number(e.target.value))}
               required
               className="text-center py-7"
             />
           </div>
+
           <div className="w-40">
             <Select
               value={campaignId}
               onValueChange={(value) => setCampaignId(value)}
             >
               <SelectTrigger className="py-7 w-full">
-                <SelectValue placeholder="Select Campaign" />
+                <SelectValue
+                  placeholder={keywordFinderPageData.campaignSelectPlaceholder}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  {campaigns?.map((campaign) => {
-                    return (
-                      <SelectItem
-                        key={campaign.campaign_id}
-                        value={`${campaign.campaign_code}`}
-                      >
-                        {campaign.campaign_code}
-                      </SelectItem>
-                    );
-                  })}
+                  {campaigns?.map((campaign) => (
+                    <SelectItem
+                      key={campaign.campaign_id}
+                      value={`${campaign.campaign_code}`}
+                    >
+                      {campaign.campaign_code}
+                    </SelectItem>
+                  ))}
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -158,14 +151,18 @@ export default function KeywordFinder() {
             disabled={loading}
             className="py-7 px-6 flex flex-col items-center gap-1"
           >
-            <span className="text-xs">Find Keyword</span>
+            <span className="text-xs">
+              {keywordFinderPageData.findKeywordButton}
+            </span>
           </Button>
         </div>
       </form>
 
       <div className="border rounded-lg">
         <div className="px-4 py-3 border-b">
-          <h2 className="text-xl font-semibold">Result</h2>
+          <h2 className="text-xl font-semibold">
+            {keywordFinderPageData.resultHeading}
+          </h2>
         </div>
 
         <div className="p-4 min-h-[400px]">
@@ -173,14 +170,18 @@ export default function KeywordFinder() {
             <div className="flex items-center justify-center py-20">
               <div className="flex items-center gap-3">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                <span className="text-muted-foreground">Processing ...</span>
+                <span className="text-muted-foreground">
+                  {keywordFinderPageData.processingText}
+                </span>
               </div>
             </div>
           )}
 
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4">
-              <div className="text-destructive font-medium">Error: {error}</div>
+              <div className="text-destructive font-medium">
+                {keywordFinderPageData.errorPrefix} {error}
+              </div>
             </div>
           )}
 
@@ -193,9 +194,11 @@ export default function KeywordFinder() {
           {!response && !loading && !error && (
             <div className="text-center py-20">
               <SearchIcon className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium mb-2">No results yet</h3>
+              <h3 className="text-lg font-medium mb-2">
+                {keywordFinderPageData.noResultsHeading}
+              </h3>
               <p className="text-muted-foreground">
-                Enter a transcript and click `Find Keyword` to see results here.
+                {keywordFinderPageData.noResultsDescription}
               </p>
             </div>
           )}

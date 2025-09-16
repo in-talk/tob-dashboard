@@ -23,9 +23,9 @@ import { SessionProvider, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { ThemeProviders } from "@/theme/ThemeProviders";
 import "primereact/resources/themes/lara-dark-indigo/theme.css";
-
-// import { CallDataProvider } from "@/context/CallRecordContext";
 import Head from "next/head";
+import { appPageData } from "@/constants";
+import ThemeToggler from "@/components/ThemeToggler";
 
 export default function App({
   Component,
@@ -33,7 +33,11 @@ export default function App({
   router,
 }: AppProps) {
   return (
-    <SessionProvider session={session}>
+    <SessionProvider
+      session={session}
+      refetchOnWindowFocus={false}
+      refetchInterval={0}
+    >
       <ThemeProviders>
         <PrimeReactProvider>
           <MainLayout
@@ -53,56 +57,41 @@ export function MainLayout({ Component, pageProps }: AppProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const isLoginPage = router.pathname === "/signin";
+  const { seoMetaData } = appPageData;
 
   return (
     <>
       <Head>
-        <meta
-          name="title"
-          content="InTalk AI Agent Call Center Dashboard - Smart Customer Service Management"
-        />
-        <meta
-          name="description"
-          content="Advanced AI-powered call center dashboard for managing customer service operations. Monitor agent performance, track call metrics, and optimize customer interactions with intelligent analytics and real-time insights."
-        />
-        <meta
-          name="keywords"
-          content="AI call center, customer service dashboard, call center analytics, agent performance, customer support, artificial intelligence, call monitoring, service metrics, contact center management"
-        />
-        <meta name="robots" content="index, follow" />
-        <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
-        <meta name="language" content="English" />
-        <meta name="author" content="Your Company Name" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="title" content={seoMetaData.title} />
+        <meta name="description" content={seoMetaData.description} />
+        <meta name="keywords" content={seoMetaData.keywords} />
+        <meta name="robots" content={seoMetaData.robots} />
+        <meta httpEquiv="Content-Type" content={seoMetaData.contentType} />
+        <meta name="language" content={seoMetaData.language} />
+        <meta name="author" content={seoMetaData.author} />
+        <meta name="viewport" content={seoMetaData.viewport} />
 
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://www.intalk.ai/" />
-        <meta
-          property="og:title"
-          content="AI Agent Call Center Dashboard - Smart Customer Service Management"
-        />
-        <meta
-          property="og:description"
-          content="Advanced AI-powered call center dashboard for managing customer service operations. Monitor agent performance, track call metrics, and optimize customer interactions with intelligent analytics."
-        />
+        <meta property="og:type" content={seoMetaData.og.type} />
+        <meta property="og:url" content={seoMetaData.og.url} />
+        <meta property="og:title" content={seoMetaData.og.title} />
+        <meta property="og:description" content={seoMetaData.og.description} />
 
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content="https://www.intalk.ai/" />
-        <meta
-          property="twitter:title"
-          content="AI Agent Call Center Dashboard - Smart Customer Service Management"
-        />
+        <meta property="twitter:card" content={seoMetaData.twitter.card} />
+        <meta property="twitter:url" content={seoMetaData.twitter.url} />
+        <meta property="twitter:title" content={seoMetaData.twitter.title} />
         <meta
           property="twitter:description"
-          content="Advanced AI-powered call center dashboard for managing customer service operations. Monitor agent performance and optimize customer interactions."
+          content={seoMetaData.twitter.description}
         />
 
-        <meta name="theme-color" content="#ffffff" />
-        <meta name="msapplication-TileColor" content="#ffffff" />
+        <meta name="theme-color" content={seoMetaData.themeColor} />
         <meta
-          name="application-name"
-          content="InTalk AI Call Center Dashboard"
+          name="msapplication-TileColor"
+          content={seoMetaData.msTileColor}
         />
+        <meta name="application-name" content={seoMetaData.appName} />
+
+        <title>{seoMetaData.title}</title>
       </Head>
       {session && !isLoginPage ? (
         <SidebarProvider>
@@ -116,29 +105,28 @@ export function MainLayout({ Component, pageProps }: AppProps) {
                   <BreadcrumbList>
                     <BreadcrumbItem className="hidden md:block">
                       <BreadcrumbLink href="#">
-                        Building Your Application
+                        {appPageData.breadcrumb.first}
                       </BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator className="hidden md:block" />
                     <BreadcrumbItem>
-                      <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                      <BreadcrumbPage>
+                        {" "}
+                        {appPageData.breadcrumb.current}
+                      </BreadcrumbPage>
                     </BreadcrumbItem>
                   </BreadcrumbList>
                 </Breadcrumb>
               </div>
+              <ThemeToggler />
             </header>
-            {/* <CallDataProvider> */}
             <Component {...pageProps} />
-            {/* </CallDataProvider> */}
             <Toaster />
           </SidebarInset>
         </SidebarProvider>
       ) : (
         <div>
-          {/* <SimpleHeader /> */}
-          {/* <CallDataProvider> */}
           <Component {...pageProps} />
-          {/* </CallDataProvider> */}
         </div>
       )}
     </>

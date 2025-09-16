@@ -17,8 +17,6 @@ export default function AudioPlayer({
     try {
       setLoading(true);
       setError(false);
-
-      // Generate the signed URL
       const url = await generateAudioUrl(audioPath);
 
       if (url) {

@@ -14,6 +14,7 @@ interface DateTimeRangePickerProps {
   initialStartTime?: string;
   initialEndTime?: string;
   autoRefresh?: boolean;
+  disabled?:boolean
 }
 
 const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
@@ -23,6 +24,7 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
   initialStartTime = "00:00",
   initialEndTime = format(new Date(), "HH:mm"),
   autoRefresh = false,
+  disabled
 }) => {
   const [from, setFrom] = useState<Date>(initialStartDate);
   const [to, setTo] = useState<Date>(initialEndDate);
@@ -189,7 +191,7 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
     <div className="relative flex justify-end">
       {/* Compact Trigger Button */}
       <button
-        disabled={autoRefresh}
+        disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-purple-300 transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
       >

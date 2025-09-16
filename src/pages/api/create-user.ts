@@ -6,7 +6,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== "POST") return res.status(405).end();
 
   try {
-    const { email, password, name, role, client_id } = req.body;
+    const { email, password, name, role } = req.body;
 
     if (!email || !password || !name || !role) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -24,10 +24,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const insertResult = await db.query(
-      `INSERT INTO users (email, password, name, role, client_id) 
+      `INSERT INTO users (email, password, name, role) 
        VALUES ($1, $2, $3, $4, $5) 
        RETURNING id`,
-      [email.toLowerCase(), hashedPassword, name, role, client_id || null]
+      [email.toLowerCase(), hashedPassword, name, role]
     );
 
     const userId = insertResult.rows[0].id;
@@ -45,8 +45,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         console.error(`Database error code: ${(error as any).code}`);
       }
+       res.status(500).json({ error: error.message });
     }
     
-    res.status(500).json({ error: "Failed to create user" });
+    res.status(500).json({ error: error });
   }
 }

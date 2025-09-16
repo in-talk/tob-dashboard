@@ -5,8 +5,10 @@ import React from "react";
 import useSWR from "swr";
 import CreateUser from "./CreateUser";
 import { cn } from "@/lib/utils";
+import { usersComponentData } from "@/constants";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 function Users() {
   const {
     data: users,
@@ -14,6 +16,7 @@ function Users() {
     isLoading,
   } = useSWR<User[]>("/api/get-users", fetcher);
   const router = useRouter();
+
   if (isLoading)
     return (
       <div className="flex justify-center items-center h-full bg-white dark:bg-sidebar">
@@ -24,7 +27,7 @@ function Users() {
       </div>
     );
 
-  if (error) return <div>Failed to load users.</div>;
+  if (error) return <div>{usersComponentData.error}</div>;
 
   return (
     <>
@@ -35,9 +38,8 @@ function Users() {
         {users?.map((user) => (
           <div
             key={user.id}
-            className="bg-muted/50  shadow-lg dark:bg-sidebar rounded-xl p-6 border hover:border-blue-500 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 hover:transform hover:-translate-y-1"
+            className="bg-muted/50 shadow-lg dark:bg-sidebar rounded-xl p-6 border hover:border-blue-500 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 hover:transform hover:-translate-y-1"
           >
-            {/* User Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <div className="relative">
@@ -60,32 +62,38 @@ function Users() {
               </div>
             </div>
 
-            {/* Additional Info */}
             <div className="space-y-2 mb-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-dark dark:text-gray-400 flex items-center">
                   <IdCard className="h-4 w-4 mr-1" />
-                  Client ID
+                  {usersComponentData.labels.clientId}
                 </span>
                 <span className="text-dark dark:text-white font-bold">
-                  {user.client_id ? user.client_id : "Missing"}
+                  {user.client_id
+                    ? user.client_id
+                    : usersComponentData.labels.missingClientId}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-dark dark:text-gray-400 flex items-center">
                   <Calendar className="h-4 w-4 mr-1" />
-                  Last Active
+                  {usersComponentData.labels.lastActive}
                 </span>
-                <span className="text-dark dark:text-white">an hour ago</span>
+                <span className="text-dark dark:text-white">
+                  {usersComponentData.labels.lastActiveFallback}
+                </span>
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex space-x-2">
               <button
                 onClick={() => router.push(`/client/${user.client_id}`)}
                 disabled={!user.client_id}
-                title={!user.client_id ? "Client Id missing" : ""}
+                title={
+                  !user.client_id
+                    ? usersComponentData.actions.missingClientIdTooltip
+                    : ""
+                }
                 className={cn(
                   "flex-1 text-white py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2",
                   !user?.client_id
@@ -94,12 +102,9 @@ function Users() {
                 )}
               >
                 <Eye className="h-4 w-4" />
-                <span>View Details</span>
+                <span>{usersComponentData.actions.viewDetails}</span>
               </button>
-              <button
-                // onClick={() => handleEditUser(user)}
-                className="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
-              >
+              <button className="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center">
                 <Edit className="h-4 w-4" />
               </button>
             </div>

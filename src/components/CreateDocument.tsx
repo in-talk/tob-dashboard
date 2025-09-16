@@ -1,4 +1,6 @@
 "use client";
+
+import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,22 +11,29 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import CreateDocumentForm from "./CreateDocumentForm";
+import { createDocumentData } from "@/constants";
 
-export default function CreateDocument({ collectionType }: { collectionType: string }) {
+interface CreateDocumentProps {
+  collectionType: string;
+}
+
+const CreateDocument = memo(({ collectionType }: CreateDocumentProps) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button>Add Document</Button>
+        <Button variant="default">{createDocumentData.triggerButton}</Button>
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-[425px] bg-white dark:bg-sidebar">
         <DialogHeader>
-          <DialogTitle>Create New Document</DialogTitle>
+          <DialogTitle>{createDocumentData.dialog.title}</DialogTitle>
+          <DialogDescription>
+            {createDocumentData.dialog.description}
+          </DialogDescription>
         </DialogHeader>
-        <DialogDescription>
-          This form is used create new document with lable and add keywords
-        </DialogDescription>
+
         <CreateDocumentForm
-          collectionType={collectionType} 
+          collectionType={collectionType}
           defaultValues={{
             label: "",
             keywords: [],
@@ -33,9 +42,13 @@ export default function CreateDocument({ collectionType }: { collectionType: str
             file_name: "",
             check_on_all_turns: false,
           }}
-          submitButtonText="Create"
+          submitButtonText={createDocumentData.form.submitButton}
         />
       </DialogContent>
     </Dialog>
   );
-}
+});
+
+CreateDocument.displayName = "CreateDocument";
+
+export default CreateDocument;
