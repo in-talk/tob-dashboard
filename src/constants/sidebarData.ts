@@ -5,9 +5,9 @@ import {
   AudioLines,
   User,
   Blocks,
+  FormInputIcon,
 } from "lucide-react";
 import { Campaign } from "@/lib/utils";
-
 
 export const sideBarData = {
   user: {
@@ -31,6 +31,17 @@ export const sideBarData = {
       name: "Users",
       url: "/users",
       icon: User,
+    },
+    {
+      name: "Forms",
+      url: "/forms",
+      icon: FormInputIcon,
+      items: [
+        {
+          title: "Clients",
+          url: "/forms/clients",
+        },
+      ],
     },
     {
       name: "Label Managment",

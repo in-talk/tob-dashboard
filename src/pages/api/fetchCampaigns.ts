@@ -11,7 +11,7 @@ export default async function handler(
 
   try {
     const result = await db.query(
-      `select campaign_id,campaign_name, campaign_code from public.campaigns`
+      `select campaign_id, campaign_name, campaign_description, isactive, campaign_code from public.campaigns`
     );
     res.status(200).json({
       campaigns: result.rows,

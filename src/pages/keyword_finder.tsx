@@ -97,31 +97,31 @@ export default function KeywordFinder() {
   const prettyJson = JSON.stringify(response, null, 2);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 overflow-x-hidden">
       <form onSubmit={handleSubmit}>
-        <div className="flex gap-4 items-end">
-          <div className="flex-1">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex-1 min-w-[200px]">
             <Textarea
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               required
-              className="h-10 resize-none"
+              className="h-10 resize-none w-full"
               placeholder={keywordFinderPageData.transcriptPlaceholder}
             />
           </div>
 
-          <div className="w-40">
+          <div className="w-40 min-w-[8rem]">
             <Input
               type="number"
               placeholder={keywordFinderPageData.turnPlaceholder}
               value={turn}
               onChange={(e) => setTurn(Number(e.target.value))}
               required
-              className="text-center py-7"
+              className="text-center py-7 w-full"
             />
           </div>
 
-          <div className="w-40">
+          <div className="w-40 min-w-[8rem]">
             <Select
               value={campaignId}
               onValueChange={(value) => setCampaignId(value)}
@@ -138,7 +138,7 @@ export default function KeywordFinder() {
                       key={campaign.campaign_id}
                       value={`${campaign.campaign_code}`}
                     >
-                      {campaign.campaign_code}
+                      {campaign.campaign_name} - {campaign.campaign_code}
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -158,7 +158,7 @@ export default function KeywordFinder() {
         </div>
       </form>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b">
           <h2 className="text-xl font-semibold">
             {keywordFinderPageData.resultHeading}
@@ -186,8 +186,10 @@ export default function KeywordFinder() {
           )}
 
           {response && !loading && (
-            <ScrollArea className="h-[450px] font-mono whitespace-pre text">
-              <code>{prettyJson}</code>
+            <ScrollArea className="h-[450px] font-mono">
+              <div className="whitespace-pre-wrap break-words text-sm overflow-auto">
+                <code>{prettyJson}</code>
+              </div>
             </ScrollArea>
           )}
 
