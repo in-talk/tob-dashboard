@@ -16,7 +16,7 @@ import { SearchIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { keywordFinderPageData } from "@/constants";
 
-type Campaign = {
+export type Campaign = {
   campaign_id: number;
   campaign_name: string;
   campaign_code: number;
@@ -47,7 +47,7 @@ export default function KeywordFinder() {
         }
 
         const data = await res.json();
-        setCampaigns(data.campaigns);
+        setCampaigns(data);
         setLoading(false);
       } catch (err) {
         if (err instanceof Error) {
