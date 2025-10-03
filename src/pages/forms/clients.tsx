@@ -24,6 +24,14 @@ import CreateUpdateClient from "@/components/CreateUpdateClient";
 import { withAuth } from "@/utils/auth";
 import { GetServerSideProps } from "next";
 import { Campaign } from "../keyword_finder";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import { User } from "@/types/user";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -35,6 +43,7 @@ function Clients() {
   } = useSWR<Client[]>("/api/clients", fetcher, {
     revalidateOnFocus: false,
   });
+
   const { data: campaigns } = useSWR<Campaign[]>(
     "/api/fetchCampaigns",
     fetcher,
@@ -42,7 +51,27 @@ function Clients() {
       revalidateOnFocus: false,
     }
   );
+
+  const { data: users } = useSWR<User[]>("/api/get-users", fetcher, {
+    revalidateOnFocus: false,
+  });
+
   const [loading, setLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<string>("");
+  const [selectedCampaign, setSelectedCampaign] = useState<string>("");
+
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+    return clients.filter((client) => {
+      const matchesUser = selectedUser
+        ? client.user_name.toString() === selectedUser
+        : true;
+      const matchesCampaign = selectedCampaign
+        ? client.campaign_code.toString() === selectedCampaign
+        : true;
+      return matchesUser && matchesCampaign;
+    });
+  }, [clients, selectedUser, selectedCampaign]);
 
   const handleDelete = async (clientId: string) => {
     setLoading(true);
@@ -172,7 +201,8 @@ function Clients() {
 
   const actionsTemplate = (
     rowData: Client,
-    campaigns: Campaign[] | undefined
+    campaigns: Campaign[] | undefined,
+    users: User[] | undefined
   ) => {
     const initialData = {
       user_id: rowData.user_id,
@@ -201,6 +231,7 @@ function Clients() {
           initialData={initialData}
           client_id={rowData.client_id}
           campaigns={campaigns}
+          users={users}
         />
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -236,16 +267,55 @@ function Clients() {
       </div>
     );
   };
-  console.log("campaigns normal", campaigns);
+
   return (
     <div className="px-6">
-      <div className="flex justify-end items-center my-2">
-        <CreateUpdateClient mode="create" campaigns={campaigns} />
+      <div className="flex justify-between items-center my-2">
+        <div className="flex gap-4">
+          <Select value={selectedUser} onValueChange={setSelectedUser}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by User" />
+            </SelectTrigger>
+            <SelectContent>
+              {users?.map((user) => (
+                <SelectItem key={user.id} value={user.name}>
+                  {user.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by Campaign" />
+            </SelectTrigger>
+            <SelectContent>
+              {campaigns?.map((c) => (
+                <SelectItem
+                  key={c.campaign_id}
+                  value={c.campaign_code.toString()}
+                >
+                  {c.campaign_name}- {c.campaign_code}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedUser("");
+              setSelectedCampaign("");
+            }}
+          >
+            Clear Filters
+          </Button>
+        </div>
+        <CreateUpdateClient mode="create" campaigns={campaigns} users={users} />
       </div>
 
       <div className="bg-gray-100 px-6 py-4 shadow-lg dark:bg-sidebar rounded-xl border">
         <DataTable
-          value={clients || []}
+          value={filteredClients || []}
           scrollable
           scrollHeight="550px"
           tableStyle={{ minWidth: "600px" }}
@@ -317,7 +387,7 @@ function Clients() {
 
           <Column
             header="Actions"
-            body={(rowData) => actionsTemplate(rowData, campaigns)}
+            body={(rowData) => actionsTemplate(rowData, campaigns, users)}
             align="center"
             style={{ ...columnStyles.base, width: "10%" }}
           />

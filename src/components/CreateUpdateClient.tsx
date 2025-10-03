@@ -2,7 +2,7 @@
 
 import {  useState } from "react";
 import { useSession } from "next-auth/react";
-import useSWR, { mutate } from "swr";
+import { mutate } from "swr";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,7 +10,7 @@ import { Edit } from "lucide-react";
 
 import { User } from "@/types/user";
 import { Campaign } from "@/pages/keyword_finder";
-import { createClientData, usersComponentData } from "@/constants";
+import { createClientData } from "@/constants";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -68,21 +68,19 @@ type CreateOrUpdateClientProps = {
   initialData?: Partial<CreateClientValues>;
   client_id?: string;
   campaigns?:Campaign[]
+  users?:User[]
 };
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function CreateUpdateClient({
   mode = "create",
   initialData,
   client_id,
-  campaigns
+  campaigns,
+  users
 }: CreateOrUpdateClientProps) {
   const { data: session } = useSession();
-  const { data: users, error } = useSWR<User[]>("/api/get-users", fetcher, {
-    revalidateOnFocus: false,
-  });
- 
+
   const [isDialogOpen, setDialogOpen] = useState(false);
   const form = useForm<CreateClientValues>({
     resolver: zodResolver(createClientSchema),
@@ -93,6 +91,7 @@ export default function CreateUpdateClient({
       updated_by: session?.user?.name ?? "",
     },
   });
+
   const onSubmit = async (data: CreateClientValues) => {
     const payload = { ...data, metadata: {}, client_id };
 
@@ -128,7 +127,6 @@ export default function CreateUpdateClient({
     setDialogOpen(false);
   };
 
-  if (error) return <div>{usersComponentData.error}</div>;
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
