@@ -22,7 +22,7 @@ import * as XLSX from "xlsx";
 
 type TestCase = {
   text: string;
-  expected: "YES" | "NO" | "UNSURE";
+  expected: "YES" | "NO" | "UNSURE" | "NEGATIVEAGE";
 };
 
 type TestResult = {
@@ -69,6 +69,12 @@ export default function BulkAgeTestPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const variantMap = {
+    YES: "default",
+    NO: "destructive",
+    UNSURE: "outline",
+    NEGATIVEAGE: "secondary",
+  } as const;
   const addTestCase = () => {
     if (newTestCase.text.trim()) {
       setTestCases([...testCases, { ...newTestCase }]);
@@ -152,15 +158,15 @@ export default function BulkAgeTestPage() {
           throw new Error(`Row ${index + 2}: Text is required`);
         }
 
-        if (!["YES", "NO", "UNSURE"].includes(expected)) {
+        if (!["YES", "NO", "UNSURE", "NEGATIVEAGE"].includes(expected)) {
           throw new Error(
-            `Row ${index + 2}: Expected must be YES, NO, or UNSURE`
+            `Row ${index + 2}: Expected must be YES, NO, UNSURE or NEGATIVEAGE`
           );
         }
 
         return {
           text,
-          expected: expected as "YES" | "NO" | "UNSURE",
+          expected: expected as "YES" | "NO" | "UNSURE" | "NEGATIVEAGE",
         };
       });
 
@@ -409,13 +415,7 @@ export default function BulkAgeTestPage() {
                           {testCase.text}
                         </div>
                         <Badge
-                          variant={
-                            testCase.expected === "YES"
-                              ? "default"
-                              : testCase.expected === "NO"
-                              ? "destructive"
-                              : "secondary"
-                          }
+                          variant={variantMap[testCase.expected] || "success"}
                         >
                           {testCase.expected}
                         </Badge>
@@ -447,17 +447,33 @@ export default function BulkAgeTestPage() {
                   </div>
                   <select
                     value={newTestCase.expected}
-                    onChange={(e) =>
-                      setNewTestCase({
+                    onChange={(e) => {
+                      const newValue = e.target.value as
+                        | "YES"
+                        | "NO"
+                        | "UNSURE"
+                        | "NEGATIVEAGE";
+
+                      console.log(e.target.value);
+                      const updatedTestCase = {
                         ...newTestCase,
-                        expected: e.target.value as "YES" | "NO" | "UNSURE",
-                      })
-                    }
+                        expected: newValue,
+                      };
+
+                      setNewTestCase(updatedTestCase);
+
+                      // Add test case with the updated value
+                      if (updatedTestCase.text.trim()) {
+                        setTestCases([...testCases, { ...updatedTestCase }]);
+                        setNewTestCase({ text: "", expected: "YES" });
+                      }
+                    }}
                     className="px-4 py-3 border-2 rounded-md focus:border-blue-500 focus:outline-none"
                   >
                     <option value="YES">YES</option>
                     <option value="NO">NO</option>
                     <option value="UNSURE">UNSURE</option>
+                    <option value="NEGATIVEAGE">NEGATIVEAGE</option>
                   </select>
                   <Button
                     type="button"

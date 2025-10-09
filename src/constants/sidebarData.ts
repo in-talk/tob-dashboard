@@ -84,6 +84,10 @@ export const sideBarData = {
           title: "Keyword Finder",
           url: "/keyword_finder",
         },
+        {
+          title: "Age function analyzer",
+          url: "/age_classifier",
+        },
       ],
     },
   ],
