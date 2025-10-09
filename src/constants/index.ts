@@ -104,6 +104,7 @@ export const usersComponentData = {
     clientId: "Client ID",
     lastActive: "Last Active",
     missingClientId: "Missing",
+    role:'Role',
     lastActiveFallback: "an hour ago",
   },
   actions: {
@@ -202,6 +203,29 @@ export const deleteDocumentData = {
   },
 };
 
+export const deleteClientAlert = {
+  button: {
+    delete: "Delete",
+  },
+  dialog: {
+    title: "Are you sure?",
+    description:
+      "This action cannot be undone. This will permanently delete client from database.",
+    cancel: "Cancel",
+    confirmDelete: "Delete",
+  },
+  toast: {
+    success: {
+      description: "Client deleted successfully.",
+    },
+    error: {
+      title: "Uh oh! Something went wrong.",
+      unexpected: "An unexpected error occurred.",
+      server: "Unable to connect to the server.",
+    },
+  },
+};
+
 export const createUserData = {
   trigger: {
     button: "Create User",
@@ -241,6 +265,49 @@ export const createUserData = {
   },
   button: {
     submit: "Create User",
+    submitting: "Creating...",
+  },
+};
+
+export const createClientData = {
+  trigger: {
+    button: "Create Client",
+  },
+  dialog: {
+    title: "Create New Client",
+  },
+  message: {
+    success: "Client created successfully",
+    error: "Failed to create client",
+  },
+  form: {
+    email: {
+      label: "Email",
+      required: "Email is required",
+    },
+    password: {
+      label: "Password",
+      required: "Password is required",
+      minLength: "Password must be at least 6 characters long",
+    },
+    name: {
+      label: "Name",
+      required: "Name is required",
+    },
+    role: {
+      label: "Role",
+      options: {
+        admin: "Admin",
+        user: "User",
+      },
+    },
+    clientId: {
+      label: "Client Id",
+      required: "Client ID is required",
+    },
+  },
+  button: {
+    submit: "Create Client",
     submitting: "Creating...",
   },
 };
