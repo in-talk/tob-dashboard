@@ -35,7 +35,9 @@ export default function Home() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(0.5);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [previousCallRecords, setPreviousCallRecords] = useState<CallRecord[]>([]);
+  const [previousCallRecords, setPreviousCallRecords] = useState<CallRecord[]>(
+    []
+  );
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   const [dateRange, setDateRange] = useState(() => {
@@ -70,7 +72,7 @@ export default function Home() {
       ? `call-${selectedClientId}-${utcDateRange.from}-${utcDateRange.to}`
       : null;
   const agentKey =
-    client_id && utcDateRange
+    selectedClientId && utcDateRange
       ? `agent-${client_id}-${utcDateRange.from}-${utcDateRange.to}`
       : null;
   const clientKey = `client-${user_id}`;
@@ -110,7 +112,7 @@ export default function Home() {
     agentKey,
     () =>
       postFetcher("/api/fetchAgentReport", {
-        client_id,
+        client_id: selectedClientId,
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
       }),
@@ -125,10 +127,13 @@ export default function Home() {
     agentReportQuery.isLoading;
 
   const callRecords: CallRecord[] = callDataQuery.data?.callRecords ?? [];
-  const dispositionChartData = transformGraphData(chartDataQuery.data?.graphData ?? []);
+  const dispositionChartData = transformGraphData(
+    chartDataQuery.data?.graphData ?? []
+  );
   const clientData = clientsDataQuery.data?.clients ?? [];
-  const agentReport = transformAgentData(agentReportQuery.data?.agentRecords ?? []);
-
+  const agentReport = transformAgentData(
+    agentReportQuery.data?.agentRecords ?? []
+  );
   const getTimeAgo = () => {
     if (!lastUpdated) return "Never";
     const diffMs = Date.now() - lastUpdated.getTime();
@@ -136,6 +141,71 @@ export default function Home() {
     return diffMin === 0
       ? "Just now"
       : `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
+  };
+
+  const handleStatWiseDisposition = (disposition: string) => {
+    const filteredData = callRecords.filter(
+      (record) =>
+        record.disposition?.toUpperCase() === disposition?.toUpperCase()
+    );
+    if (filteredData.length === 0) return;
+
+    const excludeColumns = [
+      "metadata",
+      "total_records",
+      "current_page",
+      "page_size",
+      "total_page",
+      "has_next_page",
+      "has_previous_page",
+      "call_recording_path",
+      "total_pages",
+      "call_status",
+    ]; // columns to exclude
+
+    // Fix 1: Get keys from the first record, not the array
+    // Fix 2: Add type assertion for the indexing
+    const filteredKeys = Object.keys(filteredData[0]).filter(
+      (key) => !excludeColumns.includes(key)
+    );
+
+    const csv = [
+      filteredKeys.join(","),
+      ...filteredData.map((row) =>
+        filteredKeys
+          .map((key) => {
+            const value = row[key as keyof CallRecord];
+
+            // Extract seconds from call_duration
+            if (
+              key === "call_duration" &&
+              typeof value === "object" &&
+              value !== null
+            ) {
+              return `${value.seconds}:${value.milliseconds}` || 0;
+            }
+
+            // Handle strings with commas or quotes
+            if (
+              typeof value === "string" &&
+              (value.includes(",") || value.includes('"'))
+            ) {
+              return `"${value.replace(/"/g, '""')}"`;
+            }
+
+            return value ?? "";
+          })
+          .join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${disposition.toUpperCase()} (FROM ${utcDateRange.from} TO ${utcDateRange.to}).csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   useEffect(() => {
@@ -186,7 +256,11 @@ export default function Home() {
         </div>
 
         <div className="w-full">
-          <Stats agentReport={agentReport || []} isLoading={agentReportQuery.isLoading} />
+          <Stats
+            onClick={handleStatWiseDisposition}
+            agentReport={agentReport || []}
+            isLoading={agentReportQuery.isLoading}
+          />
         </div>
 
         <div className="w-full">
@@ -208,7 +282,10 @@ export default function Home() {
         </div>
 
         <div className="w-full">
-          <AgentDispositionReport agentReport={agentReport || []} isLoading={agentReportQuery.isLoading} />
+          <AgentDispositionReport
+            agentReport={agentReport || []}
+            isLoading={agentReportQuery.isLoading}
+          />
         </div>
       </div>
     </>
