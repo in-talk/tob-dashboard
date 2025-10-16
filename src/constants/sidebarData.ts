@@ -61,12 +61,16 @@ export const sideBarData = {
           url: "/label_managment/?SOLAR",
         },
         {
-          title: `FE - ${Campaign.FE}`,
+          title: `FE (Final expense) - ${Campaign.FE}`,
           url: "/label_managment/?FE",
         },
         {
           title: `MVA - ${Campaign.MVA}`,
           url: "/label_managment/?MVA",
+        },
+        {
+          title: `MC (Medicare) - ${Campaign.MC}`,
+          url: "/label_managment/?MC",
         },
       ],
     },
