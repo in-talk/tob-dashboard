@@ -29,7 +29,7 @@ export default function Home() {
   const { data: session } = useSession();
   const { timezone } = useTimezone();
 
-  const client_id = session?.user?.client_id;
+  // const client_id = session?.user?.client_id;
   const user_id = session?.user?.id;
 
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -64,8 +64,8 @@ export default function Home() {
   );
 
   const chartKey =
-    client_id && utcDateRange
-      ? `chart-${client_id}-${utcDateRange.from}-${utcDateRange.to}`
+    selectedClientId && utcDateRange
+      ? `chart-${selectedClientId}-${utcDateRange.from}-${utcDateRange.to}`
       : null;
   const callKey =
     selectedClientId && utcDateRange
@@ -73,7 +73,7 @@ export default function Home() {
       : null;
   const agentKey =
     selectedClientId && utcDateRange
-      ? `agent-${client_id}-${utcDateRange.from}-${utcDateRange.to}`
+      ? `agent-${selectedClientId}-${utcDateRange.from}-${utcDateRange.to}`
       : null;
   const clientKey = `client-${user_id}`;
 
@@ -90,7 +90,7 @@ export default function Home() {
     chartKey,
     () =>
       postFetcher("/api/fetchDispositionGraphData", {
-        client_id,
+        client_id: selectedClientId,
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
       }),
@@ -144,10 +144,13 @@ export default function Home() {
   };
 
   const handleStatWiseDisposition = (disposition: string) => {
-    const filteredData = callRecords.filter(
-      (record) =>
-        record.disposition?.toUpperCase() === disposition?.toUpperCase()
-    );
+    const filteredData =
+      callRecords.filter(
+        (record) =>
+          record.disposition?.toUpperCase() === disposition?.toUpperCase()
+      ) ?? disposition.toUpperCase() === "totalCalls"
+        ? callRecords
+        : [];
     if (filteredData.length === 0) return;
 
     const excludeColumns = [
@@ -203,7 +206,9 @@ export default function Home() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${disposition.toUpperCase()} (FROM ${utcDateRange.from} TO ${utcDateRange.to}).csv`;
+    a.download = `${disposition.toUpperCase()} (FROM ${utcDateRange.from} TO ${
+      utcDateRange.to
+    }).csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };

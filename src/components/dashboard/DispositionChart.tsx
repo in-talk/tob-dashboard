@@ -152,7 +152,7 @@ const DispositionChart = ({
               height={50}
             />
             <YAxis
-              domain={[0, maxYValue + 5]}
+              domain={[0, maxYValue]}
               tickCount={10}
               tickFormatter={(value) => `${value}%`}
               label={{

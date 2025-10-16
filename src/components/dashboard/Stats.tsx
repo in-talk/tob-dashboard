@@ -104,7 +104,7 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
     }
   };
 
-    if (!agentReport || agentReport.length === 0) {
+    if ((!agentReport || agentReport.length === 0) && !isLoading) {
     return <div>No data available</div>;
   }
 
