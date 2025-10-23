@@ -22,11 +22,12 @@ import * as XLSX from "xlsx";
 
 type TestCase = {
   text: string;
-  expected: "YES" | "NO" | "UNSURE" | "NEGATIVEAGE";
+  expected: "YES" | "NO" | "UNSURE" | "NEGATIVEAGE" | "UNSURESPLITTED";
 };
 
 type TestResult = {
   text: string;
+  response_text: string;
   expected: string;
   actual: string;
   extracted_age: number | null;
@@ -74,6 +75,8 @@ export default function BulkAgeTestPage() {
     NO: "destructive",
     UNSURE: "outline",
     NEGATIVEAGE: "secondary",
+    UNSURESPLITTED: "warning",
+    
   } as const;
   const addTestCase = () => {
     if (newTestCase.text.trim()) {
@@ -158,15 +161,15 @@ export default function BulkAgeTestPage() {
           throw new Error(`Row ${index + 2}: Text is required`);
         }
 
-        if (!["YES", "NO", "UNSURE", "NEGATIVEAGE"].includes(expected)) {
+        if (!["YES", "NO", "UNSURE", "NEGATIVEAGE","UNSURESPLITTED"].includes(expected)) {
           throw new Error(
-            `Row ${index + 2}: Expected must be YES, NO, UNSURE or NEGATIVEAGE`
+            `Row ${index + 2}: Expected must be YES, NO, UNSURE, NEGATIVEAGE or UNSURESPLITTED`
           );
         }
 
         return {
           text,
-          expected: expected as "YES" | "NO" | "UNSURE" | "NEGATIVEAGE",
+          expected: expected as "YES" | "NO" | "UNSURE" | "NEGATIVEAGE" | "UNSURESPLITTED",
         };
       });
 
@@ -230,6 +233,7 @@ export default function BulkAgeTestPage() {
     // Results worksheet
     const resultsData = response.results.map((result) => ({
       Text: result.text,
+      ResponseText: result.response_text,
       Expected: result.expected,
       Actual: result.actual,
       "Extracted Age": result.extracted_age || "N/A",
@@ -474,6 +478,7 @@ export default function BulkAgeTestPage() {
                     <option value="NO">NO</option>
                     <option value="UNSURE">UNSURE</option>
                     <option value="NEGATIVEAGE">NEGATIVEAGE</option>
+                    <option value="UNSURESPLITTED">UNSURESPLITTED</option>
                   </select>
                   <Button
                     type="button"
@@ -618,6 +623,9 @@ export default function BulkAgeTestPage() {
                             <div className="flex-1">
                               <div className="font-semibold text-gray-800 mb-1">
                                 {result.text}
+                              </div>
+                              <div className="font-semibold text-sm text-red-400 mb-2">
+                                {result.response_text}
                               </div>
                               <div className="text-sm text-gray-600">
                                 {result.reasoning}
