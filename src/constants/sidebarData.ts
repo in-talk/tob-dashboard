@@ -41,6 +41,10 @@ export const sideBarData = {
           title: "Clients",
           url: "/forms/clients",
         },
+         {
+          title: "Hp Numbers",
+          url: "/forms/HPNumbers",
+        },
       ],
     },
     {

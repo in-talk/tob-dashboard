@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@formkit/drag-and-drop": "^0.5.3",
     "@hookform/resolvers": "^3.10.0",
     "@next-auth/firebase-adapter": "^2.0.1",
     "@radix-ui/react-alert-dialog": "^1.1.4",
