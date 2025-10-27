@@ -20,17 +20,11 @@ export default async function handler(
     num_of_records = null,
   } = req.body;
 
-  console.log(
-    "fetchCallRecords==>",
-    client_id,
-    formatDateForDB(from_date),
-    formatDateForDB(to_date)
-  );
+
 
   if (!client_id) {
     return res.status(400).json({ error: "client_id is required" });
   }
-  console.log(client_id, "client_id");
   try {
     const result = await db.query(
       `SELECT * FROM get_client_data_paginated($1, $2, $3, $4, $5, $6);`,

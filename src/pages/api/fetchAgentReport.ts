@@ -17,7 +17,6 @@ export default async function handler(
     from_date = defaultToData,
     to_date = `${defaultToData} 23:59:59`,
   } = req.body;
-
   if (!client_id) {
     return res.status(400).json({ error: "client_id is required" });
   }

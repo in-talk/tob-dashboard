@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   DataTable,
   DataTableFilterMeta,
-  DataTableFilterMetaData, 
+  DataTableFilterMetaData,
   DataTablePageEvent,
 } from "primereact/datatable";
 import { Column, ColumnFilterElementTemplateOptions } from "primereact/column";
@@ -43,13 +43,14 @@ const DISPOSITION_COLORS: Record<string, string> = {
   NP: "bg-purple-100 text-purple-800 dark:bg-purple-700 dark:text-purple-200",
 };
 
-const DEFAULT_FILTER_COLOR = "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
+const DEFAULT_FILTER_COLOR =
+  "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
 
 const ROWS_PER_PAGE_OPTIONS = [5, 10, 15, 20, 25, 50, 100, 200];
 
 const GLOBAL_FILTER_FIELDS = [
   "agent",
-  "call_id", 
+  "call_id",
   "disposition",
   "label",
   "transcription",
@@ -97,7 +98,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   isLoading,
 }) => {
   const [data, setData] = useState<CallRecord[]>(callRecords);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
   const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
   const [first, setFirst] = useState(0);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -106,18 +107,18 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   const { data: session } = useSession();
   const role = session?.user?.role;
 
-  const dispositions = useMemo(() => 
-    [...new Set(data.map((item) => item.disposition))], 
+  const dispositions = useMemo(
+    () => [...new Set(data.map((item) => item.disposition))],
     [data]
   );
 
-  const dispositionOptions = useMemo(() => 
-    dispositions.map((d) => ({ label: d, value: d })), 
+  const dispositionOptions = useMemo(
+    () => dispositions.map((d) => ({ label: d, value: d })),
     [dispositions]
   );
 
-  const totalRecords = useMemo(() => 
-    (data && data[0]?.total_records) || 0, 
+  const totalRecords = useMemo(
+    () => (data && data[0]?.total_records) || 0,
     [data]
   );
   const getDispositionColor = useCallback((disposition: string) => {
@@ -125,7 +126,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   }, []);
 
   const toggleAccordion = useCallback(() => {
-    setIsExpanded(prev => !prev);
+    setIsExpanded((prev) => !prev);
   }, []);
 
   const onPageChange = useCallback((event: DataTablePageEvent) => {
@@ -133,17 +134,20 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
     setFirst(event.first);
   }, []);
 
-  const onGlobalFilterChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setFilters(prevFilters => {
-      const newFilters = { ...prevFilters };
-      if (newFilters["global"]) {
-        (newFilters["global"] as DataTableFilterMetaData).value = value;
-      }
-      return newFilters;
-    });
-    setGlobalFilterValue(value);
-  }, []);
+  const onGlobalFilterChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setFilters((prevFilters) => {
+        const newFilters = { ...prevFilters };
+        if (newFilters["global"]) {
+          (newFilters["global"] as DataTableFilterMetaData).value = value;
+        }
+        return newFilters;
+      });
+      setGlobalFilterValue(value);
+    },
+    []
+  );
 
   const exportData = useCallback(() => {
     if (data.length === 0) return;
@@ -168,30 +172,41 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   }, []);
 
   // Template functions - memoized to prevent recreation
-  const agentBodyTemplate = useCallback((rowData: CallRecord) => (
-    <span
-      className="capitalize text-gray-900 dark:text-gray-100"
-      title={rowData.agent}
-    >
-      {rowData.agent || "N/A"}
-    </span>
-  ), []);
-
-  const callIdBodyTemplate = useCallback((rowData: CallRecord) => (
-    role === "admin" ? (
-      <CallDetailsModal callId={rowData.call_id} clientId={rowData.client_id} />
-    ) : (
-      <span className="text-gray-900 dark:text-gray-100">
-        {rowData.call_id}
+  const agentBodyTemplate = useCallback(
+    (rowData: CallRecord) => (
+      <span
+        className="capitalize text-gray-900 dark:text-gray-100"
+        title={rowData.agent}
+      >
+        {rowData.agent || "N/A"}
       </span>
-    )
-  ), [role]);
+    ),
+    []
+  );
 
-  const callerIdBodyTemplate = useCallback((rowData: CallRecord) => (
-    <span className="text-gray-900 dark:text-gray-100">
-      {rowData.caller_id}
-    </span>
-  ), []);
+  const callIdBodyTemplate = useCallback(
+    (rowData: CallRecord) =>
+      role === "admin" ? (
+        <CallDetailsModal
+          callId={rowData.call_id}
+          clientId={rowData.client_id}
+        />
+      ) : (
+        <span className="text-gray-900 dark:text-gray-100">
+          {rowData.call_id}
+        </span>
+      ),
+    [role]
+  );
+
+  const callerIdBodyTemplate = useCallback(
+    (rowData: CallRecord) => (
+      <span className="text-gray-900 dark:text-gray-100">
+        {rowData.caller_id}
+      </span>
+    ),
+    []
+  );
 
   const durationBodyTemplate = useCallback((rowData: CallRecord) => {
     const callDuration = formatCallDuration(rowData?.call_duration);
@@ -212,129 +227,159 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
     );
   }, []);
 
-  const turnBodyTemplate = useCallback((rowData: CallRecord) => (
-    <p className="text-gray-900 text-sm text-center dark:text-gray-100">
-      {rowData.turn ?? -1}
-    </p>
-  ), []);
+  const turnBodyTemplate = useCallback(
+    (rowData: CallRecord) => (
+      <p className="text-gray-900 text-sm text-center dark:text-gray-100">
+        {rowData.turn ?? -1}
+      </p>
+    ),
+    []
+  );
 
-  const dispositionBodyTemplate = useCallback((rowData: CallRecord) => {
-    const colorClass = getDispositionColor(rowData.disposition);
-    return (
-      <span
-        className={`inline-flex px-2 py-1 text-sm font-semibold rounded-full ${colorClass}`}
-        title={rowData.disposition}
-      >
-        {rowData.disposition || "N/A"}
-      </span>
-    );
-  }, [getDispositionColor]);
-
-  const audioBodyTemplate = useCallback((rowData: CallRecord) => (
-    role === "admin" ? (
-      <AudioPlayer audioPath={rowData.call_recording_path} />
-    ) : (
-      <button
-        className="text-blue-500 hover:text-blue-700 underline text-sm"
-        onClick={() => handleOpenPlayer(rowData.call_recording_path)}
-      >
-        Call Audio
-      </button>
-    )
-  ), [role, handleOpenPlayer]);
-
-  const labelBodyTemplate = useCallback((rowData: CallRecord) => (
-    <span className="text-gray-900 text-sm dark:text-gray-100">
-      {rowData.label || "N/A"}
-    </span>
-  ), []);
-
-  const transcriptionBodyTemplate = useCallback((rowData: CallRecord) => (
-    <span
-      title={rowData.transcription}
-      className="max-w-[200px] text-sm block whitespace-nowrap overflow-x-auto pb-1 text-gray-900 dark:text-gray-100"
-    >
-      {rowData.transcription}
-    </span>
-  ), []);
-
-  const dispositionFilterTemplate = useCallback((
-    options: ColumnFilterElementTemplateOptions
-  ) => (
-    <Dropdown
-      value={options.value}
-      options={dispositionOptions}
-      onChange={(e: DropdownChangeEvent) =>
-        options.filterCallback(e.value, options.index)
-      }
-      placeholder="Select Disposition"
-      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-    />
-  ), [dispositionOptions]);
-
-  const header = useMemo(() => (
-    <div className="flex flex-wrap gap-4 justify-end items-center mb-2">
-      <div className="flex gap-4 items-center">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <InputText
-            value={globalFilterValue}
-            onChange={onGlobalFilterChange}
-            placeholder="Search calls..."
-            className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-          />
-        </div>
-        <button
-          onClick={exportData}
-          className="px-4 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-300 flex items-center gap-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)]"
+  const dispositionBodyTemplate = useCallback(
+    (rowData: CallRecord) => {
+      const colorClass = getDispositionColor(rowData.disposition);
+      return (
+        <span
+          className={`inline-flex px-2 py-1 text-sm font-semibold rounded-full ${colorClass}`}
+          title={rowData.disposition}
         >
-          <Download className="w-4 h-4" />
-          Export CSV
+          {rowData.disposition || "N/A"}
+        </span>
+      );
+    },
+    [getDispositionColor]
+  );
+
+  const audioBodyTemplate = useCallback(
+    (rowData: CallRecord) =>
+      role === "admin" ? (
+        <AudioPlayer audioPath={rowData.call_recording_path} />
+      ) : (
+        <button
+          className="text-blue-500 hover:text-blue-700 underline text-sm"
+          onClick={() => handleOpenPlayer(rowData.call_recording_path)}
+        >
+          Call Audio
         </button>
+      ),
+    [role, handleOpenPlayer]
+  );
+
+  const labelBodyTemplate = useCallback(
+    (rowData: CallRecord) => (
+      <span className="text-gray-900 text-sm dark:text-gray-100">
+        {rowData.label || "N/A"}
+      </span>
+    ),
+    []
+  );
+
+  const transcriptionBodyTemplate = useCallback(
+    (rowData: CallRecord) => (
+      <span
+        title={rowData.transcription}
+        className="max-w-[200px] text-sm block whitespace-nowrap overflow-x-auto pb-1 text-gray-900 dark:text-gray-100"
+      >
+        {rowData.transcription}
+      </span>
+    ),
+    []
+  );
+
+  const dispositionFilterTemplate = useCallback(
+    (options: ColumnFilterElementTemplateOptions) => (
+      <Dropdown
+        value={options.value}
+        options={dispositionOptions}
+        onChange={(e: DropdownChangeEvent) =>
+          options.filterCallback(e.value, options.index)
+        }
+        placeholder="Select Disposition"
+        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+      />
+    ),
+    [dispositionOptions]
+  );
+
+  const header = useMemo(
+    () => (
+      <div className="flex flex-wrap gap-4 justify-end items-center mb-2">
+        <div className="flex gap-4 items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <InputText
+              value={globalFilterValue}
+              onChange={onGlobalFilterChange}
+              placeholder="Search calls..."
+              className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            />
+          </div>
+          <button
+            onClick={exportData}
+            className="px-4 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-300 flex items-center gap-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)]"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+        </div>
       </div>
-    </div>
-  ), [globalFilterValue, onGlobalFilterChange, exportData]);
+    ),
+    [globalFilterValue, onGlobalFilterChange, exportData]
+  );
 
   // Empty message component
-  const emptyMessage = useMemo(() => (
-    <div className="flex flex-col items-center justify-center py-12">
-      <Headset className="w-12 h-12 text-gray-300 mb-4" />
-      <p className="text-gray-500 dark:text-gray-400 text-lg">
-        No call records found
-      </p>
-      <p className="text-gray-400 dark:text-gray-500 text-sm">
-        Try adjusting your search or filter criteria
-      </p>
-    </div>
-  ), []);
+  const emptyMessage = useMemo(
+    () => (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Headset className="w-12 h-12 text-gray-300 mb-4" />
+        <p className="text-gray-500 dark:text-gray-400 text-lg">
+          No call records found
+        </p>
+        <p className="text-gray-400 dark:text-gray-500 text-sm">
+          Try adjusting your search or filter criteria
+        </p>
+      </div>
+    ),
+    []
+  );
 
   // DataTable pt configuration
-  const ptConfig = useMemo(() => ({
-    header: { className: "bg-white dark:bg-sidebar" },
-    thead: { className: "dark:bg-sidebar" },
-    tbody: { className: "dark:bg-sidebar" },
-    headerRow: { className: "border-b dark:bg-sidebar text-sm border-gray-200 pb-2" },
-    emptyMessage: { className: "dark:bg-sidebar" },
-    paginator: { root: { className: "dark:bg-sidebar" } },
-    bodyRow: { 
-      className: "border-b border-gray-200 dark:bg-sidebar dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" 
-    },
-  }), []);
+  const ptConfig = useMemo(
+    () => ({
+      header: { className: "bg-white dark:bg-sidebar" },
+      thead: { className: "dark:bg-sidebar" },
+      tbody: { className: "dark:bg-sidebar" },
+      headerRow: {
+        className: "border-b dark:bg-sidebar text-sm border-gray-200 pb-2",
+      },
+      emptyMessage: { className: "dark:bg-sidebar" },
+      paginator: { root: { className: "dark:bg-sidebar" } },
+      bodyRow: {
+        className:
+          "border-b border-gray-200 dark:bg-sidebar dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700",
+      },
+    }),
+    []
+  );
 
   // Column style configurations
-  const columnStyles = useMemo(() => ({
-    base: { padding: "0", background: "transparent" },
-    agent: { minWidth: "0px" },
-    callId: { minWidth: "80px" },
-    callerId: { minWidth: "100px" },
-    duration: { minWidth: "80px" },
-    createdAt: { minWidth: "120px" },
-    turn: { minWidth: "60px" },
-    disposition: { minWidth: "70px" },
-    audio: { minWidth: role === "admin" ? "200px" : "120px" },
-    label: { minWidth: "100px" },
-    transcription: { minWidth: "200px" },
-  }), [role]);
+  const columnStyles = useMemo(
+    () => ({
+      base: { padding: "0", background: "transparent" },
+      agent: { minWidth: "0px" },
+      callId: { minWidth: "80px" },
+      callerId: { minWidth: "100px" },
+      duration: { minWidth: "80px" },
+      createdAt: { minWidth: "120px" },
+      turn: { minWidth: "60px" },
+      disposition: { minWidth: "70px" },
+      audio: { minWidth: role === "admin" ? "200px" : "120px" },
+      label: { minWidth: "100px" },
+      transcription: { minWidth: "200px" },
+    }),
+    [role]
+  );
 
   // Effects
   useEffect(() => {
@@ -382,7 +427,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
 
           <div
             className={`transition-all duration-300 ease-in-out overflow-hidden ${
-              isExpanded ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+              isExpanded ? "max-h-full opacity-100" : "max-h-0 opacity-0"
             }`}
           >
             <div className="px-4 py-0">
@@ -504,7 +549,10 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
                     header="Transcription"
                     filter
                     filterPlaceholder="Search transcription"
-                    style={{ ...columnStyles.base, ...columnStyles.transcription }}
+                    style={{
+                      ...columnStyles.base,
+                      ...columnStyles.transcription,
+                    }}
                     body={transcriptionBodyTemplate}
                   />
                 )}

@@ -152,8 +152,8 @@ export default function CreateUser() {
           {/* Submit Button */}
           <Button
             type="submit"
-            variant="outline"
-            className="w-full bg-[#3b65f5] rounded-lg text-dark dark:text-white p-2 mt-2"
+            variant="default"
+            className="w-full  p-4 mt-2"
             disabled={isSubmitting}
           >
             {isSubmitting ? (

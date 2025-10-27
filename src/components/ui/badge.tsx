@@ -3,7 +3,7 @@
 import * as React from "react";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "secondary" | "destructive" | "outline";
+  variant?: "default" | "secondary" | "destructive" | "outline" | "warning" | "info";
 }
 
 function Badge({ className = "", variant = "default", ...props }: BadgeProps) {
@@ -15,6 +15,8 @@ function Badge({ className = "", variant = "default", ...props }: BadgeProps) {
     secondary: "border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200",
     destructive: "border-transparent bg-red-600 text-white hover:bg-red-700",
     outline: "text-gray-700 border-gray-300 bg-white hover:bg-gray-50",
+    warning: "text-red-700 border-gray-300 bg-white hover:bg-gray-50",
+    info: "text-blue-700 border-gray-300 bg-white hover:bg-gray-50",
   };
 
   const combinedClasses =
