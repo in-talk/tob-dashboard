@@ -22,7 +22,7 @@ import * as XLSX from "xlsx";
 
 type TestCase = {
   text: string;
-  expected: "YES" | "NO" | "UNSURE" | "NEGATIVEAGE" | "UNSURESPLITTED";
+  expected: "YES" | "NO" | "UNSURE" | "NEGATIVEAGE" | "AGEUNSURE";
 };
 
 type TestResult = {
@@ -75,7 +75,7 @@ export default function BulkAgeTestPage() {
     NO: "destructive",
     UNSURE: "outline",
     NEGATIVEAGE: "secondary",
-    UNSURESPLITTED: "warning",
+    AGEUNSURE: "warning",
     
   } as const;
   const addTestCase = () => {
@@ -161,15 +161,15 @@ export default function BulkAgeTestPage() {
           throw new Error(`Row ${index + 2}: Text is required`);
         }
 
-        if (!["YES", "NO", "UNSURE", "NEGATIVEAGE","UNSURESPLITTED"].includes(expected)) {
+        if (!["YES", "NO", "UNSURE", "NEGATIVEAGE","AGEUNSURE"].includes(expected)) {
           throw new Error(
-            `Row ${index + 2}: Expected must be YES, NO, UNSURE, NEGATIVEAGE or UNSURESPLITTED`
+            `Row ${index + 2}: Expected must be YES, NO, UNSURE, NEGATIVEAGE or AGEUNSURE`
           );
         }
 
         return {
           text,
-          expected: expected as "YES" | "NO" | "UNSURE" | "NEGATIVEAGE" | "UNSURESPLITTED",
+          expected: expected as "YES" | "NO" | "UNSURE" | "NEGATIVEAGE" | "AGEUNSURE",
         };
       });
 
@@ -279,8 +279,8 @@ export default function BulkAgeTestPage() {
 
   const getStatusColor = (isCorrect: boolean) => {
     return isCorrect
-      ? "bg-green-100 text-green-800 border-green-200"
-      : "bg-red-100 text-red-800 border-red-200";
+      ? "bg-green-500 text-green-800 border-green-200"
+      : "bg-red-500 text-red-800 border-red-200";
   };
 
   const getAccuracyColor = (accuracy: number) => {
@@ -477,8 +477,8 @@ export default function BulkAgeTestPage() {
                     <option value="YES">YES</option>
                     <option value="NO">NO</option>
                     <option value="UNSURE">UNSURE</option>
+                    <option value="AGEUNSURE">AGEUNSURE</option>
                     <option value="NEGATIVEAGE">NEGATIVEAGE</option>
-                    <option value="UNSURESPLITTED">UNSURESPLITTED</option>
                   </select>
                   <Button
                     type="button"
