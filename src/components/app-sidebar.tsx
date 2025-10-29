@@ -25,7 +25,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         "/audio-formatter",
         "/admin",
         "/keyword_finder",
-        "/clients"
+        "/clients",
+        "/agents",
+        "/models",
+        "/agents-by-campaign",
       ].includes(project.url);
     }
     return true;

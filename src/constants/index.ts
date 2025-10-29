@@ -5,7 +5,7 @@ export const signInPageData = {
   signInButton: "Sign In",
   signingIn: "Signing in....",
   protectedBy: "Protected by reCAPTCHA and subject to Privacy Policy",
-  welcomeBack:' Welcome back! Please sign in to continue',
+  welcomeBack: " Welcome back! Please sign in to continue",
   errors: {
     recaptchaRequired: "Please complete the reCAPTCHA verification",
     recaptchaLoad: "reCAPTCHA failed to load. Please refresh the page.",
@@ -20,9 +20,9 @@ export const signInPageData = {
     description:
       "reCAPTCHA site key is missing. Please check your environment variables.",
   },
-  inputLabel:{
-    email:'Email address',
-    password:'Password'
+  inputLabel: {
+    email: "Email address",
+    password: "Password",
   },
   alt: {
     logo: "logo",
@@ -104,7 +104,7 @@ export const usersComponentData = {
     clientId: "Client ID",
     lastActive: "Last Active",
     missingClientId: "Missing",
-    role:'Role',
+    role: "Role",
     lastActiveFallback: "an hour ago",
   },
   actions: {
@@ -226,6 +226,29 @@ export const deleteClientAlert = {
   },
 };
 
+export const deleteAgentAlert = {
+  button: {
+    delete: "Delete",
+  },
+  dialog: {
+    title: "Are you sure?",
+    description:
+      "This action cannot be undone. This will permanently delete agent from database.",
+    cancel: "Cancel",
+    confirmDelete: "Delete",
+  },
+  toast: {
+    success: {
+      description: "Agent deleted successfully.",
+    },
+    error: {
+      title: "Uh oh! Something went wrong.",
+      unexpected: "An unexpected error occurred.",
+      server: "Unable to connect to the server.",
+    },
+  },
+};
+
 export const createUserData = {
   trigger: {
     button: "Create User",
@@ -308,6 +331,34 @@ export const createClientData = {
   },
   button: {
     submit: "Create Client",
+    submitting: "Creating...",
+  },
+};
+
+export const createAgentData = {
+  trigger: {
+    button: "Create Agent",
+  },
+  dialog: {
+    title: "Create New Agent",
+  },
+  message: {
+    success: "Agent created successfully",
+    error: "Failed to create agent",
+  },
+  form: {
+    name: {
+      label: "Agent Name",
+      required: "Agent name is required",
+    },
+
+    agentId: {
+      label: "Agent Id",
+      required: "Agent ID is required",
+    },
+  },
+  button: {
+    submit: "Create Agent",
     submitting: "Creating...",
   },
 };

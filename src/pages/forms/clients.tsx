@@ -32,8 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { User } from "@/types/user";
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { fetcher } from "@/utils/fetcher";
 
 function Clients() {
   const {
@@ -193,7 +192,7 @@ function Clients() {
   const dateTemplate = (rowData: Client) => {
     const date = new Date(rowData.created_at);
     return (
-      <span className="text-sm text-gray-800dark:text-gray-100">
+      <span className="text-sm text-gray-800 dark:text-gray-100">
         {date.toLocaleDateString()} {date.toLocaleTimeString()}
       </span>
     );
