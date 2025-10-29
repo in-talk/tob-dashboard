@@ -41,6 +41,18 @@ export const sideBarData = {
           title: "Clients",
           url: "/forms/clients",
         },
+        {
+          title: "Agents",
+          url: "/forms/agents",
+        },
+        {
+          title: "Agents By Campaign",
+          url: "/forms/agents-by-campaign",
+        },
+        {
+          title: "Models",
+          url: "/forms/models",
+        },
       ],
     },
     {
