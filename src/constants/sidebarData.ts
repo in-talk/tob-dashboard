@@ -52,6 +52,9 @@ export const sideBarData = {
         {
           title: "Models",
           url: "/forms/models",
+         {
+          title: "Hp Numbers",
+          url: "/forms/HPNumbers",
         },
       ],
     },
