@@ -183,13 +183,15 @@ function Models() {
         />
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button
-              disabled={loading}
-              variant="ghost"
-              className="text-white bg-red-700 hover:bg-red-900 hover:text-white"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div>
+              <Button
+                disabled={loading}
+                variant="ghost"
+                className="text-white bg-red-700 hover:bg-red-900 hover:text-white"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>

@@ -130,7 +130,7 @@ export default function CreateUpdateClient({
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
-      <DialogTrigger>
+      <DialogTrigger asChild>
         <Button>
           <Edit className={`${mode === "update" ? "mr-0" : "mr-2"} h-4 w-4`} />
           {mode === "update" ? "" : createClientData.trigger.button}
