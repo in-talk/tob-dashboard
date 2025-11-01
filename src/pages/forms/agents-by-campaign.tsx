@@ -41,68 +41,12 @@ export interface AgentByCampaign {
 }
 
 function AgentByCampaign() {
-  //   const { data, error, isLoading } = useSWR<AgentByCampaign[]>(
-  //     "/api/agents-by-campaign",
-  //     fetcher,
-  //     { revalidateOnFocus: false }
-  //   );
+    const { data, error, isLoading } = useSWR<AgentByCampaign[]>(
+      "/api/agents-by-campaign",
+      fetcher,
+      { revalidateOnFocus: false }
+    );
 
-  const data: AgentByCampaign[] = [
-    {
-      id: "3",
-      agent_name: "miranda",
-      agent_id: "3",
-      campaign_id: "1",
-      campaign_name: "CGM",
-      is_active: false,
-      updated_at: "2025-05-08T15:15:43.904716+00:00",
-    },
-    {
-      id: "5",
-      agent_name: "megan",
-      agent_id: "5",
-      campaign_id: "2",
-      campaign_name: "ACA",
-      is_active: true,
-      updated_at: "2025-08-15T17:39:26.442812+00:00",
-    },
-    {
-      id: "7",
-      agent_name: "lilly",
-      agent_id: "7",
-      campaign_id: "4",
-      campaign_name: "MVA",
-      is_active: true,
-      updated_at: "2025-08-30T13:07:06.418833+00:00",
-    },
-    {
-      id: "4",
-      agent_name: "julia",
-      agent_id: "4",
-      campaign_id: "2",
-      campaign_name: "ACA",
-      is_active: true,
-      updated_at: "2025-08-05T12:50:34.276867+00:00",
-    },
-    {
-      id: "6",
-      agent_name: "jessica",
-      agent_id: "6",
-      campaign_id: "3",
-      campaign_name: "FE",
-      is_active: true,
-      updated_at: "2025-08-26T15:31:26.473877+00:00",
-    },
-    {
-      id: "1",
-      agent_name: "amily",
-      agent_id: "1",
-      campaign_id: "1",
-      campaign_name: "CGM",
-      is_active: true,
-      updated_at: "2025-05-08T13:58:44.095958+00:00",
-    },
-  ];
 
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -284,16 +228,16 @@ function AgentByCampaign() {
     );
   };
 
-  //   if (error) return <div>{usersComponentData.error}</div>;
-  //   if (isLoading)
-  //     return (
-  //       <div className="flex justify-center items-center h-full bg-white dark:bg-sidebar">
-  //         <div className="relative w-12 h-12 top-[0px]">
-  //           <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-spin border-t-transparent"></div>
-  //           <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-ping opacity-25"></div>
-  //         </div>
-  //       </div>
-  //     );
+    if (error) return <div>Something wrong</div>;
+    if (isLoading)
+      return (
+        <div className="flex justify-center items-center h-full bg-white dark:bg-sidebar">
+          <div className="relative w-12 h-12 top-[0px]">
+            <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-spin border-t-transparent"></div>
+            <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-ping opacity-25"></div>
+          </div>
+        </div>
+      );
 
   return (
     <div className="px-6">

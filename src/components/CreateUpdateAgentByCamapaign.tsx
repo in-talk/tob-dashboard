@@ -75,7 +75,7 @@ export default function CreateUpdateAgentByCampaign({
     try {
       const payload = { ...data, id: recordId };
 
-      const res = await fetch(`/api/agentsByCampaign`, {
+      const res = await fetch(`/api/agents-by-campaign`, {
         method: mode === "update" ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

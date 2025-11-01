@@ -66,7 +66,7 @@ async function createAgentByCampaign(
 
     const insertResult = await db.query(
       `
-        INSERT INTO agents_by_campaign (is_active, agent_id, campaign_id)
+        INSERT INTO agents_by_campaign (isactive, agent_id, campaign_id)
         VALUES ($1, $2, $3)
         RETURNING id;
       `,
@@ -104,7 +104,7 @@ async function updateAgentByCampaign(
     const updateResult = await db.query(
       `
         UPDATE agents_by_campaign
-        SET agent_id = $1, campaign_id = $2, is_active = $3, updated_at = NOW()
+        SET agent_id = $1, campaign_id = $2, isactive = $3, updated_at = NOW()
         WHERE id = $4
         RETURNING *;
       `,
