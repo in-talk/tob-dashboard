@@ -1,15 +1,22 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { dragAndDrop } from "@formkit/drag-and-drop";
-import { ChevronRight, Check } from "lucide-react";
+import { ChevronRight, Check, Trash2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+
+const arraysAreEqual = (a: string[], b: string[]) =>
+  a.length === b.length && a.every((v, i) => v === b[i]);
 
 export default function HpNumbersPage() {
   const [hp_numbers, setHpNumbers] = useState<string[]>();
   const [hp_numbers_temp, setHpNumbersTemp] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [newHpNumber, setNewHpNumber] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
+  const originalHpNumbersRef = useRef<string[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -25,6 +32,7 @@ export default function HpNumbersPage() {
         setHpNumbers(data.hpNumbersList || []);
         setHpNumbersTemp(data.hpNumbersTempList || []);
         setLoading(false);
+        originalHpNumbersRef.current = data.hpNumbersList || [];
       })
       .catch((error) => {
         console.error("Error fetching data:", error);
@@ -69,6 +77,16 @@ export default function HpNumbersPage() {
     }
   }, [loading]);
 
+  useEffect(() => {
+    if (!loading && hp_numbers) {
+      const isDifferent = !arraysAreEqual(
+        hp_numbers,
+        originalHpNumbersRef.current
+      );
+      setIsDirty(isDifferent);
+    }
+  }, [hp_numbers, loading]);
+
   const handleSave = async () => {
     try {
       const res = await fetch("/api/hp-number-lists", {
@@ -91,6 +109,8 @@ export default function HpNumbersPage() {
         variant: "success",
         description: data.message || "HP numbers updated successfully.",
       });
+      originalHpNumbersRef.current = hp_numbers ?? [];
+      setIsDirty(false);
     } catch (error) {
       console.error("Error saving data:", error);
 
@@ -147,7 +167,7 @@ export default function HpNumbersPage() {
   const textPrimary = darkMode ? "text-gray-100" : "text-gray-800";
   const textSecondary = darkMode ? "text-gray-400" : "text-gray-600";
 
-  const skeletonItems = Array.from({ length: 5 }).map((_, index) => (
+  const skeletonItems = Array.from({ length: 6 }).map((_, index) => (
     <Skeleton key={index} className="h-[38px] w-full" />
   ));
 
@@ -327,9 +347,11 @@ export default function HpNumbersPage() {
 
           {/* hp_numbers */}
           <div className="flex-1 w-full">
-            <div className="flex justify-start lg:justify-end w-full ">
+            <div className="flex justify-start lg:justify-between w-full ">
               <div className="flex items-center gap-2 mb-2 ">
-                <label htmlFor="searchInput">Search</label>
+                <label htmlFor="searchInput" className="text-sm">
+                  Search
+                </label>
 
                 <input
                   type="text"
@@ -343,6 +365,42 @@ export default function HpNumbersPage() {
                       : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
                   } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
+              </div>
+
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={newHpNumber}
+                  onChange={(e) => setNewHpNumber(e.target.value)}
+                  placeholder="Add new HP number"
+                  className={`flex-1 px-3 py-1.5 text-sm border rounded ${
+                    darkMode
+                      ? "bg-gray-900 border-gray-600 text-gray-100 placeholder-gray-500"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                />
+                <button
+                  onClick={() => {
+                    const trimmed = newHpNumber.trim();
+                    if (!trimmed) return;
+                    if (hp_numbers?.includes(trimmed)) {
+                      toast({
+                        variant: "destructive",
+                        description: "HP number already exists.",
+                      });
+                      return;
+                    }
+                    setHpNumbers([...(hp_numbers || []), trimmed]);
+                    setNewHpNumber("");
+                  }}
+                  className={`text-sm px-3 py-1.5 ${
+                    darkMode
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                  } rounded font-medium`}
+                >
+                  Add
+                </button>
               </div>
             </div>
             <div
@@ -397,7 +455,7 @@ export default function HpNumbersPage() {
                         darkMode ? "bg-gray-800" : "bg-gray-50"
                       } border ${
                         darkMode ? "border-gray-700" : "border-gray-200"
-                      } py-2 px-4 rounded hover:border-gray-400 transition-all duration-150`}
+                      } py-1 px-4 rounded hover:border-gray-400 transition-all duration-150`}
                     >
                       <div className="flex items-center gap-3">
                         <svg
@@ -418,6 +476,15 @@ export default function HpNumbersPage() {
                         <span className={`font-mono text-sm ${textPrimary}`}>
                           {item}
                         </span>
+
+                        <Button
+                          disabled={loading}
+                          size={'sm'}
+                          variant="ghost"
+                          className="text-white bg-red-700 hover:bg-red-900 hover:text-white ml-auto"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </li>
                   ))
@@ -453,6 +520,11 @@ export default function HpNumbersPage() {
             Save Changes
           </button>
         </div>
+        {isDirty && (
+          <p className="mt-2 text-xs text-red-500 font-medium text-center">
+            You have unsaved changes
+          </p>
+        )}
       </div>
     </div>
   );
