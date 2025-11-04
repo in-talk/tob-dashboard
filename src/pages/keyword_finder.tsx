@@ -75,6 +75,7 @@ export default function KeywordFinder() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ transcript, turn, campaign_id: campaignId }),
+        next: { revalidate: 0 },
       });
 
       if (!res.ok) {

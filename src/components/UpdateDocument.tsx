@@ -41,7 +41,9 @@ export default function UpdateDocument({
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...data, id: document._id }),
-          }
+            next: { revalidate: 0 },
+          },
+          
         );
 
         const responseData = await response.json();
