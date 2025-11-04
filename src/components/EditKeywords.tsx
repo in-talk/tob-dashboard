@@ -49,6 +49,7 @@ function EditKeywords({
               id: document._id,
               keywords: updatedKeywords,
             }),
+            next: { revalidate: 0}
           }
         );
 

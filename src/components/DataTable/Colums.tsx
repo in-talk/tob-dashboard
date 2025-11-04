@@ -47,6 +47,14 @@ export const getColumns = (
     },
   },
   {
+    accessorKey: "keywords_count",
+    header: "Keywords Count",
+    cell: ({ row }) => {
+      const keywords: string[] = row.getValue("keywords");
+      return <div>{keywords?.length}</div>;
+    },
+  },
+  {
     accessorKey: "keywords",
     enableHiding: false,
     header: "Actions",
