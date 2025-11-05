@@ -15,8 +15,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { SearchIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { keywordFinderPageData } from "@/constants";
-import { type } from "./../utils/transformAgentData";
-import { split } from "postcss/lib/list";
 
 export type Campaign = {
   campaign_id: number;
