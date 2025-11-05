@@ -109,14 +109,17 @@ export default function KeywordFinder() {
     <div className="p-6 space-y-6 overflow-x-hidden">
       <form onSubmit={handleSubmit}>
         <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[200px]">
+          <div className="flex-1 min-w-[170px]">
             <Textarea
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               required
-              className="h-10 resize-none w-[700px] py-7"
+              className="h-10 resize-none w-[550px] py-7"
               placeholder={keywordFinderPageData.transcriptPlaceholder}
             />
+            
+          </div>
+          <div className="w-40 min-w-[8rem]">
             <Input
               type="text"
               placeholder="comma separated exclude labels like POS,NEG"
