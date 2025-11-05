@@ -15,6 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { SearchIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { keywordFinderPageData } from "@/constants";
+import { type } from "./../utils/transformAgentData";
+import { split } from "postcss/lib/list";
 
 export type Campaign = {
   campaign_id: number;
@@ -27,6 +29,9 @@ export default function KeywordFinder() {
   const [turn, setTurn] = useState(1);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignId, setCampaignId] = useState<string | undefined>(undefined);
+  const [excludeLabels, setExcludeLabels] = useState<string | undefined>(
+    undefined
+  );
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -74,7 +79,12 @@ export default function KeywordFinder() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ transcript, turn, campaign_id: campaignId }),
+        body: JSON.stringify({
+          transcript,
+          turn,
+          campaign_id: campaignId,
+          exclude_labels: excludeLabels?.split(',').map(i => i.trim()) || [],
+        }),
         next: { revalidate: 0 },
       });
 
@@ -106,8 +116,14 @@ export default function KeywordFinder() {
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               required
-              className="h-10 resize-none w-full"
+              className="h-10 resize-none w-[700px] py-7"
               placeholder={keywordFinderPageData.transcriptPlaceholder}
+            />
+            <Input
+              type="text"
+              placeholder="comma separated exclude labels like POS,NEG"
+              value={excludeLabels}
+              onChange={(e) => setExcludeLabels(e.target.value)}
             />
           </div>
 
