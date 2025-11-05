@@ -30,7 +30,7 @@ export default function KeywordFinder() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignId, setCampaignId] = useState<string | undefined>(undefined);
   const [excludeLabels, setExcludeLabels] = useState<string | undefined>(
-    undefined
+    "POS,NEG"
   );
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
