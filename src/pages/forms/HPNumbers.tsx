@@ -46,6 +46,7 @@ export default function HpNumbersPage() {
         parent: hpNumbersTempRef.current,
         getValues: () => {
           return Array.from(hpNumbersTempRef.current!.children).map(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (li: any) => li.dataset.id
           );
         },
@@ -62,6 +63,7 @@ export default function HpNumbersPage() {
         parent: hpNumbersRef.current,
         getValues: () => {
           return Array.from(hpNumbersRef.current!.children).map(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (li: any) => li.dataset.id
           );
         },
@@ -159,7 +161,7 @@ export default function HpNumbersPage() {
   };
 
   const filteredHpNumbers = hp_numbers?.filter((item) =>
-    item.toLowerCase().includes(searchQuery.toLowerCase())
+    item?.toLowerCase().includes(searchQuery?.toLowerCase())
   );
 
   const cardBg = darkMode ? "bg-sidebar " : "bg-white ";
@@ -257,10 +259,10 @@ export default function HpNumbersPage() {
                 ) : loading ? (
                   skeletonItems
                 ) : (
-                  hp_numbers_temp.map((item) => (
+                  hp_numbers_temp.map((item, i) => (
                     <li
-                      key={item}
-                      data-id={item}
+                      key={`${item}-${i}`}
+                      data-id={`${item}-${i}`}
                       className={`group cursor-grab active:cursor-grabbing ${
                         darkMode ? "bg-gray-800" : "bg-gray-50"
                       } border ${
@@ -447,10 +449,10 @@ export default function HpNumbersPage() {
                 ) : loading ? (
                   skeletonItems
                 ) : (
-                  filteredHpNumbers?.map((item) => (
+                  filteredHpNumbers?.map((item, i) => (
                     <li
-                      key={item}
-                      data-id={item}
+                      key={`${item}-${i}`}
+                      data-id={`${item}-${i}`}
                       className={`group cursor-grab active:cursor-grabbing ${
                         darkMode ? "bg-gray-800" : "bg-gray-50"
                       } border ${

@@ -133,6 +133,7 @@ export default function BulkAgeTestPage() {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
 
       if (jsonData.length === 0) {
@@ -217,6 +218,7 @@ export default function BulkAgeTestPage() {
 
       const data: BulkTestResponse = await res.json();
       setResponse(data);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {

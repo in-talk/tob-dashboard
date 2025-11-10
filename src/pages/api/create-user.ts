@@ -24,10 +24,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const insertResult = await db.query(
-      `INSERT INTO users (email, password, name, role) 
+      `INSERT INTO users (email, password, name, role, client_id) 
        VALUES ($1, $2, $3, $4, $5) 
        RETURNING id`,
-      [email.toLowerCase(), hashedPassword, name, role]
+      [email.toLowerCase(), hashedPassword, name, role, '24']
     );
 
     const userId = insertResult.rows[0].id;

@@ -20,6 +20,7 @@ interface CreateUserFormValues {
   password: string;
   name: string;
   role: "admin" | "user";
+  client_id?: number;
 }
 
 export default function CreateUser() {
@@ -128,6 +129,17 @@ export default function CreateUser() {
             {errors.name && (
               <p className="text-red-500 text-sm">{errors.name.message}</p>
             )}
+          </div>
+          <div>
+            {/* Client ID */}
+            <label className="block text-sm font-medium">
+              {createUserData.form.clientId.label}
+            </label>
+            <input
+              type="text"
+              {...register("client_id")}
+              className="mt-1 p-2 w-full border bg-transparent rounded dark:border-white"
+            />
           </div>
 
           {/* Role */}

@@ -55,6 +55,7 @@ export default function BulkKeywordFinder() {
           // Convert to JSON
           const jsonData = XLSX.utils.sheet_to_json(worksheet, {
             header: 1,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           }) as any[][];
 
           // Extract transcripts from first column (skip header if exists)

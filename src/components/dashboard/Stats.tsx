@@ -1,7 +1,6 @@
 import { AgentReportRow } from "@/utils/transformAgentData";
 import { BellRing, PhoneForwarded, User, Activity, Phone } from "lucide-react";
 import React, { useMemo } from "react";
-import CustomLoader from "../ui/CustomLoader";
 
 interface StatsProps {
   agentReport: AgentReportRow[];
@@ -21,8 +20,6 @@ interface StatCard {
 }
 
 function Stats({ agentReport, isLoading, onClick }: StatsProps) {
-
-
   // Calculate totals using reduce to sum across all agents
   const totals = useMemo(() => {
     return agentReport.reduce(
@@ -104,7 +101,7 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
     }
   };
 
-    if ((!agentReport || agentReport.length === 0) && !isLoading) {
+  if ((!agentReport || agentReport.length === 0) && !isLoading) {
     return <div>No data available</div>;
   }
 
@@ -133,9 +130,22 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
           }
         }
 
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+
         .grid > div {
           animation: slideIn 0.5s ease-out forwards;
           opacity: 0;
+        }
+
+        .loading-shimmer {
+          animation: shimmer 1.5s infinite;
         }
       `}</style>
     </div>
@@ -156,27 +166,36 @@ function StatCard({ card, index, maxValue, isLoading, onClick }: StatCardProps) 
     ? Math.min((card.value / maxValue) * 100, 100) 
     : 0;
 
+  const isClickable = !isLoading && card.value > 0;
+
   return (
     <div
-      onClick={() => onClick(card.disposition)}
+      onClick={() => isClickable && onClick(card.disposition)}
       className={`
         ${card.bgLight} ${card.bgDark} px-4 py-1 rounded-lg 
         relative overflow-hidden group transition-all duration-300 
-        hover:shadow-lg hover:scale-105 cursor-pointer
         bg-gradient-to-br ${card.gradient}
+        ${isClickable 
+          ? 'hover:shadow-lg hover:scale-105 cursor-pointer' 
+          : 'opacity-60 cursor-default'
+        }
       `}
       style={{
         animationDelay: `${index * 100}ms`,
       }}
     >
-      {/* Animated background overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+      {/* Animated background overlay - only on hover if clickable */}
+      {isClickable && (
+        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+      )}
 
-      {/* Floating particles */}
-      <div className="absolute top-2 right-2 w-1 h-1 bg-white/40 rounded-full animate-pulse" />
+      {/* Floating particles - only if clickable */}
+      {isClickable && (
+        <div className="absolute top-2 right-2 w-1 h-1 bg-white/40 rounded-full animate-pulse" />
+      )}
 
       <div className="flex items-center gap-2 relative z-10">
-        <div className="p-1 rounded-lg bg-white/20 backdrop-blur-sm transition-transform duration-300 group-hover:rotate-12">
+        <div className={`p-1 rounded-lg bg-white/20 backdrop-blur-sm transition-transform duration-300 ${isClickable ? 'group-hover:rotate-12' : ''}`}>
           <card.icon className="w-5 h-5 text-white drop-shadow-sm" />
         </div>
         <span className="text-sm font-bold text-white drop-shadow-sm">
@@ -185,21 +204,24 @@ function StatCard({ card, index, maxValue, isLoading, onClick }: StatCardProps) 
       </div>
 
       <div className="relative z-10">
-        {isLoading ? (
-          <CustomLoader />
-        ) : (
-          <p className="text-lg font-bold text-white drop-shadow-sm transition-all duration-300">
-            {card.value.toLocaleString()}
-          </p>
-        )}
+        <p className="text-lg font-bold text-white drop-shadow-sm transition-all duration-300">
+          {card.value.toLocaleString()}
+        </p>
       </div>
 
-      {/* Progress indicator */}
-      {!isLoading && (
-        <div
-          className="absolute bottom-0 left-0 h-1 bg-white/30 transition-all duration-300 group-hover:bg-white/50"
-          style={{ width: `${progressWidth}%` }}
-        />
+      {/* Loading indicator - horizontal line at bottom */}
+      {isLoading ? (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 overflow-hidden">
+          <div className="loading-shimmer absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+        </div>
+      ) : (
+        /* Progress indicator - only show if there's data */
+        card.value > 0 && (
+          <div
+            className="absolute bottom-0 left-0 h-1 bg-white/30 transition-all duration-300 group-hover:bg-white/50"
+            style={{ width: `${progressWidth}%` }}
+          />
+        )
       )}
     </div>
   );

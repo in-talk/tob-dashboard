@@ -9,18 +9,64 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+import { useSession } from "next-auth/react";
 
 interface AutoRefreshProps {
   autoRefresh: boolean;
-  
+
   refreshInterval: number;
   setAutoRefresh: (checked: boolean) => void;
   setLastUpdated: (date: Date) => void;
   setRefreshInterval: (interval: number) => void;
   getTimeAgo: () => string;
-    disabled?: boolean;
-
+  disabled?: boolean;
 }
+
+const refreshSlotsAdmin = [
+  {
+    label: "Every 30 seconds",
+    value: 0.5,
+  },
+  {
+    label: "Every 1 minute",
+    value: 1,
+  },
+  {
+    label: "Every 5 minutes",
+    value: 5,
+  },
+  {
+    label: "Every 10 minutes",
+    value: 10,
+  },
+  {
+    label: "Every 15 minutes",
+    value: 15,
+  },
+  {
+    label: "Every 30 minutes",
+    value: 30,
+  },
+];
+
+const refreshSlotsClient = [
+  {
+    label: "Every 5 minutes",
+    value: 5,
+  },
+  {
+    label: "Every 10 minutes",
+    value: 10,
+  },
+  {
+    label: "Every 15 minutes",
+    value: 15,
+  },
+  {
+    label: "Every 30 minutes",
+    value: 30,
+  },
+];
 
 function AutoRefresh({
   autoRefresh,
@@ -29,8 +75,12 @@ function AutoRefresh({
   setLastUpdated,
   setRefreshInterval,
   getTimeAgo,
-  disabled
+  disabled,
 }: AutoRefreshProps) {
+    const { data: session } = useSession();
+    const userRole = session?.user?.role;
+    const refreshSlots = userRole === "admin" ? refreshSlotsAdmin : refreshSlotsClient;
+  
   return (
     <div className="flex items-center gap-4 flex-wrap py-2">
       <label className="flex items-center gap-2">
@@ -55,12 +105,11 @@ function AutoRefresh({
         <SelectContent>
           <SelectGroup>
             <SelectLabel>Refresh Interval</SelectLabel>
-            <SelectItem value="0.0833">Every 5 seconds</SelectItem>
-            <SelectItem value="0.5">Every 30 seconds</SelectItem>
-            <SelectItem value="1">Every 1 minute</SelectItem>
-            <SelectItem value="5">Every 5 minutes</SelectItem>
-            <SelectItem value="10">Every 10 minutes</SelectItem>
-            <SelectItem value="15">Every 15 minutes</SelectItem>
+            {refreshSlots.map((slot) => (
+              <SelectItem key={slot.value} value={`${slot.value}`}>
+                {slot.label}
+              </SelectItem>
+            ))}
           </SelectGroup>
         </SelectContent>
       </Select>

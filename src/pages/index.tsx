@@ -43,8 +43,8 @@ export default function Home() {
   const [dateRange, setDateRange] = useState(() => {
     const now = new Date();
     const from = new Date(now);
-    from.setDate(from.getDate() - 1);
-    from.setHours(0, 0, 0, 0);
+    // from.setDate(from.getDate() - 1);
+    from.setHours(from.getHours() - 1);
     return { from, to: now };
   });
 
@@ -75,8 +75,8 @@ export default function Home() {
     selectedClientId && utcDateRange
       ? `agent-${selectedClientId}-${utcDateRange.from}-${utcDateRange.to}`
       : null;
-  const clientKey = `client-${user_id}`;
-
+const clientKey = user_id ? `client-${user_id}` : null;
+  console.log("Home clientKey:", user_id, clientKey);
   const clientsDataQuery = useSWR(
     clientKey,
     () =>
@@ -125,6 +125,8 @@ export default function Home() {
     chartDataQuery.isLoading ||
     callDataQuery.isLoading ||
     agentReportQuery.isLoading;
+
+    console.log("clientsDataQuery:", clientsDataQuery);
 
   const callRecords: CallRecord[] = callDataQuery.data?.callRecords ?? [];
   const dispositionChartData = transformGraphData(
@@ -217,6 +219,7 @@ export default function Home() {
     if (!autoRefresh) return;
     const interval = setInterval(() => {
       setDateRange((prev) => ({ ...prev, to: new Date() }));
+      console.log("Auto-refreshing data...");
       setLastUpdated(new Date());
     }, refreshInterval * 60 * 1000);
     return () => clearInterval(interval);
@@ -227,7 +230,7 @@ export default function Home() {
       setPreviousCallRecords(callDataQuery.data.callRecords);
     }
   }, [callDataQuery.data]);
-
+  console.log("Render Home - clientData:", clientData);
   return (
     <>
       <Head>
@@ -244,14 +247,16 @@ export default function Home() {
             getTimeAgo={getTimeAgo}
             disabled={isAnyLoading}
           />
-          <ClientSelector
-            clients={clientData}
-            selectedClientId={selectedClientId}
-            onClientChange={setSelectedClientId}
-            label="Select Client"
-            placeholder="Choose a client..."
-            disabled={isAnyLoading}
-          />
+          {clientData?.length ? (
+            <ClientSelector
+              clients={clientData}
+              selectedClientId={selectedClientId}
+              onClientChange={setSelectedClientId}
+              label="Select Client"
+              placeholder="Choose a client..."
+              disabled={isAnyLoading}
+            />
+          ) : null}
           <NewDateFilter
             onDateChange={setDateRange}
             autoRefresh={autoRefresh}

@@ -29,6 +29,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         "/agents",
         "/models",
         "/agents-by-campaign",
+        "/forms"
       ].includes(project.url);
     }
     return true;

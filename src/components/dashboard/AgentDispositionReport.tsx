@@ -74,7 +74,7 @@ const AgentDispositionReport = ({
           );
         },
       }));
-  }, [agentReport]);
+  }, [agentReport, dynamicDispositionKeys]);
 
   return (
     <div className="p-2 bg-gray-100 dark:bg-sidebar rounded-xl overflow-hidden">

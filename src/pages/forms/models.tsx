@@ -27,9 +27,9 @@ import { fetcher } from "@/utils/fetcher";
 import { Model } from "@/types/model";
 
 function Models() {
-  //   const { data, error, isLoading } = useSWR<Model[]>("/api/models", fetcher, {
-  //     revalidateOnFocus: false,
-  //   });  // Error: permission denied for table models
+  const { data, error, isLoading } = useSWR<Model[]>("/api/models", fetcher, {
+    revalidateOnFocus: false,
+  }); // Error: permission denied for table models
 
   const { data: campaigns } = useSWR<Campaign[]>(
     "/api/fetchCampaigns",
@@ -41,30 +41,6 @@ function Models() {
 
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-
-  const data = [
-    {
-      model_id: 1,
-      model_name: "m-t3",
-      campaign_name: "CGM",
-      description: "Model with 3 turns and 2 Questions",
-      model_number: "1",
-    },
-    {
-      model_id: 2,
-      model_name: "ACA with 2 question",
-      campaign_name: "ACA",
-      description: "ACA with 2 question first age qualification",
-      model_number: "2",
-    },
-    {
-      model_id: 3,
-      model_name: "ACA with 1 question",
-      campaign_name: "ACA",
-      description: "ACA with age qualification only",
-      model_number: "1",
-    },
-  ];
 
   const handleDelete = async (modelId: string) => {
     setLoading(true);
@@ -213,17 +189,17 @@ function Models() {
     );
   };
 
-  //   if (error) return <div>Failed to load models.</div>;
+  if (error) return <div>Failed to load models.</div>;
 
-  //   if (isLoading)
-  //     return (
-  //       <div className="flex justify-center items-center h-full bg-white dark:bg-sidebar">
-  //         <div className="relative w-12 h-12 top-[0px]">
-  //           <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-spin border-t-transparent"></div>
-  //           <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-ping opacity-25"></div>
-  //         </div>
-  //       </div>
-  //     );
+  if (isLoading)
+    return (
+      <div className="flex justify-center items-center h-full bg-white dark:bg-sidebar">
+        <div className="relative w-12 h-12 top-[0px]">
+          <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-spin border-t-transparent"></div>
+          <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-ping opacity-25"></div>
+        </div>
+      </div>
+    );
 
   return (
     <div className="px-6">
