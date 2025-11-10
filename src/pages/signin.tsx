@@ -167,7 +167,6 @@ export default function SignIn() {
         recaptchaRef.current?.reset();
         setRecaptchaToken(null);
       } else if (result?.ok && result?.url) {
-        // Mark as redirected to prevent useEffect from also redirecting
         hasRedirected.current = true;
         await router.push(result.url);
       } else {
@@ -185,16 +184,7 @@ export default function SignIn() {
     }
   }, [email, password, recaptchaToken, siteKey, verifyRecaptcha, router]);
 
-  // Show loading state while checking session
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-gray-900 to-slate-800">
-        <CustomLoader />
-      </div>
-    );
-  }
-
-  // Don't render the form if already authenticated
+  // Don't render anything if authenticated (prevents flash)
   if (status === "authenticated") {
     return null;
   }
@@ -318,7 +308,8 @@ export default function SignIn() {
                   onFocus={handleFocus}
                   onBlur={handleBlur}
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-violet-400/50 focus:border-violet-400/50 transition-all duration-300 backdrop-blur-sm hover:bg-white/10 group-hover:border-white/20"
+                  disabled={status === "loading"}
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-violet-400/50 focus:border-violet-400/50 transition-all duration-300 backdrop-blur-sm hover:bg-white/10 group-hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-500/0 via-purple-500/0 to-indigo-500/0 group-focus-within:from-violet-500/10 group-focus-within:via-purple-500/10 group-focus-within:to-indigo-500/10 transition-all duration-300 pointer-events-none" />
               </div>
@@ -344,12 +335,14 @@ export default function SignIn() {
                   onFocus={handleFocus}
                   onBlur={handleBlur}
                   required
-                  className="w-full px-4 py-3 pr-12 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-violet-400/50 focus:border-violet-400/50 transition-all duration-300 backdrop-blur-sm hover:bg-white/10 group-hover:border-white/20"
+                  disabled={status === "loading"}
+                  className="w-full px-4 py-3 pr-12 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-violet-400/50 focus:border-violet-400/50 transition-all duration-300 backdrop-blur-sm hover:bg-white/10 group-hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <motion.button
                   type="button"
                   whileTap={{ scale: 0.9 }}
-                  className="absolute right-3 top-[8px] p-2 text-white/50 hover:text-white/80 transition-colors duration-200 rounded-lg hover:bg-white/10"
+                  disabled={status === "loading"}
+                  className="absolute right-3 top-[8px] p-2 text-white/50 hover:text-white/80 transition-colors duration-200 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={togglePasswordVisibility}
                 >
                   {showPassword ? (
@@ -369,14 +362,21 @@ export default function SignIn() {
               className="flex justify-center"
             >
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                <ReCAPTCHA
-                  ref={recaptchaRef}
-                  sitekey={siteKey}
-                  onChange={handleRecaptchaChange}
-                  onErrored={handleRecaptchaError}
-                  onExpired={handleRecaptchaExpired}
-                  theme={RECAPTCHA_THEME}
-                />
+                {status !== "loading" && (
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={siteKey}
+                    onChange={handleRecaptchaChange}
+                    onErrored={handleRecaptchaError}
+                    onExpired={handleRecaptchaExpired}
+                    theme={RECAPTCHA_THEME}
+                  />
+                )}
+                {status === "loading" && (
+                  <div className="w-[304px] h-[78px] flex items-center justify-center">
+                    <CustomLoader />
+                  </div>
+                )}
               </div>
             </motion.div>
 
@@ -387,20 +387,20 @@ export default function SignIn() {
             >
               <motion.button
                 type="submit"
-                disabled={isSubmitDisabled}
+                disabled={isSubmitDisabled || status === "loading"}
                 whileTap={{ scale: BUTTON_SCALE_ANIMATION }}
-                whileHover={!isSubmitDisabled ? { scale: 1.02 } : {}}
+                whileHover={!isSubmitDisabled && status !== "loading" ? { scale: 1.02 } : {}}
                 className={buttonClasses}
               >
-                {!isSubmitDisabled && (
+                {!isSubmitDisabled && status !== "loading" && (
                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
                 )}
 
-                {isLoading ? (
+                {isLoading || status === "loading" ? (
                   <div className="relative z-10 flex items-center space-x-3">
                     <CustomLoader />
                     <span className="text-lg font-semibold">
-                      {signInPageData.signingIn}
+                      {status === "loading" ? "Loading..." : signInPageData.signingIn}
                     </span>
                   </div>
                 ) : (
