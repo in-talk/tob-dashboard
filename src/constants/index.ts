@@ -7,13 +7,14 @@ export const signInPageData = {
   protectedBy: "Protected by reCAPTCHA and subject to Privacy Policy",
   welcomeBack: " Welcome back! Please sign in to continue",
   errors: {
-    recaptchaRequired: "Please complete the reCAPTCHA verification",
-    recaptchaLoad: "reCAPTCHA failed to load. Please refresh the page.",
-    recaptchaExpired: "reCAPTCHA expired. Please verify again.",
-    recaptchaConfig: "reCAPTCHA is not properly configured",
-    recaptchaFailed: "reCAPTCHA verification failed. Please try again.",
+   recaptchaRequired: "Please complete the reCAPTCHA verification",
+    recaptchaLoad: "Failed to load reCAPTCHA. Please refresh the page",
+    recaptchaExpired: "reCAPTCHA has expired. Please verify again",
+    recaptchaConfig: "reCAPTCHA is not configured properly",
+    recaptchaFailed: "reCAPTCHA verification failed. Please try again",
     invalidCredentials: "Invalid email or password",
-    unexpected: "An unexpected error occurred",
+    unexpected: "An unexpected error occurred. Please try again",
+    timeout: "Verification timeout. Please try again", // Add this line
   },
   configError: {
     title: "Configuration Error",

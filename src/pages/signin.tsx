@@ -81,27 +81,61 @@ export default function SignIn() {
     setError(signInPageData.errors.recaptchaExpired);
   };
 
+  // Add these improvements to your existing component:
+
+  // 1. Better error handling in verifyRecaptcha
   const verifyRecaptcha = async (token: string): Promise<boolean> => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
       const response = await fetch("/api/verify-recaptcha", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("reCAPTCHA verification failed:", errorData);
+        return false;
+      }
+
       const data = await response.json();
-      return data.success;
+      return data.success === true;
     } catch (err) {
-      console.error("Error verifying reCAPTCHA:", err);
+      if (err instanceof Error) {
+        if (err.name === "AbortError") {
+          console.error("reCAPTCHA verification timeout");
+          setError(
+            signInPageData.errors.timeout||
+              "Verification timeout. Please try again."
+          );
+        } else {
+          console.error("Error verifying reCAPTCHA:", err);
+        }
+      }
       return false;
     }
   };
 
+  // 2. Improved handleSignIn with better error handling
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
+    // Validate environment
     if (!siteKey) {
       setError(signInPageData.errors.recaptchaConfig);
+      return;
+    }
+
+    // Validate inputs
+    if (!email || !password) {
+      setError("Please enter both email and password");
       return;
     }
 
@@ -113,15 +147,18 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
+      // Verify reCAPTCHA first
       const isRecaptchaValid = await verifyRecaptcha(recaptchaToken);
 
       if (!isRecaptchaValid) {
         setError(signInPageData.errors.recaptchaFailed);
         recaptchaRef.current?.reset();
         setRecaptchaToken(null);
+        setIsLoading(false);
         return;
       }
 
+      // Proceed with sign in
       const result = await signIn("credentials", {
         redirect: false,
         email,
@@ -133,13 +170,18 @@ export default function SignIn() {
         setError(signInPageData.errors.invalidCredentials);
         recaptchaRef.current?.reset();
         setRecaptchaToken(null);
-      } else if (result?.url) {
-        router.push(result.url);
+      } else if (result?.ok && result?.url) {
+        // Success - redirect
+        await router.push(result.url);
+      } else {
+        // Unexpected result
+        setError(signInPageData.errors.unexpected);
+        recaptchaRef.current?.reset();
+        setRecaptchaToken(null);
       }
     } catch (err) {
-      if (err instanceof Error) {
-        setError(signInPageData.errors.unexpected);
-      }
+      console.error("Sign in error:", err);
+      setError(signInPageData.errors.unexpected);
       recaptchaRef.current?.reset();
       setRecaptchaToken(null);
     } finally {
