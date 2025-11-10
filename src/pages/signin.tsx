@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { EyeOpenIcon, EyeClosedIcon } from "@radix-ui/react-icons";
@@ -14,6 +14,7 @@ import {
   type Variants,
   easeInOut,
 } from "framer-motion";
+
 const containerVariants: Variants = {
   hidden: { opacity: 0, y: 40 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
@@ -36,6 +37,7 @@ const errorVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
   exit: { opacity: 0, y: -8, transition: { duration: 0.2 } },
 };
+
 const BUTTON_SCALE_ANIMATION = 0.98 as const;
 const RECAPTCHA_THEME: "light" | "dark" = "light";
 
@@ -46,48 +48,50 @@ export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [isFormFocused, setIsFormFocused] = useState(false);
+  
   const recaptchaRef = useRef<ReCAPTCHA>(null);
-  const { data: session } = useSession();
+  const hasRedirected = useRef(false);
+  
+  const { data: session, status } = useSession();
   const router = useRouter();
 
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
-  const [isFormFocused, setIsFormFocused] = useState(false);
-  const handleFocus = () => setIsFormFocused(true);
-  const handleBlur = () => setIsFormFocused(false);
+  // Memoized callbacks to prevent re-renders
+  const handleFocus = useCallback(() => setIsFormFocused(true), []);
+  const handleBlur = useCallback(() => setIsFormFocused(false), []);
+  const togglePasswordVisibility = useCallback(() => setShowPassword((s) => !s), []);
 
-  const togglePasswordVisibility = () => setShowPassword((s) => !s);
-
+  // Handle session redirect - only once
   useEffect(() => {
-    if (session) {
+    if (status === "authenticated" && session && !hasRedirected.current) {
+      hasRedirected.current = true;
       router.replace("/");
     }
-  }, [session, router]);
+  }, [session, status, router]);
 
-  const handleRecaptchaChange = (token: string | null) => {
+  const handleRecaptchaChange = useCallback((token: string | null) => {
     setRecaptchaToken(token);
     if (error === signInPageData.errors.recaptchaRequired) {
       setError(null);
     }
-  };
+  }, [error]);
 
-  const handleRecaptchaError = () => {
+  const handleRecaptchaError = useCallback(() => {
     setError(signInPageData.errors.recaptchaLoad);
     setRecaptchaToken(null);
-  };
+  }, []);
 
-  const handleRecaptchaExpired = () => {
+  const handleRecaptchaExpired = useCallback(() => {
     setRecaptchaToken(null);
     setError(signInPageData.errors.recaptchaExpired);
-  };
+  }, []);
 
-  // Add these improvements to your existing component:
-
-  // 1. Better error handling in verifyRecaptcha
-  const verifyRecaptcha = async (token: string): Promise<boolean> => {
+  const verifyRecaptcha = useCallback(async (token: string): Promise<boolean> => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch("/api/verify-recaptcha", {
         method: "POST",
@@ -108,32 +112,26 @@ export default function SignIn() {
       return data.success === true;
     } catch (err) {
       if (err instanceof Error) {
-        if (err.name === "AbortError") {
+        if (err.name === 'AbortError') {
           console.error("reCAPTCHA verification timeout");
-          setError(
-            signInPageData.errors.timeout||
-              "Verification timeout. Please try again."
-          );
+          setError("Verification timeout. Please try again.");
         } else {
           console.error("Error verifying reCAPTCHA:", err);
         }
       }
       return false;
     }
-  };
+  }, []);
 
-  // 2. Improved handleSignIn with better error handling
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignIn = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Validate environment
     if (!siteKey) {
       setError(signInPageData.errors.recaptchaConfig);
       return;
     }
 
-    // Validate inputs
     if (!email || !password) {
       setError("Please enter both email and password");
       return;
@@ -147,7 +145,6 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
-      // Verify reCAPTCHA first
       const isRecaptchaValid = await verifyRecaptcha(recaptchaToken);
 
       if (!isRecaptchaValid) {
@@ -158,7 +155,6 @@ export default function SignIn() {
         return;
       }
 
-      // Proceed with sign in
       const result = await signIn("credentials", {
         redirect: false,
         email,
@@ -171,10 +167,10 @@ export default function SignIn() {
         recaptchaRef.current?.reset();
         setRecaptchaToken(null);
       } else if (result?.ok && result?.url) {
-        // Success - redirect
+        // Mark as redirected to prevent useEffect from also redirecting
+        hasRedirected.current = true;
         await router.push(result.url);
       } else {
-        // Unexpected result
         setError(signInPageData.errors.unexpected);
         recaptchaRef.current?.reset();
         setRecaptchaToken(null);
@@ -187,7 +183,21 @@ export default function SignIn() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [email, password, recaptchaToken, siteKey, verifyRecaptcha, router]);
+
+  // Show loading state while checking session
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-gray-900 to-slate-800">
+        <CustomLoader />
+      </div>
+    );
+  }
+
+  // Don't render the form if already authenticated
+  if (status === "authenticated") {
+    return null;
+  }
 
   if (!siteKey) {
     return (
@@ -214,7 +224,7 @@ export default function SignIn() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      <div className="absolute inset-0  bg-gradient-to-br from-slate-950 via-gray-900 to-slate-800">
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-gray-900 to-slate-800">
         <div
           className={`absolute inset-0 bg-[url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")] opacity-20`}
         />
@@ -320,8 +330,7 @@ export default function SignIn() {
               transition={{ delay: 0.5 }}
               className="space-y-1"
             >
-              <label className="text-white/80 text-xs  font-medium  block">
-                {" "}
+              <label className="text-white/80 text-xs font-medium block">
                 {signInPageData.inputLabel.password}
               </label>
               <div className="relative group">
@@ -329,6 +338,7 @@ export default function SignIn() {
                   type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder={signInPageData.passwordPlaceholder}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={handleFocus}
@@ -339,7 +349,7 @@ export default function SignIn() {
                 <motion.button
                   type="button"
                   whileTap={{ scale: 0.9 }}
-                  className="absolute right-3 top-[8px]  p-2 text-white/50 hover:text-white/80 transition-colors duration-200 rounded-lg hover:bg-white/10"
+                  className="absolute right-3 top-[8px] p-2 text-white/50 hover:text-white/80 transition-colors duration-200 rounded-lg hover:bg-white/10"
                   onClick={togglePasswordVisibility}
                 >
                   {showPassword ? (
