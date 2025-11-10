@@ -11,7 +11,7 @@ import {
 
 interface Client {
   name: string;
-  id: string;
+  client_id: string;
 }
 
 interface ClientSelectorProps {
@@ -31,13 +31,13 @@ function ClientSelector({
   placeholder = "Select a client",
   disabled = false,
 }: ClientSelectorProps) {
-  // console.log("ClientSelector clients:", clients, selectedClientId);
+  console.log("ClientSelector clients:", clients, selectedClientId);
   return (
     <div className="flex items-center gap-4 flex-wrap py-2">
       <label className="text-sm font-medium">{label}</label>
       <Select
         disabled={disabled}
-        value={clients.length === 1 ? clients[0].id : selectedClientId ?? ""}
+        value={clients.length === 1 ? clients[0].client_id : selectedClientId ?? ""}
         onValueChange={(value) => onClientChange(value || null)}
       >
         <SelectTrigger className="w-[300px]">
@@ -46,11 +46,11 @@ function ClientSelector({
         <SelectContent>
           <SelectGroup>
             <SelectLabel>Available Clients</SelectLabel>
-            {clients.map((client) => (
+            {clients.map((client, i) => (
               <SelectItem
                 data-pr-tooltip={client.name}
-                key={client.id}
-                value={client.id}
+                key={i}
+                value={client.client_id}
               >
                 {client.name}
               </SelectItem>

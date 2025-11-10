@@ -1,0 +1,159 @@
+// components/dashboard/DashboardContent.tsx
+import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
+import { CallRecord } from "@/types/callRecord";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import DashboardHeader from "./DashboardHeader";
+import Stats from "./Stats";
+import DispositionChart from "./DispositionChart";
+import { exportDispositionCSV } from "@/utils/csvExport";
+import { useSession } from "next-auth/react";
+
+const CallDataTable = dynamic(() => import("./CallDataTable"), { ssr: false });
+const AgentDispositionReport = dynamic(() => import("./AgentDispositionReport"), {
+  ssr: false,
+});
+
+interface DashboardContentProps {
+  userId: string | undefined;
+}
+
+export default function DashboardContent({ userId }: DashboardContentProps) {
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+    const { data: session } = useSession();
+  
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    const from = new Date(now);
+    from.setHours(from.getHours() - 1);
+    return { from, to: now };
+  });
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState(0.5);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [previousCallRecords, setPreviousCallRecords] = useState<CallRecord[]>([]);
+
+  const { data, isLoading, error, utcDateRange, queries } = useDashboardData({
+    userId,
+    selectedClientId,
+    dateRange,
+  });
+
+  console.log("selectedClientId=>:", selectedClientId);
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      setDateRange((prev) => ({ ...prev, to: new Date() }));
+      setLastUpdated(new Date());
+    }, refreshInterval * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval]);
+
+  // Cache previous call records
+  useEffect(() => {
+    if (data.callRecords.length > 0) {
+      setPreviousCallRecords(data.callRecords);
+    }
+  }, [data.callRecords]);
+
+  // Auto-select first client
+  useEffect(() => {
+    if (!selectedClientId && data.clients.length > 0) {
+      setSelectedClientId(data.clients[0].client_id);
+	  console.log("Auto-selected client ID:", data.clients[0].client_id);
+    }
+  }, [data.clients, selectedClientId]);
+
+  const getTimeAgo = useCallback(() => {
+    if (!lastUpdated) return "Never";
+    const diffMs = Date.now() - lastUpdated.getTime();
+    const diffMin = Math.floor(diffMs / 1000 / 60);
+    return diffMin === 0
+      ? "Just now"
+      : `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
+  }, [lastUpdated]);
+
+  const handleStatWiseDisposition = useCallback(
+    (disposition: string) => {
+      exportDispositionCSV({
+        callRecords: data.callRecords,
+        disposition,
+        utcDateRange,
+		role: session?.user?.role || "user",
+      });
+    },
+    [data.callRecords, session?.user?.role, utcDateRange]
+  );
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <p className="text-red-500 text-lg mb-4">Error loading dashboard data</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-500">Please log in to view dashboard</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <DashboardHeader
+        clients={data.clients}
+        selectedClientId={selectedClientId}
+        onClientChange={setSelectedClientId}
+        dateRange={dateRange}
+        onDateChange={setDateRange}
+        autoRefresh={autoRefresh}
+        setAutoRefresh={setAutoRefresh}
+        refreshInterval={refreshInterval}
+        setRefreshInterval={setRefreshInterval}
+        setLastUpdated={setLastUpdated}
+        getTimeAgo={getTimeAgo}
+        isLoading={isLoading}
+      />
+
+      <Stats
+        onClick={handleStatWiseDisposition}
+        agentReport={data.agentReport ?? []}
+        isLoading={queries.agentReport.isLoading}
+      />
+
+      <DispositionChart
+        dispositionChartData={data.dispositionChartData ?? []}
+        isLoading={queries.chartData.isLoading}
+      />
+
+      <div className="w-full my-6">
+        <CallDataTable
+          callRecords={
+            queries.callData.isLoading && previousCallRecords.length > 0
+              ? previousCallRecords
+              : data.callRecords
+          }
+          isLoading={queries.callData.isLoading}
+        />
+      </div>
+
+      <AgentDispositionReport
+        agentReport={data.agentReport ?? []}
+        isLoading={queries.agentReport.isLoading}
+      />
+    </div>
+  );
+}

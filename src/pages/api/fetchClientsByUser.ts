@@ -25,9 +25,14 @@ export default async function handler(
     }
 
     const result = await db.query(
-      `SELECT name, client_id as id FROM clients WHERE user_id = $1`,
+      `SELECT c.name, c.client_id
+          FROM clients c
+          INNER JOIN clients_by_users cbu ON c.client_id = cbu.client_id
+          WHERE cbu.user_id = $1`,
       [userId]
     );
+
+    console.log("Fetched clients for user_id:", userId, result.rows);
 
     res.status(200).json({
       clients: result.rows,

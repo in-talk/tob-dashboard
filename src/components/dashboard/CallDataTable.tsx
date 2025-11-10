@@ -54,6 +54,7 @@ const GLOBAL_FILTER_FIELDS = [
   "disposition",
   "label",
   "transcription",
+  "caller_id",
 ];
 
 const INITIAL_FILTERS: DataTableFilterMeta = {
@@ -532,16 +533,18 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
                   body={audioBodyTemplate}
                 />
 
-                <Column
-                  field="label"
-                  header="Label"
-                  sortable
-                  filter
-                  filterPlaceholder="Search by label"
-                  style={{ ...columnStyles.base, ...columnStyles.label }}
-                  className="p-1"
-                  body={labelBodyTemplate}
-                />
+                {role === "admin" && (
+                  <Column
+                    field="label"
+                    header="Label"
+                    sortable
+                    filter
+                    filterPlaceholder="Search by label"
+                    style={{ ...columnStyles.base, ...columnStyles.label }}
+                    className="p-1"
+                    body={labelBodyTemplate}
+                  />
+                )}
 
                 {role === "admin" && (
                   <Column
