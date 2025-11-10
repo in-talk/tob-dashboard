@@ -504,17 +504,17 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
                   style={{ ...columnStyles.base, ...columnStyles.createdAt }}
                   body={createdAtBodyTemplate}
                 />
-
-                <Column
-                  field="turn"
-                  header="T"
-                  sortable
-                  filter
-                  dataType="numeric"
-                  style={{ ...columnStyles.base, ...columnStyles.turn }}
-                  body={turnBodyTemplate}
-                />
-
+                {role === "admin" && (
+                  <Column
+                    field="turn"
+                    header="T"
+                    sortable
+                    filter
+                    dataType="numeric"
+                    style={{ ...columnStyles.base, ...columnStyles.turn }}
+                    body={turnBodyTemplate}
+                  />
+                )}
                 <Column
                   field="disposition"
                   header="D"
