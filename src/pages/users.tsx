@@ -8,6 +8,8 @@ import { usersComponentData } from "@/constants";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import CreateUser from "@/components/CreateUser";
+import { GetServerSideProps } from "next";
+import { withAuth } from "@/utils/auth";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -151,3 +153,6 @@ function Users() {
 }
 
 export default Users;
+export const getServerSideProps: GetServerSideProps = withAuth(async () => {
+  return { props: {} };
+}, ["admin"]);

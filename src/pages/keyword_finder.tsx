@@ -15,6 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { SearchIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { keywordFinderPageData } from "@/constants";
+import { GetServerSideProps } from "next";
+import { withAuth } from "@/utils/auth";
 
 export type Campaign = {
   campaign_id: number;
@@ -227,3 +229,7 @@ export default function KeywordFinder() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = withAuth(async () => {
+  return { props: {} };
+}, ["admin"]);

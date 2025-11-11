@@ -1,5 +1,7 @@
 "use client";
 
+import { withAuth } from "@/utils/auth";
+import { GetServerSideProps } from "next";
 import { useState } from "react";
 import * as XLSX from "xlsx";
 
@@ -331,3 +333,7 @@ export default function BulkKeywordFinder() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = withAuth(async () => {
+  return { props: {} };
+}, ["admin"]);

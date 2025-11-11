@@ -71,7 +71,6 @@ export default function CallDetailsModal({
 
   const metadata = callMetadata?.[0]?.metadata;
 
-  console.log("callDetails", callDetails, metadata);
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>

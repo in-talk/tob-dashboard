@@ -15,7 +15,7 @@ const AgentDispositionReport = ({
   agentReport: AgentReportRow[];
   isLoading: boolean;
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const toggleAccordion = () => setIsExpanded(!isExpanded);
 
@@ -52,6 +52,7 @@ const AgentDispositionReport = ({
     },
   ];
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const dynamicDispositionKeys: (keyof Omit<
     AgentReportRow,
     "agentName" | "totalCalls"

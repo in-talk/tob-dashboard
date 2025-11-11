@@ -460,7 +460,6 @@ export default function BulkAgeTestPage() {
                         | "UNSURE"
                         | "NEGATIVEAGE";
 
-                      console.log(e.target.value);
                       const updatedTestCase = {
                         ...newTestCase,
                         expected: newValue,

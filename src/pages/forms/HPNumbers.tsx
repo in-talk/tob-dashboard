@@ -1,30 +1,201 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { dragAndDrop } from "@formkit/drag-and-drop";
-import { ChevronRight, Check, Trash2 } from "lucide-react";
+import { ChevronRight, Check, Trash2, Download } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import * as XLSX from "xlsx";
+import { GetServerSideProps } from "next";
+import { withAuth } from "@/utils/auth";
 
 const arraysAreEqual = (a: string[], b: string[]) =>
   a.length === b.length && a.every((v, i) => v === b[i]);
 
+// Memoized list item component
+const TempListItem = ({
+  item,
+  index,
+  isSelected,
+  isCopied,
+  darkMode,
+  onToggleSelect,
+  onCopy,
+}: {
+  item: string;
+  index: number;
+  isSelected: boolean;
+  isCopied: boolean;
+  darkMode: boolean;
+  onToggleSelect: (item: string) => void;
+  onCopy: (item: string) => void;
+}) => {
+  const textPrimary = darkMode ? "text-gray-100" : "text-gray-800";
+
+  return (
+    <li
+      data-id={`${item}-${index}`}
+      className={`group cursor-grab active:cursor-grabbing ${
+        darkMode ? "bg-gray-800" : "bg-gray-50"
+      } border ${
+        isSelected
+          ? darkMode
+            ? "border-blue-500 bg-blue-900/20"
+            : "border-blue-500 bg-blue-50"
+          : darkMode
+          ? "border-gray-700"
+          : "border-gray-200"
+      } px-4 py-2 rounded hover:border-gray-400 transition-all duration-150`}
+    >
+      <div className="flex items-center gap-3 justify-between">
+        <div className="flex items-center gap-3 flex-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect(item);
+            }}
+            className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
+              isSelected
+                ? "bg-blue-600 border-blue-600"
+                : darkMode
+                ? "border-gray-600 bg-transparent"
+                : "border-gray-300 bg-white"
+            }`}
+          >
+            {isSelected && <Check className="w-3 h-3 text-white" />}
+          </button>
+          <svg
+            className={`w-4 h-4 ${
+              darkMode ? "text-gray-500" : "text-gray-400"
+            } group-hover:text-gray-600 transition-colors`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 8h16M4 16h16"
+            />
+          </svg>
+          <span className={`font-mono text-sm ${textPrimary}`}>{item}</span>
+        </div>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onCopy(item);
+          }}
+          className={`opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded ${
+            isCopied
+              ? "bg-green-100 dark:bg-green-900/30"
+              : "hover:bg-gray-200 dark:hover:bg-gray-700"
+          } ${
+            darkMode ? "text-gray-400" : "text-gray-500"
+          } hover:text-gray-700 dark:hover:text-gray-300`}
+          title={isCopied ? "Copied!" : "Copy to clipboard"}
+        >
+          {isCopied ? (
+            <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+          ) : (
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+            </svg>
+          )}
+        </button>
+      </div>
+    </li>
+  );
+};
+
+// Memoized main list item
+const MainListItem = ({
+  item,
+  index,
+  darkMode,
+  onDelete,
+  loading,
+}: {
+  item: string;
+  index: number;
+  darkMode: boolean;
+  onDelete: (item: string) => void;
+  loading: boolean;
+}) => {
+  const textPrimary = darkMode ? "text-gray-100" : "text-gray-800";
+
+  return (
+    <li
+      data-id={`${item}-${index}`}
+      className={`group cursor-grab active:cursor-grabbing ${
+        darkMode ? "bg-gray-800" : "bg-gray-50"
+      } border ${
+        darkMode ? "border-gray-700" : "border-gray-200"
+      } py-1 px-4 rounded hover:border-gray-400 transition-all duration-150`}
+    >
+      <div className="flex items-center gap-3">
+        <svg
+          className={`w-4 h-4 ${
+            darkMode ? "text-gray-500" : "text-gray-400"
+          } group-hover:text-gray-600 transition-colors`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 8h16M4 16h16"
+          />
+        </svg>
+        <span className={`font-mono text-sm ${textPrimary}`}>{item}</span>
+
+        <Button
+          disabled={loading}
+          size="sm"
+          variant="ghost"
+          onClick={() => onDelete(item)}
+          className="text-white bg-red-700 hover:bg-red-900 hover:text-white ml-auto"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </li>
+  );
+};
+
 export default function HpNumbersPage() {
-  const [hp_numbers, setHpNumbers] = useState<string[]>();
+  const [hp_numbers, setHpNumbers] = useState<string[]>([]);
   const [hp_numbers_temp, setHpNumbersTemp] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [newHpNumber, setNewHpNumber] = useState("");
+  const [copiedItem, setCopiedItem] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
-  const originalHpNumbersRef = useRef<string[]>([]);
-
   const [loading, setLoading] = useState(true);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
+  const originalHpNumbersRef = useRef<string[]>([]);
   const theme = useTheme();
   const hpNumbersRef = useRef<HTMLUListElement>(null);
   const hpNumbersTempRef = useRef<HTMLUListElement>(null);
+  const dragInitializedRef = useRef(false);
+
   const darkMode = theme.theme === "dark";
 
+  // Fetch data
   useEffect(() => {
     fetch("/api/hp-number-lists")
       .then((res) => res.json())
@@ -40,14 +211,21 @@ export default function HpNumbersPage() {
       });
   }, []);
 
+  // Initialize drag and drop only once
   useEffect(() => {
-    if (!loading && hpNumbersRef.current && hpNumbersTempRef.current) {
+    if (
+      !loading &&
+      !dragInitializedRef.current &&
+      hpNumbersRef.current &&
+      hpNumbersTempRef.current
+    ) {
+      dragInitializedRef.current = true;
+
       dragAndDrop({
         parent: hpNumbersTempRef.current,
         getValues: () => {
           return Array.from(hpNumbersTempRef.current!.children).map(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (li: any) => li.dataset.id
+            (li: Element) => (li as HTMLElement).dataset.id
           );
         },
         setValues: (newValues) => {
@@ -63,8 +241,7 @@ export default function HpNumbersPage() {
         parent: hpNumbersRef.current,
         getValues: () => {
           return Array.from(hpNumbersRef.current!.children).map(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (li: any) => li.dataset.id
+            (li: Element) => (li as HTMLElement).dataset.id
           );
         },
         setValues: (newValues) => {
@@ -79,8 +256,9 @@ export default function HpNumbersPage() {
     }
   }, [loading]);
 
+  // Check if dirty
   useEffect(() => {
-    if (!loading && hp_numbers) {
+    if (!loading) {
       const isDifferent = !arraysAreEqual(
         hp_numbers,
         originalHpNumbersRef.current
@@ -89,7 +267,62 @@ export default function HpNumbersPage() {
     }
   }, [hp_numbers, loading]);
 
-  const handleSave = async () => {
+  // Memoized filtered list
+  const filteredHpNumbers = useMemo(() => {
+    if (!searchQuery) return hp_numbers;
+    const query = searchQuery.toLowerCase();
+    return hp_numbers.filter((item) => item?.toLowerCase().includes(query));
+  }, [hp_numbers, searchQuery]);
+
+  // Download Excel function
+  const downloadExcel = useCallback(
+    (data: string[], filename: string, sheetName: string) => {
+      try {
+        // Create worksheet data with headers
+        const wsData = [["HP Number"], ...data.map((item) => [item])];
+
+        // Create workbook and worksheet
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // Set column widths
+        ws["!cols"] = [{ wch: 20 }];
+
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().split("T")[0];
+        const fullFilename = `${filename}_${timestamp}.xlsx`;
+
+        // Write file
+        XLSX.writeFile(wb, fullFilename);
+
+        toast({
+          variant: "success",
+          description: `${filename} downloaded successfully!`,
+        });
+      } catch (error) {
+        console.error("Error downloading Excel:", error);
+        toast({
+          variant: "destructive",
+          description: "Failed to download Excel file.",
+        });
+      }
+    },
+    []
+  );
+
+  const handleDownloadTempList = useCallback(() => {
+    downloadExcel(hp_numbers_temp, "HP_Numbers_Temp", "Temp List");
+  }, [hp_numbers_temp, downloadExcel]);
+
+  const handleDownloadMainList = useCallback(() => {
+    downloadExcel(hp_numbers, "HP_Numbers_Main", "Main List");
+  }, [hp_numbers, downloadExcel]);
+
+  // Memoized callbacks
+  const handleSave = useCallback(async () => {
     try {
       const res = await fetch("/api/hp-number-lists", {
         method: "POST",
@@ -111,73 +344,94 @@ export default function HpNumbersPage() {
         variant: "success",
         description: data.message || "HP numbers updated successfully.",
       });
-      originalHpNumbersRef.current = hp_numbers ?? [];
+      originalHpNumbersRef.current = hp_numbers;
       setIsDirty(false);
     } catch (error) {
       console.error("Error saving data:", error);
-
       toast({
         variant: "destructive",
         description: "Error saving data to database.",
       });
     }
-  };
+  }, [hp_numbers, hp_numbers_temp]);
 
-  const toggleItemSelection = (item: string) => {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(item)) {
-      newSelected.delete(item);
-    } else {
-      newSelected.add(item);
-    }
-    setSelectedItems(newSelected);
-  };
+  const toggleItemSelection = useCallback((item: string) => {
+    setSelectedItems((prev) => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(item)) {
+        newSelected.delete(item);
+      } else {
+        newSelected.add(item);
+      }
+      return newSelected;
+    });
+  }, []);
 
-  const moveSelectedItems = () => {
+  const handleCopy = useCallback((item: string) => {
+    navigator.clipboard.writeText(item);
+    setCopiedItem(item);
+    setTimeout(() => setCopiedItem(null), 2000);
+  }, []);
+
+  const moveSelectedItems = useCallback(() => {
     if (selectedItems.size === 0) return;
-    if (!hp_numbers) return;
 
     const itemsToMove = Array.from(selectedItems);
+    const hpNumbersSet = new Set(hp_numbers);
+    const uniqueItems = itemsToMove.filter((item) => !hpNumbersSet.has(item));
 
-    const uniqueItems = itemsToMove.filter(
-      (item) => !hp_numbers?.includes(item)
+    setHpNumbers((prev) => [...prev, ...uniqueItems]);
+    setHpNumbersTemp((prev) =>
+      prev.filter((item) => !selectedItems.has(item))
     );
-
-    setHpNumbers([...hp_numbers, ...uniqueItems]);
-
-    setHpNumbersTemp(
-      hp_numbers_temp.filter((item) => !itemsToMove.includes(item))
-    );
-
     setSelectedItems(new Set());
-  };
+  }, [selectedItems, hp_numbers]);
 
-  const selectAll = () => {
+  const selectAll = useCallback(() => {
     setSelectedItems(new Set(hp_numbers_temp));
-  };
+  }, [hp_numbers_temp]);
 
-  const deselectAll = () => {
+  const deselectAll = useCallback(() => {
     setSelectedItems(new Set());
-  };
+  }, []);
 
-  const filteredHpNumbers = hp_numbers?.filter((item) =>
-    item?.toLowerCase().includes(searchQuery?.toLowerCase())
-  );
+  const handleAddHpNumber = useCallback(() => {
+    const trimmed = newHpNumber.trim();
+    if (!trimmed) return;
+    if (hp_numbers.includes(trimmed)) {
+      toast({
+        variant: "destructive",
+        description: "HP number already exists.",
+      });
+      return;
+    }
+    setHpNumbers((prev) => [...prev, trimmed]);
+    setNewHpNumber("");
+  }, [newHpNumber, hp_numbers]);
 
-  const cardBg = darkMode ? "bg-sidebar " : "bg-white ";
+  const handleDeleteHpNumber = useCallback((item: string) => {
+    setHpNumbers((prev) => prev.filter((num) => num !== item));
+  }, []);
+
+  // Memoized style values
+  const cardBg = darkMode ? "bg-sidebar" : "bg-white";
   const borderColor = darkMode ? "border-blue-500/30" : "border-blue-200";
   const textPrimary = darkMode ? "text-gray-100" : "text-gray-800";
   const textSecondary = darkMode ? "text-gray-400" : "text-gray-600";
 
-  const skeletonItems = Array.from({ length: 6 }).map((_, index) => (
-    <Skeleton key={index} className="h-[38px] w-full" />
-  ));
+  const skeletonItems = useMemo(
+    () =>
+      Array.from({ length: 6 }).map((_, index) => (
+        <Skeleton key={index} className="h-[38px] w-full" />
+      )),
+    []
+  );
 
   return (
     <div
-      className={` ${
+      className={`${
         darkMode ? "" : "bg-gray-50"
-      } p-6  transition-colors duration-300`}
+      } p-6 transition-colors duration-300`}
     >
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
@@ -189,7 +443,7 @@ export default function HpNumbersPage() {
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4 items-center ">
+        <div className="flex flex-col lg:flex-row gap-4 items-center">
           {/* hp_numbers_temp */}
           <div className="flex-1 w-full mt-11">
             <div
@@ -222,6 +476,23 @@ export default function HpNumbersPage() {
                     HP Numbers Temp
                   </h2>
                   <div className="flex gap-2">
+                    <button
+                      onClick={handleDownloadTempList}
+                      disabled={hp_numbers_temp.length === 0}
+                      className={`text-xs px-3 py-1.5 flex items-center gap-1.5 ${
+                        hp_numbers_temp.length === 0
+                          ? darkMode
+                            ? "bg-gray-800 text-gray-600 cursor-not-allowed"
+                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                          : darkMode
+                          ? "bg-green-600 hover:bg-green-700 text-white"
+                          : "bg-green-600 hover:bg-green-700 text-white"
+                      } rounded transition-colors font-medium`}
+                      title="Download as Excel"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Excel
+                    </button>
                     <button
                       onClick={selectAll}
                       className={`text-xs px-3 py-1.5 ${
@@ -260,59 +531,16 @@ export default function HpNumbersPage() {
                   skeletonItems
                 ) : (
                   hp_numbers_temp.map((item, i) => (
-                    <li
+                    <TempListItem
                       key={`${item}-${i}`}
-                      data-id={`${item}-${i}`}
-                      className={`group cursor-grab active:cursor-grabbing ${
-                        darkMode ? "bg-gray-800" : "bg-gray-50"
-                      } border ${
-                        selectedItems.has(item)
-                          ? darkMode
-                            ? "border-blue-500 bg-blue-900/20"
-                            : "border-blue-500 bg-blue-50"
-                          : darkMode
-                          ? "border-gray-700"
-                          : "border-gray-200"
-                      } px-4 py-2 rounded hover:border-gray-400 transition-all duration-150`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleItemSelection(item);
-                          }}
-                          className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
-                            selectedItems.has(item)
-                              ? "bg-blue-600 border-blue-600"
-                              : darkMode
-                              ? "border-gray-600 bg-transparent"
-                              : "border-gray-300 bg-white"
-                          }`}
-                        >
-                          {selectedItems.has(item) && (
-                            <Check className="w-3 h-3 text-white" />
-                          )}
-                        </button>
-                        <svg
-                          className={`w-4 h-4 ${
-                            darkMode ? "text-gray-500" : "text-gray-400"
-                          } group-hover:text-gray-600 transition-colors`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 8h16M4 16h16"
-                          />
-                        </svg>
-                        <span className={`font-mono text-sm ${textPrimary}`}>
-                          {item}
-                        </span>
-                      </div>
-                    </li>
+                      item={item}
+                      index={i}
+                      isSelected={selectedItems.has(item)}
+                      isCopied={copiedItem === item}
+                      darkMode={darkMode}
+                      onToggleSelect={toggleItemSelection}
+                      onCopy={handleCopy}
+                    />
                   ))
                 )}
               </ul>
@@ -349,12 +577,11 @@ export default function HpNumbersPage() {
 
           {/* hp_numbers */}
           <div className="flex-1 w-full">
-            <div className="flex justify-start lg:justify-between w-full ">
-              <div className="flex items-center gap-2 mb-2 ">
+            <div className="flex justify-start lg:justify-between w-full">
+              <div className="flex items-center gap-2 mb-2">
                 <label htmlFor="searchInput" className="text-sm">
                   Search
                 </label>
-
                 <input
                   type="text"
                   id="searchInput"
@@ -374,6 +601,7 @@ export default function HpNumbersPage() {
                   type="text"
                   value={newHpNumber}
                   onChange={(e) => setNewHpNumber(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddHpNumber()}
                   placeholder="Add new HP number"
                   className={`flex-1 px-3 py-1.5 text-sm border rounded ${
                     darkMode
@@ -382,19 +610,7 @@ export default function HpNumbersPage() {
                   } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
                 <button
-                  onClick={() => {
-                    const trimmed = newHpNumber.trim();
-                    if (!trimmed) return;
-                    if (hp_numbers?.includes(trimmed)) {
-                      toast({
-                        variant: "destructive",
-                        description: "HP number already exists.",
-                      });
-                      return;
-                    }
-                    setHpNumbers([...(hp_numbers || []), trimmed]);
-                    setNewHpNumber("");
-                  }}
+                  onClick={handleAddHpNumber}
                   className={`text-sm px-3 py-1.5 ${
                     darkMode
                       ? "bg-blue-600 hover:bg-blue-700 text-white"
@@ -415,80 +631,69 @@ export default function HpNumbersPage() {
                     : "bg-white border-b border-gray-200"
                 } px-4 py-3`}
               >
-                <h2
-                  className={`text-base font-semibold ${textPrimary} flex items-center gap-2 mb-3`}
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <div className="flex items-center justify-between mb-3">
+                  <h2
+                    className={`text-base font-semibold ${textPrimary} flex items-center gap-2`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                    />
-                  </svg>
-                  HP Numbers
-                </h2>
-
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                      />
+                    </svg>
+                    HP Numbers
+                  </h2>
+                  <button
+                    onClick={handleDownloadMainList}
+                    disabled={hp_numbers.length === 0}
+                    className={`text-xs px-3 py-1.5 flex items-center gap-1.5 ${
+                      hp_numbers.length === 0
+                        ? darkMode
+                          ? "bg-gray-800 text-gray-600 cursor-not-allowed"
+                          : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        : darkMode
+                        ? "bg-green-600 hover:bg-green-700 text-white"
+                        : "bg-green-600 hover:bg-green-700 text-white"
+                    } rounded transition-colors font-medium`}
+                    title="Download as Excel"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Excel
+                  </button>
+                </div>
                 <p className={`text-xs ${textSecondary}`}>
-                  Main list ({hp_numbers?.length} items)
+                  Main list ({hp_numbers.length} items)
                 </p>
               </div>
               <ul
                 ref={hpNumbersRef}
                 className="p-3 max-h-[300px] min-h-[300px] overflow-y-auto space-y-1.5"
               >
-                {filteredHpNumbers?.length === 0 ? (
+                {filteredHpNumbers.length === 0 ? (
                   <li className={`text-center ${textSecondary} py-12 text-sm`}>
-                    Drag or move items here
+                    {searchQuery
+                      ? "No results found"
+                      : "Drag or move items here"}
                   </li>
                 ) : loading ? (
                   skeletonItems
                 ) : (
-                  filteredHpNumbers?.map((item, i) => (
-                    <li
+                  filteredHpNumbers.map((item, i) => (
+                    <MainListItem
                       key={`${item}-${i}`}
-                      data-id={`${item}-${i}`}
-                      className={`group cursor-grab active:cursor-grabbing ${
-                        darkMode ? "bg-gray-800" : "bg-gray-50"
-                      } border ${
-                        darkMode ? "border-gray-700" : "border-gray-200"
-                      } py-1 px-4 rounded hover:border-gray-400 transition-all duration-150`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <svg
-                          className={`w-4 h-4 ${
-                            darkMode ? "text-gray-500" : "text-gray-400"
-                          } group-hover:text-gray-600 transition-colors`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 8h16M4 16h16"
-                          />
-                        </svg>
-                        <span className={`font-mono text-sm ${textPrimary}`}>
-                          {item}
-                        </span>
-
-                        <Button
-                          disabled={loading}
-                          size={'sm'}
-                          variant="ghost"
-                          className="text-white bg-red-700 hover:bg-red-900 hover:text-white ml-auto"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </li>
+                      item={item}
+                      index={i}
+                      darkMode={darkMode}
+                      onDelete={handleDeleteHpNumber}
+                      loading={loading}
+                    />
                   ))
                 )}
               </ul>
@@ -500,10 +705,13 @@ export default function HpNumbersPage() {
         <div className="mt-6 flex justify-center">
           <button
             onClick={handleSave}
-            className={`px-6 py-2.5 text-sm font-medium rounded transition-colors flex items-center gap-2  ${
-              darkMode
-                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={!isDirty}
+            className={`px-6 py-2.5 text-sm font-medium rounded transition-colors flex items-center gap-2 ${
+              isDirty
+                ? darkMode
+                  ? "bg-blue-600 hover:bg-blue-700 text-white"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+                : "bg-gray-400 cursor-not-allowed text-gray-200"
             }`}
           >
             <svg
@@ -531,3 +739,7 @@ export default function HpNumbersPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = withAuth(async () => {
+  return { props: {} };
+}, ["admin"]);

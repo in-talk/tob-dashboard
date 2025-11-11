@@ -467,16 +467,17 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
                   style={{ ...columnStyles.base, ...columnStyles.agent }}
                   body={agentBodyTemplate}
                 />
-
-                <Column
-                  field="call_id"
-                  header="Call ID"
-                  sortable
-                  filter
-                  filterPlaceholder="Search by call ID"
-                  style={{ ...columnStyles.base, ...columnStyles.callId }}
-                  body={callIdBodyTemplate}
-                />
+                {role === "admin" && (
+                  <Column
+                    field="call_id"
+                    header="Call ID"
+                    sortable
+                    filter
+                    filterPlaceholder="Search by call ID"
+                    style={{ ...columnStyles.base, ...columnStyles.callId }}
+                    body={callIdBodyTemplate}
+                  />
+                )}
 
                 <Column
                   field="caller_id"

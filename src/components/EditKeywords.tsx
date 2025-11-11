@@ -35,7 +35,6 @@ function EditKeywords({
   const [searchTerm, setSearchTerm] = useState("");
   const keywordInputRef = useRef<HTMLInputElement>(null);
   const bulkInputRef = useRef<HTMLTextAreaElement>(null);
-  console.log("EditKeywords document:", document, collectionType);
 
   const submitKeywords = useCallback(
     async (updatedKeywords: string[]) => {
