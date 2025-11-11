@@ -41,7 +41,7 @@ export function exportDispositionCSV({
   ];
 
   if (role === "user") {
-	excludeColumns.push("label", "transcription");
+    excludeColumns.push("label", "transcription");
   }
 
   const filteredKeys = Object.keys(filteredData[0]).filter(
@@ -82,7 +82,9 @@ export function exportDispositionCSV({
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${disposition.toUpperCase()}_${utcDateRange.from}_to_${utcDateRange.to}.csv`;
+  a.download = `${disposition.toUpperCase()}_${utcDateRange.from}_to_${
+    utcDateRange.to
+  }.csv`;
   a.click();
   window.URL.revokeObjectURL(url);
 }

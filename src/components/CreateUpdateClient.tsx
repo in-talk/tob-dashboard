@@ -59,6 +59,9 @@ const createClientSchema = z.object({
   vicidial_transfer_api_user: z.string(),
   vicidial_transfer_api_pass: z.string(),
   vicidial_transfer_user: z.string(),
+  vicidial_transfer_address_folder: z.string().default("vicidial"),
+  vicidial_address_folder: z.string().default("vicidial"),
+  age_limit: z.string().default("40-80"),
 });
 
 export type CreateClientValues = z.infer<typeof createClientSchema>;
@@ -202,6 +205,29 @@ export default function CreateUpdateClient({
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="age_limit"
+                  render={({ field }) => (
+                     <FormItem>
+                        <FormLabel>Age Limit</FormLabel>
+                        <FormControl>
+                          <Input
+                            className="!mt-0"
+                            {...field}
+                            value={
+                              typeof field.value === "string" ||
+                              typeof field.value === "number"
+                                ? field.value
+                                : ""
+                            }
+                            onChange={(e) => field.onChange(e.target.value)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                  )}
+                />
               </div>
 
               <div>
@@ -323,6 +349,7 @@ export default function CreateUpdateClient({
               <div>
                 {[
                   "vicidial_address",
+                  "vicidial_address_folder",
                   "vicidial_api_user",
                   "vicidial_api_password",
                   "transfer_group_name",
@@ -356,6 +383,7 @@ export default function CreateUpdateClient({
               <div>
                 {[
                   "vicidial_transfer_address",
+                  "vicidial_transfer_address_folder",
                   "vicidial_transfer_api_user",
                   "vicidial_transfer_api_pass",
                   "vicidial_transfer_user",

@@ -1,3 +1,4 @@
+// components/EditKeywords.tsx
 import React, { useRef, useState, useCallback, useMemo } from "react";
 import * as XLSX from "xlsx";
 import {
@@ -33,47 +34,118 @@ function EditKeywords({
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false); // ✅ Prevent simultaneous updates
   const keywordInputRef = useRef<HTMLInputElement>(null);
   const bulkInputRef = useRef<HTMLTextAreaElement>(null);
 
-  const submitKeywords = useCallback(
-    async (updatedKeywords: string[]) => {
+  // ✅ Track pending operations to prevent race conditions
+  const pendingOperations = useRef<Set<string>>(new Set());
+
+  // ✅ Add single keyword using atomic API
+  const addSingleKeyword = useCallback(
+    async (keyword: string) => {
+      const operationId = `add-${keyword}-${Date.now()}`;
+
+      if (pendingOperations.current.has(operationId)) {
+        console.warn("Operation already in progress");
+        return;
+      }
+
+      pendingOperations.current.add(operationId);
+      setIsUpdating(true);
+
       try {
         const response = await fetch(
-          `/api/updateKeywords?collectionType=${collectionType}`,
+          `/api/keywords/add?collectionType=${collectionType}`,
           {
-            method: "PUT",
+            method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               id: document._id,
-              keywords: updatedKeywords,
+              keyword: keyword,
             }),
-            next: { revalidate: 0}
           }
         );
 
         if (!response.ok) {
           const responseData = await response.json();
-          throw new Error(
-            responseData.message || editKeywordsData.toasts.error.default
-          );
+          throw new Error(responseData.message || "Failed to add keyword");
         }
+
         const result = await response.json();
 
-        setKeywords(result.updatedDocument?.keywords);
+        // ✅ Update with server response (source of truth)
+        setKeywords(result.updatedDocument.keywords);
 
-        toast({
-          variant: "success",
-          description: editKeywordsData.toasts.success,
-        });
+        console.log(`✅ Added keyword. Total: ${result.keywordsCount}`);
+
+        return true;
       } catch (error) {
+        console.error("❌ Failed to add keyword:", error);
         toast({
           variant: "destructive",
           description:
-            error instanceof Error
-              ? error.message
-              : editKeywordsData.toasts.error.unexpected,
+            error instanceof Error ? error.message : "Failed to add keyword",
         });
+        return false;
+      } finally {
+        pendingOperations.current.delete(operationId);
+        setIsUpdating(false);
+      }
+    },
+    [document._id, collectionType]
+  );
+
+  // ✅ Remove single keyword using atomic API
+  const removeSingleKeyword = useCallback(
+    async (keyword: string) => {
+      const operationId = `remove-${keyword}`;
+
+      if (pendingOperations.current.has(operationId)) {
+        console.warn("Remove operation already in progress");
+        return;
+      }
+
+      pendingOperations.current.add(operationId);
+      setIsUpdating(true);
+
+      try {
+        const response = await fetch(
+          `/api/keywords/remove?collectionType=${collectionType}`,
+          {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: document._id,
+              keyword: keyword,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const responseData = await response.json();
+          throw new Error(responseData.message || "Failed to remove keyword");
+        }
+
+        const result = await response.json();
+
+        // ✅ Update with server response (source of truth)
+        setKeywords(result.updatedDocument.keywords);
+
+        console.log(`✅ Removed keyword. Remaining: ${result.keywordsCount}`);
+
+        return true;
+      } catch (error) {
+        console.error("❌ Failed to remove keyword:", error);
+        toast({
+          variant: "destructive",
+          description:
+            error instanceof Error ? error.message : "Failed to remove keyword",
+        });
+        return false;
+      } finally {
+        pendingOperations.current.delete(operationId);
+        setIsUpdating(false);
       }
     },
     [document._id, collectionType]
@@ -83,51 +155,189 @@ function EditKeywords({
     async (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (event.key === "Enter") {
         event.preventDefault();
-        const input = keywordInputRef.current?.value.trim();
-        if (input && !keywords.includes(input)) {
-          const updatedKeywords = [...keywords, input];
-          setKeywords(updatedKeywords);
-          await submitKeywords(updatedKeywords);
+
+        if (isUpdating) {
+          toast({
+            variant: "default",
+            description: "Please wait for current operation to complete",
+          });
+          return;
         }
-        if (keywordInputRef.current) keywordInputRef.current.value = "";
+
+        const input = keywordInputRef.current?.value.trim();
+
+        if (!input) {
+          return;
+        }
+
+        if (keywords.includes(input)) {
+          toast({
+            variant: "default",
+            description: "Keyword already exists",
+          });
+          if (keywordInputRef.current) keywordInputRef.current.value = "";
+          return;
+        }
+
+        // ✅ Use atomic add
+        const success = await addSingleKeyword(input);
+
+        if (success) {
+          if (keywordInputRef.current) keywordInputRef.current.value = "";
+          toast({
+            variant: "success",
+            description: "Keyword added successfully",
+          });
+        }
       }
     },
-    [keywords, submitKeywords]
+    [keywords, isUpdating, addSingleKeyword]
   );
 
   const handleAddBulkKeywords = useCallback(async () => {
-    const input = bulkInputRef.current?.value.trim();
-    if (input) {
-      const newKeywords = input
-        .split(/[\n,]+/)
-        .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword && !keywords.includes(keyword));
-
-      if (newKeywords.length > 0) {
-        const updatedKeywords = [...keywords, ...newKeywords];
-        setKeywords(updatedKeywords);
-        await submitKeywords(updatedKeywords);
-      }
-      if (bulkInputRef.current) bulkInputRef.current.value = "";
+    if (isUpdating) {
+      toast({
+        variant: "default",
+        description: "Please wait for current operation to complete",
+      });
+      return;
     }
-  }, [keywords, submitKeywords]);
+
+    const input = bulkInputRef.current?.value.trim();
+    if (!input) {
+      return;
+    }
+
+    const newKeywords = input
+      .split(/[\n,]+/)
+      .map((keyword) => keyword.trim())
+      .filter((keyword) => keyword);
+
+    if (newKeywords.length === 0) {
+      toast({
+        variant: "default",
+        description: "No valid keywords to add",
+      });
+      if (bulkInputRef.current) bulkInputRef.current.value = "";
+      return;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      // ✅ Use bulk API for better performance
+      const response = await fetch(
+        `/api/keywords/bulk?collectionType=${collectionType}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: document._id,
+            operation: "add", // Use "add" instead of "replace"
+            keywords: newKeywords,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const responseData = await response.json();
+        throw new Error(responseData.message || "Failed to add keywords");
+      }
+
+      const result = await response.json();
+      setKeywords(result.updatedDocument.keywords);
+
+      if (bulkInputRef.current) bulkInputRef.current.value = "";
+
+      toast({
+        variant: "success",
+        description: `Successfully added keywords. Total: ${result.keywordsCount}`,
+      });
+    } catch (error) {
+      console.error("❌ Failed to add bulk keywords:", error);
+      toast({
+        variant: "destructive",
+        description:
+          error instanceof Error ? error.message : "Failed to add keywords",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [document._id, collectionType, isUpdating]);
 
   const handleRemoveKeyword = useCallback(
     async (keywordToRemove: string) => {
-      const updatedKeywords = keywords.filter(
-        (keyword) => keyword !== keywordToRemove
-      );
-      setKeywords(updatedKeywords);
-      await submitKeywords(updatedKeywords);
+      if (isUpdating) {
+        toast({
+          variant: "default",
+          description: "Please wait for current operation to complete",
+        });
+        return;
+      }
+
+      // ✅ Use atomic remove
+      const success = await removeSingleKeyword(keywordToRemove);
+
+      if (success) {
+        toast({
+          variant: "success",
+          description: "Keyword removed successfully",
+        });
+      }
     },
-    [keywords, submitKeywords]
+    [isUpdating, removeSingleKeyword]
   );
 
   const handleClearAllKeywords = useCallback(async () => {
-    setKeywords([]);
-    await submitKeywords([]);
-    setAlertOpen(false);
-  }, [submitKeywords]);
+    if (isUpdating) {
+      toast({
+        variant: "default",
+        description: "Please wait for current operation to complete",
+      });
+      return;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      // ✅ Use bulk API with "clear" operation
+      const response = await fetch(
+        `/api/keywords/bulk?collectionType=${collectionType}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: document._id,
+            operation: "clear",
+            keywords: [],
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const responseData = await response.json();
+        throw new Error(responseData.message || "Failed to clear keywords");
+      }
+
+      await response.json();
+      setKeywords([]);
+      setAlertOpen(false);
+
+      toast({
+        variant: "success",
+        description: "All keywords cleared successfully",
+      });
+    } catch (error) {
+      console.error("❌ Failed to clear keywords:", error);
+      toast({
+        variant: "destructive",
+        description:
+          error instanceof Error ? error.message : "Failed to clear keywords",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [document._id, collectionType, isUpdating]);
 
   const filteredKeywords = useMemo(() => {
     if (!searchTerm.trim()) return keywords;
@@ -142,8 +352,6 @@ function EditKeywords({
     });
   }, [keywords, searchTerm]);
 
-  console.log("Filtered keywords:", filteredKeywords);
-
   const downloadKeywordsAsExcel = useCallback(() => {
     if (keywords.length === 0) {
       toast({
@@ -153,25 +361,20 @@ function EditKeywords({
       return;
     }
 
-    // Create worksheet data - each keyword in its own row
     const worksheetData = [
-      ["Keywords"], // Header
-      ...keywords.map((keyword) => [`${keyword},`]), // Each keyword in separate row
+      ["Keywords"],
+      ...keywords.map((keyword) => [`${keyword},`]),
     ];
 
-    // Create workbook and worksheet
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
-    // Add worksheet to workbook
     XLSX.utils.book_append_sheet(workbook, worksheet, "Keywords");
 
-    // Generate filename with document info
     const filename = `keywords_${collectionType}_${document.label}_${
       new Date().toISOString().split("T")[0]
     }.xlsx`;
 
-    // Download file
     XLSX.writeFile(workbook, filename);
 
     toast({
@@ -185,75 +388,95 @@ function EditKeywords({
       <DialogTrigger asChild>
         <Button>{editKeywordsData.dialog.trigger}</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] md:max-w-[825px] bg-white dark:bg-sidebar overflow-y-auto ">
+      <DialogContent className="sm:max-w-[425px] md:max-w-[825px] bg-white dark:bg-sidebar overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Keywords ({keywords.length})</DialogTitle>
+          <DialogTitle>
+            Add Keywords ({keywords.length}){isUpdating && " - Updating..."}
+          </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-4 mt-4">
-          <div className=" flex flex-col gap-4  pr-4">
-            <Label>{editKeywordsData.labels.singleKeyword}</Label>
-            <Input
-              ref={keywordInputRef}
-              type="text"
-              placeholder={editKeywordsData.placeholders.singleKeyword}
-              onKeyDown={handleAddKeyword}
-              className="border dark:border-white"
-            />
-            <Label>{editKeywordsData.labels.bulkKeyword}</Label>
-            <Textarea
-              ref={bulkInputRef}
-              placeholder={editKeywordsData.placeholders.bulkKeyword}
-              rows={3}
-              className="border dark:border-white"
-            />
-            <Button
-              variant="outline"
-              type="button"
-              onClick={handleAddBulkKeywords}
-            >
-              {editKeywordsData.buttons.addBulk}
-            </Button>
-          </div>
-          <Separator />
-          <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-center">
+
+        {/* ✅ Disable form when updating */}
+        <fieldset disabled={isUpdating}>
+          <div className="flex flex-col gap-4 mt-4">
+            <div className="flex flex-col gap-4 pr-4">
+              <Label>{editKeywordsData.labels.singleKeyword}</Label>
               <Input
+                ref={keywordInputRef}
                 type="text"
-                placeholder={editKeywordsData.placeholders.search}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-9 w-[50%] border dark:border-white"
+                placeholder={editKeywordsData.placeholders.singleKeyword}
+                onKeyDown={handleAddKeyword}
+                className="border dark:border-white"
+              />
+              <Label>{editKeywordsData.labels.bulkKeyword}</Label>
+              <Textarea
+                ref={bulkInputRef}
+                placeholder={editKeywordsData.placeholders.bulkKeyword}
+                rows={3}
+                className="border dark:border-white"
               />
               <Button
                 variant="outline"
-                onClick={downloadKeywordsAsExcel}
-                disabled={keywords.length === 0}
-                className="ml-4"
+                type="button"
+                onClick={handleAddBulkKeywords}
+                disabled={isUpdating}
               >
-                Download Excel
+                {editKeywordsData.buttons.addBulk}
               </Button>
             </div>
-            <div className="overflow-y-auto sm:max-w-[400px] md:max-w-[750px] h-[200px] pb-4">
-              {filteredKeywords.map((keyword, i) => (
+            <Separator />
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center">
+                <Input
+                  type="text"
+                  placeholder={editKeywordsData.placeholders.search}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="h-9 w-[50%] border dark:border-white"
+                />
                 <Button
-                  className="m-1"
                   variant="outline"
-                  key={`${keyword}-${i}`}
-                  onClick={() => handleRemoveKeyword(keyword)}
+                  onClick={downloadKeywordsAsExcel}
+                  disabled={keywords.length === 0 || isUpdating}
+                  className="ml-4"
                 >
-                  {keyword} {editKeywordsData.buttons.removeKeywordSuffix}
+                  Download Excel
                 </Button>
-              ))}
+              </div>
+              <div className="overflow-y-auto sm:max-w-[400px] md:max-w-[750px] h-[200px] pb-4">
+                {filteredKeywords.map((keyword, i) => (
+                  <div
+                    key={`${keyword}-${i}`}
+                    className="inline-flex items-center gap-1 m-1 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                  >
+                    <span>{keyword}</span>
+                    <button
+                      onClick={() => handleRemoveKeyword(keyword)}
+                      disabled={isUpdating}
+                      className="ml-1 hover:text-blue-600 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <ClearAllKeywordsAlert
+                isAlertOpen={isAlertOpen}
+                setAlertOpen={setAlertOpen}
+                handleClearAllKeywords={handleClearAllKeywords}
+              />
             </div>
-            <ClearAllKeywordsAlert
-              isAlertOpen={isAlertOpen}
-              setAlertOpen={setAlertOpen}
-              handleClearAllKeywords={handleClearAllKeywords}
-            />
           </div>
-        </div>
+        </fieldset>
+
+        {/* ✅ Loading indicator */}
+        {isUpdating && (
+          <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded shadow-lg">
+            Updating keywords...
+          </div>
+        )}
+
         <DialogClose asChild>
-          <Button variant="secondary">
+          <Button variant="secondary" disabled={isUpdating}>
             {editKeywordsData.dialog.close}
           </Button>
         </DialogClose>

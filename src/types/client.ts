@@ -1,27 +1,30 @@
-export type Client  ={
-  campaign_code: number
-  campaign_id: number
-  campaign_name: string
-  client_id: string
-  name: string
-  created_at: string 
-  description: string 
-  is_active: boolean
+export type Client = {
+  campaign_code: number;
+  campaign_id: number;
+  campaign_name: string;
+  client_id: string;
+  name: string;
+  created_at: string;
+  description: string;
+  is_active: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata: Record<string, any> | null
-  model: number
-  number_of_lines: number
-  transfer_group_name: string
-  updated_by: string
-  user_email: string
-  user_id: number
-  user_name: string
-  version: number
-  vicidial_address: string
-  vicidial_api_password: string
-  vicidial_api_user: string
-  vicidial_transfer_address: string 
-  vicidial_transfer_api_pass: string 
-  vicidial_transfer_api_user: string
-  vicidial_transfer_user: string
-}
+  metadata: Record<string, any> | null;
+  model: number;
+  number_of_lines: number;
+  transfer_group_name: string;
+  updated_by: string;
+  user_email: string;
+  user_id: number;
+  user_name: string;
+  version: number;
+  vicidial_address: string;
+  vicidial_api_password: string;
+  vicidial_api_user: string;
+  vicidial_transfer_address: string;
+  vicidial_transfer_api_pass: string;
+  vicidial_transfer_api_user: string;
+  vicidial_transfer_user: string;
+  vicidial_address_folder: string;
+  vicidial_transfer_address_folder: string;
+  age_limit: string;
+};

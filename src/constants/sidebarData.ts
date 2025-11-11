@@ -50,6 +50,10 @@ export const sideBarData = {
           url: "/forms/agents-by-campaign",
         },
         {
+          title: "Clients By User",
+          url: "/forms/clients-by-user",
+        },
+        {
           title: "Models",
           url: "/forms/models",
         },
