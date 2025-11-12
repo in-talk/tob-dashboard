@@ -41,7 +41,17 @@ export function exportDispositionCSV({
   ];
 
   if (role === "user") {
-    excludeColumns.push("label", "transcription");
+    excludeColumns.push(
+      "label",
+      "transcription",
+      "call_unique_id",
+      "client_id",
+      "label",
+      "model",
+      "version",
+      "call_start_time",
+      "call_end_time",
+    );
   }
 
   const filteredKeys = Object.keys(filteredData[0]).filter(
@@ -61,7 +71,15 @@ export function exportDispositionCSV({
             typeof value === "object" &&
             value !== null
           ) {
-            return `${value.seconds}:${value.milliseconds}` || 0;
+            const seconds = value.seconds || 0;
+            const milliseconds = value.milliseconds || 0;
+
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+
+            return `${String(minutes).padStart(2, "0")}:${String(
+              remainingSeconds
+            ).padStart(2, "0")}.${String(milliseconds).padStart(3, "0")}`;
           }
 
           // Handle strings with commas or quotes

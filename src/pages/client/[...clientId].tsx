@@ -202,6 +202,7 @@ export default function ClientPage() {
                 : callRecords
             }
             isLoading={callDataQuery.isLoading}
+            utcDateRange={utcDateRange}
           />
         </div>
         <div className="w-full">

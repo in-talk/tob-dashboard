@@ -26,6 +26,7 @@ import { utcToCurrentTimezone } from "@/utils/timezone";
 import { formatDateTime } from "@/utils/formatDateTime";
 import SyncingProgressBars from "../ui/SyncingProgressBars";
 import CallDetailsModal from "../CallDetailsModal";
+import { exportDispositionCSV } from "@/utils/csvExport";
 
 const DISPOSITION_COLORS: Record<string, string> = {
   XFER: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200",
@@ -92,11 +93,16 @@ const INITIAL_FILTERS: DataTableFilterMeta = {
 interface CallDataTableProps {
   callRecords: CallRecord[];
   isLoading: boolean;
+  utcDateRange: {
+    from: string;
+    to: string;
+  };
 }
 
 const CallDataTable: React.FC<CallDataTableProps> = ({
   callRecords,
   isLoading,
+  utcDateRange,
 }) => {
   const [data, setData] = useState<CallRecord[]>(callRecords);
   const [rowsPerPage, setRowsPerPage] = useState(20);
@@ -151,21 +157,14 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   );
 
   const exportData = useCallback(() => {
-    if (data.length === 0) return;
+    exportDispositionCSV({
+        callRecords: data,
+        disposition: "TOTALCALLS",
+        utcDateRange,
+        role: session?.user?.role || "user",
+      });
+  }, [data,session?.user?.role, utcDateRange]);
 
-    const csv = [
-      Object.keys(data[0]).join(","),
-      ...data.map((row) => Object.values(row).join(",")),
-    ].join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "call-data.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }, [data]);
 
   const handleOpenPlayer = useCallback((url: string) => {
     const playerUrl = `/audio-preview?url=${encodeURIComponent(url)}`;

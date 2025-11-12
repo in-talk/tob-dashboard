@@ -147,6 +147,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
               : data.callRecords
           }
           isLoading={queries.callData.isLoading}
+          utcDateRange={utcDateRange}
         />
       </div>
 
