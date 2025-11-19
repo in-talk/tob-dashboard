@@ -50,8 +50,8 @@ type BulkTestResponse = {
 };
 
 export default function BulkAgeTestPage() {
-  const [minAge, setMinAge] = useState<number>(20);
-  const [maxAge, setMaxAge] = useState<number>(55);
+  const [minAge, setMinAge] = useState<number>(40);
+  const [maxAge, setMaxAge] = useState<number>(80);
   const [testCases, setTestCases] = useState<TestCase[]>([
     { text: "I am forty five", expected: "YES" },
     { text: "I'm sixty years old", expected: "NO" },

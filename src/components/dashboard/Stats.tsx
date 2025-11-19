@@ -1,5 +1,17 @@
 import { AgentReportRow } from "@/utils/transformAgentData";
-import { BellRing, PhoneForwarded, User, Activity, Phone } from "lucide-react";
+import {
+  BellRing,
+  PhoneForwarded,
+  User,
+  Activity,
+  Phone,
+  AlertTriangle,
+  CalendarClock,
+  BadgeHelp,
+  MessagesSquare,
+  ShieldAlert,
+  ThumbsDown,
+} from "lucide-react";
 import React, { useMemo } from "react";
 
 interface StatsProps {
@@ -29,13 +41,25 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
         totalDair: acc.totalDair + parseInt(agent.dair.count),
         totalRi: acc.totalRi + parseInt(agent.ri.count),
         totalA: acc.totalA + parseInt(agent.a.count),
+        totalDnq: acc.totalDnq + parseInt(agent.dnq.count),
+        totalCallBK: acc.totalCallBK + parseInt(agent.callbk.count),
+        totalLb: acc.totalLb + parseInt(agent.lb.count),
+        totalNa: acc.totalNa + parseInt(agent.na.count),
+        totalNp: acc.totalNp + parseInt(agent.np.count),
+        totalHp: acc.totalHp + parseInt(agent.hp.count),
       }),
       {
+        totalCallBK: 0,
+        totalNa: 0,
+        totalHp: 0,
+        totalNp: 0,
+        totalLb: 0,
         totalCalls: 0,
         totalXfer: 0,
         totalDair: 0,
         totalRi: 0,
         totalA: 0,
+        totalDnq: 0,
       }
     );
   }, [agentReport]);
@@ -52,7 +76,7 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
       disposition: "totalCalls",
     },
     {
-      label: "Total XFER",
+      label: "XFER",
       icon: PhoneForwarded,
       value: totals.totalXfer,
       bgLight: "bg-yellow-100",
@@ -62,7 +86,7 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
       disposition: "xfer",
     },
     {
-      label: "Total DAIR",
+      label: "DAIR",
       icon: Activity,
       value: totals.totalDair,
       bgLight: "bg-teal-100",
@@ -72,7 +96,7 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
       disposition: "dair",
     },
     {
-      label: "Total RI",
+      label: "RI",
       icon: BellRing,
       value: totals.totalRi,
       bgLight: "bg-gray-100",
@@ -82,7 +106,7 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
       disposition: "ri",
     },
     {
-      label: "Total A",
+      label: "A",
       icon: User,
       value: totals.totalA,
       bgLight: "bg-cyan-100",
@@ -90,6 +114,66 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
       textColor: "text-cyan-900",
       gradient: "from-cyan-500 to-cyan-600",
       disposition: "a",
+    },
+    {
+      label: "DNQ",
+      icon: AlertTriangle,
+      value: totals.totalDnq,
+      bgLight: "bg-red-100",
+      bgDark: "dark:bg-red-400",
+      textColor: "text-red-900",
+      gradient: "from-red-500 to-red-600",
+      disposition: "dnq",
+    },
+    {
+      label: "CallBK",
+      icon: CalendarClock,
+      value: totals.totalCallBK,
+      bgLight: "bg-blue-100",
+      bgDark: "dark:bg-blue-400",
+      textColor: "text-blue-900",
+      gradient: "from-blue-500 to-blue-600",
+      disposition: "callbk",
+    },
+    {
+      label: "LB",
+      icon: BadgeHelp,
+      value: totals.totalLb,
+      bgLight: "bg-purple-100",
+      bgDark: "dark:bg-purple-400",
+      textColor: "text-purple-900",
+      gradient: "from-purple-500 to-purple-600",
+      disposition: "lb",
+    },
+    {
+      label: "NA",
+      icon: MessagesSquare,
+      value: totals.totalNa,
+      bgLight: "bg-yellow-100",
+      bgDark: "dark:bg-yellow-400",
+      textColor: "text-yellow-900",
+      gradient: "from-yellow-500 to-yellow-600",
+      disposition: "na",
+    },
+    {
+      label: "NP",
+      icon: ShieldAlert,
+      value: totals.totalNp,
+      bgLight: "bg-green-100",
+      bgDark: "dark:bg-green-400",
+      textColor: "text-green-900",
+      gradient: "from-green-500 to-green-600",
+      disposition: "np",
+    },
+    {
+      label: "HP",
+      icon: ThumbsDown,
+      value: totals.totalHp,
+      bgLight: "bg-orange-100",
+      bgDark: "dark:bg-orange-400",
+      textColor: "text-orange-900",
+      gradient: "from-orange-500 to-orange-600",
+      disposition: "hp",
     },
   ];
 
@@ -106,7 +190,7 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
   }
 
   return (
-    <div className="grid grid-cols-8 gap-4 mb-2">
+    <div className="grid grid-cols-12 gap-4 mb-2">
       {cards.map((card, idx) => (
         <StatCard
           key={card.disposition}
@@ -161,10 +245,15 @@ interface StatCardProps {
   onClick: (disposition: string) => void;
 }
 
-function StatCard({ card, index, maxValue, isLoading, onClick }: StatCardProps) {
-  const progressWidth = maxValue > 0 
-    ? Math.min((card.value / maxValue) * 100, 100) 
-    : 0;
+function StatCard({
+  card,
+  index,
+  maxValue,
+  isLoading,
+  onClick,
+}: StatCardProps) {
+  const progressWidth =
+    maxValue > 0 ? Math.min((card.value / maxValue) * 100, 100) : 0;
 
   const isClickable = !isLoading && card.value > 0;
 
@@ -175,9 +264,10 @@ function StatCard({ card, index, maxValue, isLoading, onClick }: StatCardProps) 
         ${card.bgLight} ${card.bgDark} px-4 py-1 rounded-lg 
         relative overflow-hidden group transition-all duration-300 
         bg-gradient-to-br ${card.gradient}
-        ${isClickable 
-          ? 'hover:shadow-lg hover:scale-105 cursor-pointer' 
-          : 'opacity-60 cursor-default'
+        ${
+          isClickable
+            ? "hover:shadow-lg hover:scale-105 cursor-pointer"
+            : "opacity-60 cursor-default"
         }
       `}
       style={{
@@ -195,7 +285,11 @@ function StatCard({ card, index, maxValue, isLoading, onClick }: StatCardProps) 
       )}
 
       <div className="flex items-center gap-2 relative z-10">
-        <div className={`p-1 rounded-lg bg-white/20 backdrop-blur-sm transition-transform duration-300 ${isClickable ? 'group-hover:rotate-12' : ''}`}>
+        <div
+          className={`p-1 rounded-lg bg-white/20 backdrop-blur-sm transition-transform duration-300 ${
+            isClickable ? "group-hover:rotate-12" : ""
+          }`}
+        >
           <card.icon className="w-5 h-5 text-white drop-shadow-sm" />
         </div>
         <span className="text-sm font-bold text-white drop-shadow-sm">
