@@ -157,7 +157,7 @@ export default function CreateUpdateAgentByCampaign({
                               key={campaign.campaign_id}
                               value={campaign.campaign_id.toString()}
                             >
-                              {campaign.campaign_name}-{campaign.campaign_id}
+                              {campaign.campaign_name}-{campaign.campaign_code}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -188,7 +188,7 @@ export default function CreateUpdateAgentByCampaign({
                               key={agent.agent_id}
                               value={agent.agent_id.toString()}
                             >
-                              {agent.agent_name}
+                              {agent.agent_name}- {agent.agent_id}
                             </SelectItem>
                           ))}
                         </SelectContent>

@@ -85,6 +85,10 @@ export const sideBarData = {
           url: "/label_managment/?FE",
         },
         {
+          title: `FE TEST (Final expense) - ${Campaign.FETEST}`,
+          url: "/label_managment/?FETEST",
+        },
+        {
           title: `MVA - ${Campaign.MVA}`,
           url: "/label_managment/?MVA",
         },
