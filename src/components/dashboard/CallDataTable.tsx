@@ -414,7 +414,8 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
         </div>
       </div>
     ),
-    [globalFilterValue, onGlobalFilterChange, exportData, localServerSearchTerm, handleServerSearch, handleClearServerSearch, serverSearchTerm, onServerSearchChange, searchType, onSearchTypeChange]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onServerSearchChange, onSearchTypeChange, role, searchType, localServerSearchTerm, handleServerSearch, serverSearchTerm, handleClearServerSearch, globalFilterValue, onGlobalFilterChange, exportData]
   );
 
   // Empty message component

@@ -17,7 +17,6 @@ const arraysAreEqual = (a: string[], b: string[]) =>
 // Memoized list item component
 const TempListItem = ({
   item,
-  index,
   isSelected,
   isCopied,
   darkMode,
@@ -118,7 +117,6 @@ const TempListItem = ({
 // Memoized main list item
 const MainListItem = ({
   item,
-  index,
   darkMode,
   onDelete,
   loading,
@@ -311,6 +309,7 @@ export default function HpNumbersPage() {
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
         const numbers = jsonData
@@ -492,6 +491,8 @@ export default function HpNumbersPage() {
         toast({ variant: "destructive", description: data.error || "Failed to add number." });
       }
     } catch (error) {
+            console.error(error)
+
       toast({ variant: "destructive", description: "Error adding number." });
     }
   }, [newHpNumber, page, serverSearchQuery, fetchData]);
@@ -507,6 +508,7 @@ export default function HpNumbersPage() {
         fetchData(page, serverSearchQuery);
       }
     } catch (error) {
+      console.error(error)
       toast({ variant: "destructive", description: "Delete failed." });
     }
   }, [page, serverSearchQuery, fetchData]);

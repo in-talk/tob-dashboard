@@ -93,7 +93,7 @@ export default async function handler(
         await hpNumbersCollection.deleteMany({});
         if (hp_numbers.length > 0) {
           await hpNumbersCollection.insertMany(
-            hp_numbers.map((num) => ({ number: num }))
+            hp_numbers.map((num: number) => ({ number: num }))
           );
         }
       }
@@ -102,7 +102,7 @@ export default async function handler(
         await hpNumbersTempCollection.deleteMany({});
         if (hp_numbers_temp.length > 0) {
           await hpNumbersTempCollection.insertMany(
-            hp_numbers_temp.map((num) => ({ number: num }))
+            hp_numbers_temp.map((num: number) => ({ number: num }))
           );
         }
       }

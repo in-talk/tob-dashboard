@@ -20,6 +20,7 @@ const AgentDispositionLast7Days: React.FC<AgentDispositionLast7DaysProps> = ({
     isExpanded,
     onToggle
 }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [expandedRows, setExpandedRows] = useState<any>(null);
 
     const dispositionKeys = [
@@ -32,6 +33,7 @@ const AgentDispositionLast7Days: React.FC<AgentDispositionLast7DaysProps> = ({
                 key={key}
                 field={isOverall ? `overall.${key}` : key}
                 header={key.toUpperCase()}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 body={(rowData: any) => {
                     const val = Number(isOverall ? rowData.overall?.[key] : rowData?.[key]) || 0;
                     const total = Number(isOverall ? rowData.overall?.total_calls : rowData?.total_calls) || 0;

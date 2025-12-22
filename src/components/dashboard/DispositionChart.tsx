@@ -1,6 +1,6 @@
 import { DispositionGraph } from "@/utils/transformGraphData";
 import { ReloadIcon } from "@radix-ui/react-icons";
-import { useSession } from "next-auth/react";
+// import { useSession } from "next-auth/react";
 import { useState, useMemo, useCallback } from "react";
 import {
   AreaChart,
@@ -50,7 +50,7 @@ const DispositionChart = ({
   dispositionChartData: DispositionGraph[];
   isLoading: boolean;
 }) => {
-  const { data: session } = useSession();
+  // const { data: session } = useSession();
   const [focusedLine, setFocusedLine] = useState<string | null>(null);
 
   const chartData: ChartEntry[] = useMemo(() => {
