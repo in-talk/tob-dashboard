@@ -54,10 +54,18 @@ export default function App({
 }
 
 export function MainLayout({ Component, pageProps }: AppProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const isLoginPage = router.pathname === "/signin";
   const { seoMetaData } = appPageData;
+
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white dark:bg-sidebar">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <>

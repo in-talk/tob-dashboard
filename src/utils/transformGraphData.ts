@@ -1,5 +1,5 @@
 import { dispositionGraphData } from "@/types/dispositionGraphData";
-import { utcToCurrentTimezone } from "./timezone";
+import { utcToCurrentTimezone, getCurrentTimezone } from "./timezone";
 import { format } from "date-fns";
 
 export type DispositionGraph = {
@@ -27,43 +27,25 @@ export type DispositionGraph = {
 export function transformGraphData(
   data: dispositionGraphData[]
 ): DispositionGraph[] | null {
+  if (!data) return null;
+
+  const timezone = getCurrentTimezone();
+
   return data.map((entry) => {
-    const utcToCurrent = utcToCurrentTimezone(entry.time_slot);
-    const formattedDate = format(utcToCurrent, "M/d HH:mm");
-    const baseDate = formattedDate.split(" ")[0];
-
-    const [intervalHour, intervalMinute] = entry.interval_breakdown.split(":");
-    // const intervalTime = new Date(entry.interval_breakdown);
-    // const intervalHour = intervalTime.getUTCHours().toString().padStart(2, "0");
-    // const intervalMinute = intervalTime
-    //   .getUTCMinutes()
-    //   .toString()
-    //   .padStart(2, "0");
-    const utcIntervalTime = new Date(entry.time_slot);
-    utcIntervalTime.setUTCHours(
-      parseInt(intervalHour),
-      parseInt(intervalMinute),
-      0,
-      0
-    );
-    const localIntervalTime = utcToCurrentTimezone(
-      utcIntervalTime.toISOString()
-    );
-    const localTimeString = format(localIntervalTime, "HH:mm");
-    // const intervalBreakdown = `${intervalHour}:${intervalMinute}`;
-
-    // const localIntervalTime = utcToCurrentTimezone(entry.interval_breakdown);
-    // const localTimeString = format(localIntervalTime, "HH:mm");
-    const fullTimeLabel = `${baseDate} ${localTimeString}`;
+    // Use the pre-formatted labels from the database (which now handles timezone)
+    // Fallback to JS formatting only if the labels are missing
+    const timeLabel = entry.time_label || format(utcToCurrentTimezone(entry.time_slot, timezone), "M/d HH:mm");
+    const fullTimeLabel = entry.time_label && entry.interval_breakdown
+      ? `${entry.time_label.split(' ')[0]} ${entry.interval_breakdown}`
+      : timeLabel;
 
     return {
       timeSlot: entry.time_slot,
-      timeLabel: formattedDate,
+      timeLabel,
       breakdown: entry.interval_breakdown,
       fullTimeLabel,
       intervalPosition: entry.interval_position,
       intervalTotal: entry.interval_total,
-      // Only percentages - no cumulative counts needed
       xferPercentage: parseFloat(entry.xfer_pct || "0"),
       dncPercentage: parseFloat(entry.dnc_pct || "0"),
       dcPercentage: parseFloat(entry.dc_pct || "0"),

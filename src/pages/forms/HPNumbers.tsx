@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { dragAndDrop } from "@formkit/drag-and-drop";
-import { ChevronRight, Check, Trash2, Download } from "lucide-react";
+import { ChevronRight, Check, Trash2, Download, Upload, Search, X, Loader2, ChevronLeft } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import * as XLSX from "xlsx";
 import { GetServerSideProps } from "next";
 import { withAuth } from "@/utils/auth";
@@ -16,7 +17,6 @@ const arraysAreEqual = (a: string[], b: string[]) =>
 // Memoized list item component
 const TempListItem = ({
   item,
-  index,
   isSelected,
   isCopied,
   darkMode,
@@ -35,18 +35,16 @@ const TempListItem = ({
 
   return (
     <li
-      data-id={`${item}-${index}`}
-      className={`group cursor-grab active:cursor-grabbing ${
-        darkMode ? "bg-gray-800" : "bg-gray-50"
-      } border ${
-        isSelected
+      data-id={item}
+      className={`group cursor-grab active:cursor-grabbing ${darkMode ? "bg-gray-800" : "bg-gray-50"
+        } border ${isSelected
           ? darkMode
             ? "border-blue-500 bg-blue-900/20"
             : "border-blue-500 bg-blue-50"
           : darkMode
-          ? "border-gray-700"
-          : "border-gray-200"
-      } px-4 py-2 rounded hover:border-gray-400 transition-all duration-150`}
+            ? "border-gray-700"
+            : "border-gray-200"
+        } px-4 py-2 rounded hover:border-gray-400 transition-all duration-150`}
     >
       <div className="flex items-center gap-3 justify-between">
         <div className="flex items-center gap-3 flex-1">
@@ -55,20 +53,18 @@ const TempListItem = ({
               e.stopPropagation();
               onToggleSelect(item);
             }}
-            className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
-              isSelected
+            className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${isSelected
                 ? "bg-blue-600 border-blue-600"
                 : darkMode
-                ? "border-gray-600 bg-transparent"
-                : "border-gray-300 bg-white"
-            }`}
+                  ? "border-gray-600 bg-transparent"
+                  : "border-gray-300 bg-white"
+              }`}
           >
             {isSelected && <Check className="w-3 h-3 text-white" />}
           </button>
           <svg
-            className={`w-4 h-4 ${
-              darkMode ? "text-gray-500" : "text-gray-400"
-            } group-hover:text-gray-600 transition-colors`}
+            className={`w-4 h-4 ${darkMode ? "text-gray-500" : "text-gray-400"
+              } group-hover:text-gray-600 transition-colors`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -88,13 +84,11 @@ const TempListItem = ({
             e.stopPropagation();
             onCopy(item);
           }}
-          className={`opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded ${
-            isCopied
+          className={`opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded ${isCopied
               ? "bg-green-100 dark:bg-green-900/30"
               : "hover:bg-gray-200 dark:hover:bg-gray-700"
-          } ${
-            darkMode ? "text-gray-400" : "text-gray-500"
-          } hover:text-gray-700 dark:hover:text-gray-300`}
+            } ${darkMode ? "text-gray-400" : "text-gray-500"
+            } hover:text-gray-700 dark:hover:text-gray-300`}
           title={isCopied ? "Copied!" : "Copy to clipboard"}
         >
           {isCopied ? (
@@ -123,7 +117,6 @@ const TempListItem = ({
 // Memoized main list item
 const MainListItem = ({
   item,
-  index,
   darkMode,
   onDelete,
   loading,
@@ -138,18 +131,15 @@ const MainListItem = ({
 
   return (
     <li
-      data-id={`${item}-${index}`}
-      className={`group cursor-grab active:cursor-grabbing ${
-        darkMode ? "bg-gray-800" : "bg-gray-50"
-      } border ${
-        darkMode ? "border-gray-700" : "border-gray-200"
-      } py-1 px-4 rounded hover:border-gray-400 transition-all duration-150`}
+      data-id={item}
+      className={`group cursor-grab active:cursor-grabbing ${darkMode ? "bg-gray-800" : "bg-gray-50"
+        } border ${darkMode ? "border-gray-700" : "border-gray-200"
+        } py-1 px-4 rounded hover:border-gray-400 transition-all duration-150`}
     >
       <div className="flex items-center gap-3">
         <svg
-          className={`w-4 h-4 ${
-            darkMode ? "text-gray-500" : "text-gray-400"
-          } group-hover:text-gray-600 transition-colors`}
+          className={`w-4 h-4 ${darkMode ? "text-gray-500" : "text-gray-400"
+            } group-hover:text-gray-600 transition-colors`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -181,40 +171,71 @@ export default function HpNumbersPage() {
   const [hp_numbers, setHpNumbers] = useState<string[]>([]);
   const [hp_numbers_temp, setHpNumbersTemp] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [serverSearchQuery, setServerSearchQuery] = useState("");
   const [newHpNumber, setNewHpNumber] = useState("");
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isMainLoading, setIsMainLoading] = useState(true);
+  const [isTempLoading, setIsTempLoading] = useState(true);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(50);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   const originalHpNumbersRef = useRef<string[]>([]);
+  const originalTempNumbersRef = useRef<string[]>([]);
   const theme = useTheme();
   const hpNumbersRef = useRef<HTMLUListElement>(null);
   const hpNumbersTempRef = useRef<HTMLUListElement>(null);
   const dragInitializedRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const darkMode = theme.theme === "dark";
 
-  // Fetch data
-  useEffect(() => {
-    fetch("/api/hp-number-lists")
-      .then((res) => res.json())
-      .then((data) => {
-        setHpNumbers(data.hpNumbersList || []);
+  // Fetch data with pagination and search
+  const fetchData = useCallback(async (pageNum: number, search: string, isInitial = false) => {
+    setIsMainLoading(true);
+    if (isInitial) setIsTempLoading(true);
+
+    try {
+      const res = await fetch(`/api/hp-number-lists?page=${pageNum}&pageSize=${pageSize}&search=${search}`);
+      const data = await res.json();
+
+      setHpNumbers(data.hpNumbersList || []);
+      if (isInitial) {
         setHpNumbersTemp(data.hpNumbersTempList || []);
-        setLoading(false);
-        originalHpNumbersRef.current = data.hpNumbersList || [];
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-        setLoading(false);
+        originalTempNumbersRef.current = data.hpNumbersTempList || [];
+        setIsTempLoading(false);
+      }
+
+      setTotalCount(data.pagination?.totalCount || 0);
+      setTotalPages(data.pagination?.totalPages || 0);
+      originalHpNumbersRef.current = data.hpNumbersList || [];
+      setIsMainLoading(false);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setIsMainLoading(false);
+      setIsTempLoading(false);
+      toast({
+        variant: "destructive",
+        description: "Failed to fetch HP numbers.",
       });
-  }, []);
+    }
+  }, [pageSize]);
+
+  useEffect(() => {
+    fetchData(page, serverSearchQuery, page === 1 && serverSearchQuery === "");
+  }, [page, serverSearchQuery, fetchData]);
 
   // Initialize drag and drop only once
   useEffect(() => {
     if (
-      !loading &&
+      !isMainLoading &&
+      !isTempLoading &&
       !dragInitializedRef.current &&
       hpNumbersRef.current &&
       hpNumbersTempRef.current
@@ -225,7 +246,7 @@ export default function HpNumbersPage() {
         parent: hpNumbersTempRef.current,
         getValues: () => {
           return Array.from(hpNumbersTempRef.current!.children).map(
-            (li: Element) => (li as HTMLElement).dataset.id
+            (li: Element) => (li as HTMLElement).dataset.id || ""
           );
         },
         setValues: (newValues) => {
@@ -241,7 +262,7 @@ export default function HpNumbersPage() {
         parent: hpNumbersRef.current,
         getValues: () => {
           return Array.from(hpNumbersRef.current!.children).map(
-            (li: Element) => (li as HTMLElement).dataset.id
+            (li: Element) => (li as HTMLElement).dataset.id || ""
           );
         },
         setValues: (newValues) => {
@@ -254,50 +275,103 @@ export default function HpNumbersPage() {
         },
       });
     }
-  }, [loading]);
+  }, [isMainLoading, isTempLoading]);
 
-  // Check if dirty
+  // Check if dirty (only for temp list now, as main list is managed per-action)
   useEffect(() => {
-    if (!loading) {
+    if (!isTempLoading) {
       const isDifferent = !arraysAreEqual(
-        hp_numbers,
-        originalHpNumbersRef.current
+        hp_numbers_temp,
+        originalTempNumbersRef.current
       );
       setIsDirty(isDifferent);
     }
-  }, [hp_numbers, loading]);
+  }, [hp_numbers_temp, isTempLoading]);
 
-  // Memoized filtered list
+  // Client-side filtering on the current page
   const filteredHpNumbers = useMemo(() => {
     if (!searchQuery) return hp_numbers;
     const query = searchQuery.toLowerCase();
     return hp_numbers.filter((item) => item?.toLowerCase().includes(query));
   }, [hp_numbers, searchQuery]);
 
+  // Excel Bulk Upload
+  const handleBulkUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsBulkUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+        const numbers = jsonData
+          .map(row => String(row[0]).trim())
+          .filter(num => num && num !== "HP Number" && num !== "undefined" && num !== "null");
+
+        if (numbers.length === 0) {
+          toast({
+            variant: "destructive",
+            description: "No valid numbers found in the first column.",
+          });
+          setIsBulkUploading(false);
+          return;
+        }
+
+        const res = await fetch("/api/hp-number-lists", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            hp_numbers: numbers,
+            operation: "bulk_add"
+          }),
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          toast({
+            variant: "success",
+            description: result.message,
+          });
+          fetchData(1, "", true);
+          setPage(1);
+          setServerSearchQuery("");
+        } else {
+          throw new Error(result.error || "Upload failed");
+        }
+      } catch (error) {
+        console.error("Bulk upload error:", error);
+        toast({
+          variant: "destructive",
+          description: error instanceof Error ? error.message : "Failed to process Excel file.",
+        });
+      } finally {
+        setIsBulkUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }, [fetchData]);
+
   // Download Excel function
   const downloadExcel = useCallback(
     (data: string[], filename: string, sheetName: string) => {
       try {
-        // Create worksheet data with headers
         const wsData = [["HP Number"], ...data.map((item) => [item])];
-
-        // Create workbook and worksheet
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-        // Set column widths
         ws["!cols"] = [{ wch: 20 }];
-
-        // Add worksheet to workbook
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
-
-        // Generate filename with timestamp
         const timestamp = new Date().toISOString().split("T")[0];
         const fullFilename = `${filename}_${timestamp}.xlsx`;
-
-        // Write file
         XLSX.writeFile(wb, fullFilename);
-
         toast({
           variant: "success",
           description: `${filename} downloaded successfully!`,
@@ -318,16 +392,15 @@ export default function HpNumbersPage() {
   }, [hp_numbers_temp, downloadExcel]);
 
   const handleDownloadMainList = useCallback(() => {
-    downloadExcel(hp_numbers, "HP_Numbers_Main", "Main List");
+    downloadExcel(hp_numbers, "HP_Numbers_Main_Page", "Main List");
   }, [hp_numbers, downloadExcel]);
 
-  // Memoized callbacks
   const handleSave = useCallback(async () => {
     try {
       const res = await fetch("/api/hp-number-lists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hp_numbers, hp_numbers_temp }),
+        body: JSON.stringify({ hp_numbers_temp }),
       });
 
       const data = await res.json();
@@ -335,16 +408,16 @@ export default function HpNumbersPage() {
       if (!res.ok) {
         toast({
           variant: "destructive",
-          description: "Failed to update HP numbers.",
+          description: "Failed to update Temp list.",
         });
         return;
       }
 
       toast({
         variant: "success",
-        description: data.message || "HP numbers updated successfully.",
+        description: data.message || "Temp list updated successfully.",
       });
-      originalHpNumbersRef.current = hp_numbers;
+      originalTempNumbersRef.current = hp_numbers_temp;
       setIsDirty(false);
     } catch (error) {
       console.error("Error saving data:", error);
@@ -353,7 +426,7 @@ export default function HpNumbersPage() {
         description: "Error saving data to database.",
       });
     }
-  }, [hp_numbers, hp_numbers_temp]);
+  }, [hp_numbers_temp]);
 
   const toggleItemSelection = useCallback((item: string) => {
     setSelectedItems((prev) => {
@@ -395,23 +468,61 @@ export default function HpNumbersPage() {
     setSelectedItems(new Set());
   }, []);
 
-  const handleAddHpNumber = useCallback(() => {
+  const handleAddHpNumber = useCallback(async () => {
     const trimmed = newHpNumber.trim();
     if (!trimmed) return;
-    if (hp_numbers.includes(trimmed)) {
-      toast({
-        variant: "destructive",
-        description: "HP number already exists.",
-      });
-      return;
-    }
-    setHpNumbers((prev) => [...prev, trimmed]);
-    setNewHpNumber("");
-  }, [newHpNumber, hp_numbers]);
 
-  const handleDeleteHpNumber = useCallback((item: string) => {
-    setHpNumbers((prev) => prev.filter((num) => num !== item));
-  }, []);
+    try {
+      const res = await fetch("/api/hp-number-lists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          hp_numbers: [trimmed],
+          operation: "bulk_add"
+        }),
+      });
+
+      if (res.ok) {
+        toast({ variant: "success", description: "Number added." });
+        setNewHpNumber("");
+        fetchData(page, serverSearchQuery);
+      } else {
+        const data = await res.json();
+        toast({ variant: "destructive", description: data.error || "Failed to add number." });
+      }
+    } catch (error) {
+            console.error(error)
+
+      toast({ variant: "destructive", description: "Error adding number." });
+    }
+  }, [newHpNumber, page, serverSearchQuery, fetchData]);
+
+  const handleDeleteHpNumber = useCallback(async (item: string) => {
+    try {
+      const res = await fetch(`/api/hp-number-lists?number=${item}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        setHpNumbers((prev) => prev.filter((num) => num !== item));
+        toast({ variant: "success", description: "Number deleted." });
+        fetchData(page, serverSearchQuery);
+      }
+    } catch (error) {
+      console.error(error)
+      toast({ variant: "destructive", description: "Delete failed." });
+    }
+  }, [page, serverSearchQuery, fetchData]);
+
+  const handleServerSearch = () => {
+    setPage(1);
+    setServerSearchQuery(searchQuery);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setServerSearchQuery("");
+    setPage(1);
+  };
 
   // Memoized style values
   const cardBg = darkMode ? "bg-sidebar" : "bg-white";
@@ -429,32 +540,49 @@ export default function HpNumbersPage() {
 
   return (
     <div
-      className={`${
-        darkMode ? "" : "bg-gray-50"
-      } p-6 transition-colors duration-300`}
+      className={`${darkMode ? "" : "bg-gray-50"
+        } p-6 transition-colors duration-300`}
     >
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className={`text-2xl font-semibold ${textPrimary} mb-1`}>
-            HP Numbers Management
-          </h1>
-          <p className={`text-sm ${textSecondary}`}>
-            Select and move items from Temp to Main list
-          </p>
+        <div className="mb-6 flex justify-between items-end">
+          <div>
+            <h1 className={`text-2xl font-semibold ${textPrimary} mb-1`}>
+              HP Numbers Management
+            </h1>
+            <p className={`text-sm ${textSecondary}`}>
+              Select and move items from Temp to Main list
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleBulkUpload}
+              accept=".xlsx, .xls"
+              className="hidden"
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isBulkUploading}
+              className="bg-green-600 hover:bg-green-700 text-white flex gap-2"
+            >
+              {isBulkUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              Bulk Add Excel
+            </Button>
+          </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4 items-center">
+        <div className="flex flex-col lg:flex-row gap-4 items-start">
           {/* hp_numbers_temp */}
           <div className="flex-1 w-full mt-11">
             <div
               className={`${cardBg} rounded-lg border ${borderColor} overflow-hidden`}
             >
               <div
-                className={`${
-                  darkMode
+                className={`${darkMode
                     ? "bg-gray-800 border-b border-gray-700"
                     : "bg-white border-b border-gray-200"
-                } px-4 py-3`}
+                  } px-4 py-3`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <h2
@@ -479,15 +607,14 @@ export default function HpNumbersPage() {
                     <button
                       onClick={handleDownloadTempList}
                       disabled={hp_numbers_temp.length === 0}
-                      className={`text-xs px-3 py-1.5 flex items-center gap-1.5 ${
-                        hp_numbers_temp.length === 0
+                      className={`text-xs px-3 py-1.5 flex items-center gap-1.5 ${hp_numbers_temp.length === 0
                           ? darkMode
                             ? "bg-gray-800 text-gray-600 cursor-not-allowed"
                             : "bg-gray-200 text-gray-400 cursor-not-allowed"
                           : darkMode
-                          ? "bg-green-600 hover:bg-green-700 text-white"
-                          : "bg-green-600 hover:bg-green-700 text-white"
-                      } rounded transition-colors font-medium`}
+                            ? "bg-green-600 hover:bg-green-700 text-white"
+                            : "bg-green-600 hover:bg-green-700 text-white"
+                        } rounded transition-colors font-medium`}
                       title="Download as Excel"
                     >
                       <Download className="w-3.5 h-3.5" />
@@ -495,21 +622,19 @@ export default function HpNumbersPage() {
                     </button>
                     <button
                       onClick={selectAll}
-                      className={`text-xs px-3 py-1.5 ${
-                        darkMode
+                      className={`text-xs px-3 py-1.5 ${darkMode
                           ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
                           : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                      } rounded transition-colors font-medium`}
+                        } rounded transition-colors font-medium`}
                     >
                       Select All
                     </button>
                     <button
                       onClick={deselectAll}
-                      className={`text-xs px-3 py-1.5 ${
-                        darkMode
+                      className={`text-xs px-3 py-1.5 ${darkMode
                           ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
                           : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                      } rounded transition-colors font-medium`}
+                        } rounded transition-colors font-medium`}
                     >
                       Clear
                     </button>
@@ -521,14 +646,14 @@ export default function HpNumbersPage() {
               </div>
               <ul
                 ref={hpNumbersTempRef}
-                className="p-4 max-h-[300px] min-h-[300px] overflow-y-auto space-y-1.5"
+                className="p-4 max-h-[400px] min-h-[400px] overflow-y-auto space-y-1.5"
               >
-                {hp_numbers_temp.length === 0 ? (
+                {isTempLoading ? (
+                  skeletonItems
+                ) : hp_numbers_temp.length === 0 ? (
                   <li className={`text-center ${textSecondary} py-12 text-sm`}>
                     No items in temp list
                   </li>
-                ) : loading ? (
-                  skeletonItems
                 ) : (
                   hp_numbers_temp.map((item, i) => (
                     <TempListItem
@@ -548,24 +673,22 @@ export default function HpNumbersPage() {
           </div>
 
           {/* Move button */}
-          <div className="flex items-center justify-center rotate-90 lg:rotate-0 lg:py-32 py-2">
+          <div className="flex items-center justify-center rotate-90 lg:rotate-0 lg:py-48 py-2">
             <button
               onClick={moveSelectedItems}
               disabled={selectedItems.size === 0}
-              className={`group relative p-3 rounded-lg transition-all duration-200 ${
-                selectedItems.size === 0
+              className={`group relative p-3 rounded-lg transition-all duration-200 ${selectedItems.size === 0
                   ? darkMode
                     ? "bg-gray-800 cursor-not-allowed"
                     : "bg-gray-200 cursor-not-allowed"
                   : darkMode
-                  ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                  : "bg-blue-600 hover:bg-blue-700 cursor-pointer"
-              }`}
+                    ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                    : "bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                }`}
             >
               <ChevronRight
-                className={`w-6 h-6 ${
-                  selectedItems.size === 0 ? "text-gray-400" : "text-white"
-                }`}
+                className={`w-6 h-6 ${selectedItems.size === 0 ? "text-gray-400" : "text-white"
+                  }`}
               />
               {selectedItems.size > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
@@ -577,59 +700,51 @@ export default function HpNumbersPage() {
 
           {/* hp_numbers */}
           <div className="flex-1 w-full">
-            <div className="flex justify-start lg:justify-between w-full">
-              <div className="flex items-center gap-2 mb-2">
-                <label htmlFor="searchInput" className="text-sm">
+            <div className="flex flex-col gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search HP number..."
+                    className="pr-10"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={clearSearch}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <Button onClick={handleServerSearch} className="flex gap-2">
+                  <Search className="w-4 h-4" />
                   Search
-                </label>
-                <input
-                  type="text"
-                  id="searchInput"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search HP number..."
-                  className={`flex-1 px-3 py-1.5 text-sm border rounded ${
-                    darkMode
-                      ? "bg-gray-900 border-gray-600 text-gray-100 placeholder-gray-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                />
+                </Button>
               </div>
 
-              <div className="flex gap-2 mb-2">
-                <input
+              <div className="flex gap-2">
+                <Input
                   type="text"
                   value={newHpNumber}
                   onChange={(e) => setNewHpNumber(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAddHpNumber()}
                   placeholder="Add new HP number"
-                  className={`flex-1 px-3 py-1.5 text-sm border rounded ${
-                    darkMode
-                      ? "bg-gray-900 border-gray-600 text-gray-100 placeholder-gray-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
-                <button
-                  onClick={handleAddHpNumber}
-                  className={`text-sm px-3 py-1.5 ${
-                    darkMode
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "bg-blue-600 hover:bg-blue-700 text-white"
-                  } rounded font-medium`}
-                >
-                  Add
-                </button>
+                <Button onClick={handleAddHpNumber}>Add</Button>
               </div>
             </div>
+
             <div
               className={`${cardBg} rounded-lg border ${borderColor} overflow-hidden`}
             >
               <div
-                className={`${
-                  darkMode
+                className={`${darkMode
                     ? "bg-gray-800 border-b border-gray-700"
                     : "bg-white border-b border-gray-200"
-                } px-4 py-3`}
+                  } px-4 py-3`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <h2
@@ -653,15 +768,14 @@ export default function HpNumbersPage() {
                   <button
                     onClick={handleDownloadMainList}
                     disabled={hp_numbers.length === 0}
-                    className={`text-xs px-3 py-1.5 flex items-center gap-1.5 ${
-                      hp_numbers.length === 0
+                    className={`text-xs px-3 py-1.5 flex items-center gap-1.5 ${hp_numbers.length === 0
                         ? darkMode
                           ? "bg-gray-800 text-gray-600 cursor-not-allowed"
                           : "bg-gray-200 text-gray-400 cursor-not-allowed"
                         : darkMode
-                        ? "bg-green-600 hover:bg-green-700 text-white"
-                        : "bg-green-600 hover:bg-green-700 text-white"
-                    } rounded transition-colors font-medium`}
+                          ? "bg-green-600 hover:bg-green-700 text-white"
+                          : "bg-green-600 hover:bg-green-700 text-white"
+                      } rounded transition-colors font-medium`}
                     title="Download as Excel"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -669,21 +783,21 @@ export default function HpNumbersPage() {
                   </button>
                 </div>
                 <p className={`text-xs ${textSecondary}`}>
-                  Main list ({hp_numbers.length} items)
+                  Main list ({totalCount} total items)
                 </p>
               </div>
               <ul
                 ref={hpNumbersRef}
-                className="p-3 max-h-[300px] min-h-[300px] overflow-y-auto space-y-1.5"
+                className="p-3 max-h-[400px] min-h-[400px] overflow-y-auto space-y-1.5"
               >
-                {filteredHpNumbers.length === 0 ? (
+                {isMainLoading ? (
+                  skeletonItems
+                ) : filteredHpNumbers.length === 0 ? (
                   <li className={`text-center ${textSecondary} py-12 text-sm`}>
                     {searchQuery
                       ? "No results found"
                       : "Drag or move items here"}
                   </li>
-                ) : loading ? (
-                  skeletonItems
                 ) : (
                   filteredHpNumbers.map((item, i) => (
                     <MainListItem
@@ -692,11 +806,38 @@ export default function HpNumbersPage() {
                       index={i}
                       darkMode={darkMode}
                       onDelete={handleDeleteHpNumber}
-                      loading={loading}
+                      loading={isMainLoading}
                     />
                   ))
                 )}
               </ul>
+
+              {/* Pagination UI */}
+              <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-800/50">
+                <span className="text-xs text-gray-500">
+                  Page {page} of {totalPages || 1}
+                </span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 1 || isMainLoading}
+                    onClick={() => setPage(p => p - 1)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === totalPages || totalPages === 0 || isMainLoading}
+                    onClick={() => setPage(p => p + 1)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -706,13 +847,12 @@ export default function HpNumbersPage() {
           <button
             onClick={handleSave}
             disabled={!isDirty}
-            className={`px-6 py-2.5 text-sm font-medium rounded transition-colors flex items-center gap-2 ${
-              isDirty
+            className={`px-6 py-2.5 text-sm font-medium rounded transition-colors flex items-center gap-2 ${isDirty
                 ? darkMode
                   ? "bg-blue-600 hover:bg-blue-700 text-white"
                   : "bg-blue-600 hover:bg-blue-700 text-white"
                 : "bg-gray-400 cursor-not-allowed text-gray-200"
-            }`}
+              }`}
           >
             <svg
               className="w-4 h-4"

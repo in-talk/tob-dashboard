@@ -10,12 +10,20 @@ interface UseDashboardDataProps {
   userId: string | undefined;
   selectedClientId: string | null;
   dateRange: { from: Date; to: Date };
+  pagination: { page: number; pageSize: number };
+  serverSearchTerm?: string;
+  searchType?: "call_id" | "caller_id";
+  fetchLast7Days?: boolean;
 }
 
 export function useDashboardData({
   userId,
   selectedClientId,
   dateRange,
+  pagination,
+  serverSearchTerm,
+  searchType = "caller_id",
+  fetchLast7Days = false,
 }: UseDashboardDataProps) {
   const { timezone } = useTimezone();
 
@@ -47,14 +55,14 @@ export function useDashboardData({
           : null,
       call:
         selectedClientId && utcDateRange
-          ? `call-${selectedClientId}-${utcDateRange.from}-${utcDateRange.to}`
+          ? `call-${selectedClientId}-${serverSearchTerm ? 'search-' + serverSearchTerm + '-' + searchType : utcDateRange.from + '-' + utcDateRange.to}-${pagination.page}-${pagination.pageSize}`
           : null,
       agent:
         selectedClientId && utcDateRange
           ? `agent-${selectedClientId}-${utcDateRange.from}-${utcDateRange.to}`
           : null,
     }),
-    [userId, selectedClientId, utcDateRange]
+    [userId, selectedClientId, utcDateRange, pagination, serverSearchTerm, searchType]
   );
 
   // SWR queries
@@ -75,18 +83,40 @@ export function useDashboardData({
         client_id: selectedClientId,
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
+        timezone,
       }),
     { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
   const callDataQuery = useSWR(
     keys.call,
-    () =>
-      postFetcher("/api/fetchCallRecords", {
+    () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: any = {
         client_id: selectedClientId,
-        from_date: utcDateRange.from,
-        to_date: utcDateRange.to,
-      }),
+        page: pagination.page,
+        num_of_records: pagination.pageSize,
+      };
+
+      if (serverSearchTerm) {
+        payload.from_date = null;
+        payload.to_date = null;
+        if (searchType === "call_id") {
+          payload.call_id = serverSearchTerm;
+          payload.caller_id = null;
+        } else {
+          payload.call_id = null;
+          payload.caller_id = serverSearchTerm;
+        }
+      } else {
+        payload.from_date = utcDateRange.from;
+        payload.to_date = utcDateRange.to;
+        payload.call_id = null;
+        payload.caller_id = null;
+      }
+
+      return postFetcher("/api/fetchCallRecords", payload);
+    },
     { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
@@ -101,23 +131,38 @@ export function useDashboardData({
     { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
+  const last7DaysQuery = useSWR(
+    selectedClientId && fetchLast7Days ? ["/api/fetchAgentDispositionLast7Days", selectedClientId] : null,
+    ([url, cid]: [string, string]) =>
+      postFetcher(url, {
+        client_id: cid,
+      }),
+    { revalidateOnFocus: false, revalidateOnReconnect: true }
+  );
+
   // Transform and memoize data
+  // console.log('callDataQuery=>', callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated?.data);
+  // console.log('pagination info=>', callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated?.meta);
+  // console.log('last7DaysQuery=>', last7DaysQuery.data);
   const data = useMemo(
     () => ({
       clients: clientsQuery.data?.clients ?? [],
-      callRecords: callDataQuery.data?.callRecords ?? [],
+      callRecords: callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated?.data ?? [],
+      paginationMeta: callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated?.meta,
       dispositionChartData: transformGraphData(
         chartDataQuery.data?.graphData ?? []
       ),
       agentReport: transformAgentData(
         agentReportQuery.data?.agentRecords ?? []
       ),
+      last7DaysDisposition: last7DaysQuery.data?.last7DaysData ?? [],
     }),
     [
       clientsQuery.data,
       callDataQuery.data,
       chartDataQuery.data,
       agentReportQuery.data,
+      last7DaysQuery.data,
     ]
   );
 
@@ -126,14 +171,16 @@ export function useDashboardData({
     clientsQuery.isLoading ||
     chartDataQuery.isLoading ||
     callDataQuery.isLoading ||
-    agentReportQuery.isLoading;
+    agentReportQuery.isLoading ||
+    last7DaysQuery.isLoading;
 
   // Combined error state
   const error =
     clientsQuery.error ||
     chartDataQuery.error ||
     callDataQuery.error ||
-    agentReportQuery.error;
+    agentReportQuery.error ||
+    last7DaysQuery.error;
 
   return {
     data,
@@ -145,6 +192,7 @@ export function useDashboardData({
       chartData: chartDataQuery,
       callData: callDataQuery,
       agentReport: agentReportQuery,
+      last7DaysDisposition: last7DaysQuery,
     },
   };
 }

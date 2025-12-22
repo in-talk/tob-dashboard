@@ -49,9 +49,6 @@ export default async function handler(
       });
     }
 
-    console.log("Append Labels API URL:", process.env.KEYWORD_API_URL);
-    console.log("Processing transcripts:", body.transcripts.length);
-
     const response = await fetch(
       `${process.env.KEYWORD_API_URL}/append-labels`,
       {

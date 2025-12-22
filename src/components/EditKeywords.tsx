@@ -77,7 +77,6 @@ function EditKeywords({
         // ✅ Update with server response (source of truth)
         setKeywords(result.updatedDocument.keywords);
 
-        console.log(`✅ Added keyword. Total: ${result.keywordsCount}`);
 
         return true;
       } catch (error) {
@@ -132,7 +131,6 @@ function EditKeywords({
         // ✅ Update with server response (source of truth)
         setKeywords(result.updatedDocument.keywords);
 
-        console.log(`✅ Removed keyword. Remaining: ${result.keywordsCount}`);
 
         return true;
       } catch (error) {
