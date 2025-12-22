@@ -252,7 +252,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   const callerIdBodyTemplate = useCallback(
     (rowData: CallRecord) => (
       <span className="text-gray-900 dark:text-gray-100">
-        {rowData.caller_id} {rowData.caller_count > 1 ? `(${rowData.caller_count})` : ""}
+        {rowData.caller_id} {rowData.caller_count > 1 && role === "admin" ? `(${rowData.caller_count})` : ""}
       </span>
     ),
     []
