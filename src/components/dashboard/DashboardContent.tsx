@@ -10,9 +10,18 @@ import { exportDispositionCSV } from "@/utils/csvExport";
 import { useSession } from "next-auth/react";
 
 const CallDataTable = dynamic(() => import("./CallDataTable"), { ssr: false });
-const AgentDispositionReport = dynamic(() => import("./AgentDispositionReport"), {
-  ssr: false,
-});
+const AgentDispositionReport = dynamic(
+  () => import("./AgentDispositionReport"),
+  {
+    ssr: false,
+  }
+);
+const AgentDispositionLast7Days = dynamic(
+  () => import("./AgentDispositionLast7Days"),
+  {
+    ssr: false,
+  }
+);
 
 interface DashboardContentProps {
   userId: string | undefined;
@@ -20,8 +29,8 @@ interface DashboardContentProps {
 
 export default function DashboardContent({ userId }: DashboardContentProps) {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-    const { data: session } = useSession();
-  
+  const { data: session } = useSession();
+
   const [dateRange, setDateRange] = useState(() => {
     const now = new Date();
     const from = new Date(now);
@@ -31,15 +40,26 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(0.5);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [previousCallRecords, setPreviousCallRecords] = useState<CallRecord[]>([]);
+  const [previousCallRecords, setPreviousCallRecords] = useState<CallRecord[]>(
+    []
+  );
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 10 });
+  const [serverSearchTerm, setServerSearchTerm] = useState("");
+  const [searchType, setSearchType] = useState<"call_id" | "caller_id">(
+    "caller_id"
+  );
+  const [showLast7Days, setShowLast7Days] = useState(false);
 
   const { data, isLoading, error, utcDateRange, queries } = useDashboardData({
     userId,
     selectedClientId,
     dateRange,
+    pagination,
+    serverSearchTerm,
+    searchType,
+    fetchLast7Days: showLast7Days,
   });
 
-  console.log("selectedClientId=>:", selectedClientId);
 
   // Auto-refresh effect
   useEffect(() => {
@@ -50,6 +70,11 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
     }, refreshInterval * 60 * 1000);
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval]);
+
+  // Reset pagination when search term changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  }, [serverSearchTerm, searchType]);
 
   // Cache previous call records
   useEffect(() => {
@@ -62,7 +87,6 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
   useEffect(() => {
     if (!selectedClientId && data.clients.length > 0) {
       setSelectedClientId(data.clients[0].client_id);
-	  console.log("Auto-selected client ID:", data.clients[0].client_id);
     }
   }, [data.clients, selectedClientId]);
 
@@ -81,7 +105,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
         callRecords: data.callRecords,
         disposition,
         utcDateRange,
-		role: session?.user?.role || "user",
+        role: session?.user?.role || "user",
       });
     },
     [data.callRecords, session?.user?.role, utcDateRange]
@@ -91,7 +115,9 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="text-red-500 text-lg mb-4">Error loading dashboard data</p>
+          <p className="text-red-500 text-lg mb-4">
+            Error loading dashboard data
+          </p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -148,13 +174,31 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
           }
           isLoading={queries.callData.isLoading}
           utcDateRange={utcDateRange}
+          pagination={pagination}
+          onPaginationChange={setPagination}
+          totalRecords={data.paginationMeta?.total_records || 0}
+          serverSearchTerm={serverSearchTerm}
+          onServerSearchChange={setServerSearchTerm}
+          searchType={searchType}
+          onSearchTypeChange={setSearchType}
         />
       </div>
 
-      <AgentDispositionReport
-        agentReport={data.agentReport ?? []}
-        isLoading={queries.agentReport.isLoading}
-      />
+      <div className="flex flex-col gap-6">
+        <AgentDispositionReport
+          agentReport={data.agentReport ?? []}
+          isLoading={queries.agentReport.isLoading}
+        />
+
+        {session?.user?.role === "admin" && (
+          <AgentDispositionLast7Days
+            data={data.last7DaysDisposition ?? []}
+            isLoading={queries.last7DaysDisposition.isLoading}
+            isExpanded={showLast7Days}
+            onToggle={() => setShowLast7Days(!showLast7Days)}
+          />
+        )}
+      </div>
     </div>
   );
 }

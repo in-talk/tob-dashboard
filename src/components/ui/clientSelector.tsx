@@ -31,7 +31,6 @@ function ClientSelector({
   placeholder = "Select a client",
   disabled = false,
 }: ClientSelectorProps) {
-  console.log("ClientSelector clients:", clients, selectedClientId);
   return (
     <div className="flex items-center gap-4 flex-wrap py-2">
       <label className="text-sm font-medium">{label}</label>

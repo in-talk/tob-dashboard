@@ -16,8 +16,9 @@ export default async function handler(
     from_date = defaultToDate,
     to_date = `${defaultToDate} 23:59:59`,
     caller_id = null,
+    call_id = null,
     page = 1,
-    num_of_records = null,
+    num_of_records = 10,
   } = req.body;
 
 
@@ -27,18 +28,19 @@ export default async function handler(
   }
   try {
     const result = await db.query(
-      `SELECT * FROM get_client_data_paginated($1, $2, $3, $4, $5, $6);`,
+      `SELECT * FROM get_client_data_paginated($1, $2, $3, $4, $5, $6, $7);`,
       [
         client_id,
-        formatDateForDB(from_date),
-        formatDateForDB(to_date),
+        from_date ? formatDateForDB(from_date) : null,
+        to_date ? formatDateForDB(to_date) : null,
         caller_id,
+        call_id,
         page,
         num_of_records,
       ]
     );
     res.status(200).json({
-      callRecords: result.rows || result,
+      callRecords: result,
     });
   } catch (error) {
     console.error("Error getting records:", error);

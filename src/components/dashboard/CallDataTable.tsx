@@ -11,6 +11,7 @@ import { Column, ColumnFilterElementTemplateOptions } from "primereact/column";
 import { FilterMatchMode, FilterOperator } from "primereact/api";
 import { InputText } from "primereact/inputtext";
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
+import { Paginator } from "primereact/paginator";
 import {
   Search,
   Download,
@@ -97,22 +98,52 @@ interface CallDataTableProps {
     from: string;
     to: string;
   };
+  pagination?: { page: number; pageSize: number };
+  onPaginationChange?: (pagination: { page: number; pageSize: number }) => void;
+  totalRecords?: number;
+  serverSearchTerm?: string;
+  onServerSearchChange?: (term: string) => void;
+  searchType?: "call_id" | "caller_id";
+  onSearchTypeChange?: (type: "call_id" | "caller_id") => void;
 }
 
 const CallDataTable: React.FC<CallDataTableProps> = ({
   callRecords,
   isLoading,
   utcDateRange,
+  pagination,
+  onPaginationChange,
+  totalRecords: propTotalRecords,
+  serverSearchTerm,
+  onServerSearchChange,
+  searchType = "caller_id",
+  onSearchTypeChange,
 }) => {
   const [data, setData] = useState<CallRecord[]>(callRecords);
-  const [rowsPerPage, setRowsPerPage] = useState(20);
   const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
-  const [first, setFirst] = useState(0);
   const [isExpanded, setIsExpanded] = useState(true);
   const [filters, setFilters] = useState<DataTableFilterMeta>(INITIAL_FILTERS);
+  const [localServerSearchTerm, setLocalServerSearchTerm] = useState(serverSearchTerm || "");
 
   const { data: session } = useSession();
   const role = session?.user?.role;
+
+  useEffect(() => {
+    setLocalServerSearchTerm(serverSearchTerm || "");
+  }, [serverSearchTerm]);
+
+  const handleServerSearch = useCallback(() => {
+    if (onServerSearchChange) {
+      onServerSearchChange(localServerSearchTerm);
+    }
+  }, [onServerSearchChange, localServerSearchTerm]);
+
+  const handleClearServerSearch = useCallback(() => {
+    setLocalServerSearchTerm("");
+    if (onServerSearchChange) {
+      onServerSearchChange("");
+    }
+  }, [onServerSearchChange]);
 
   const dispositions = useMemo(
     () => [...new Set(data.map((item) => item.disposition))],
@@ -125,9 +156,10 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   );
 
   const totalRecords = useMemo(
-    () => (data && data[0]?.total_records) || 0,
-    [data]
+    () => propTotalRecords ?? ((data && data[0]?.total_records) || 0),
+    [data, propTotalRecords]
   );
+
   const getDispositionColor = useCallback((disposition: string) => {
     return DISPOSITION_COLORS[disposition] || DEFAULT_FILTER_COLOR;
   }, []);
@@ -137,9 +169,27 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   }, []);
 
   const onPageChange = useCallback((event: DataTablePageEvent) => {
-    setRowsPerPage(event.rows);
-    setFirst(event.first);
-  }, []);
+    if (onPaginationChange) {
+      onPaginationChange({
+        page: (event.page ?? 0) + 1,
+        pageSize: event.rows,
+      });
+    }
+  }, [onPaginationChange]);
+
+  const first = useMemo(() => {
+    if (pagination) {
+      return (pagination.page - 1) * pagination.pageSize;
+    }
+    return 0;
+  }, [pagination]);
+
+  const rowsPerPage = useMemo(() => {
+    if (pagination) {
+      return pagination.pageSize;
+    }
+    return 20;
+  }, [pagination]);
 
   const onGlobalFilterChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,12 +208,12 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
 
   const exportData = useCallback(() => {
     exportDispositionCSV({
-        callRecords: data,
-        disposition: "TOTALCALLS",
-        utcDateRange,
-        role: session?.user?.role || "user",
-      });
-  }, [data,session?.user?.role, utcDateRange]);
+      callRecords: data,
+      disposition: "TOTALCALLS",
+      utcDateRange,
+      role: session?.user?.role || "user",
+    });
+  }, [data, session?.user?.role, utcDateRange]);
 
 
   const handleOpenPlayer = useCallback((url: string) => {
@@ -202,7 +252,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   const callerIdBodyTemplate = useCallback(
     (rowData: CallRecord) => (
       <span className="text-gray-900 dark:text-gray-100">
-        {rowData.caller_id}
+        {rowData.caller_id} {rowData.caller_count > 1 ? `(${rowData.caller_count})` : ""}
       </span>
     ),
     []
@@ -302,16 +352,55 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
     [dispositionOptions]
   );
 
+  const searchTypeOptions = [
+    { label: "Caller ID", value: "caller_id" },
+    { label: "Call ID", value: "call_id" },
+  ];
+
   const header = useMemo(
     () => (
       <div className="flex flex-wrap gap-4 justify-end items-center mb-2">
         <div className="flex gap-4 items-center">
+          {onServerSearchChange && onSearchTypeChange && role === "admin" && (
+            <div className="flex gap-2 items-center mr-4">
+              <Dropdown
+                value={searchType}
+                options={searchTypeOptions}
+                onChange={(e) => onSearchTypeChange(e.value)}
+                className="w-32 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <InputText
+                  value={localServerSearchTerm}
+                  onChange={(e) => setLocalServerSearchTerm(e.target.value)}
+                  placeholder={`Search ${searchType === "call_id" ? "Call ID" : "Caller ID"}`}
+                  className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white w-64"
+                />
+              </div>
+              <button
+                onClick={handleServerSearch}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Search
+              </button>
+              {serverSearchTerm && (
+                <button
+                  onClick={handleClearServerSearch}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <InputText
               value={globalFilterValue}
               onChange={onGlobalFilterChange}
-              placeholder="Search calls..."
+              placeholder="Search current page..."
               className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             />
           </div>
@@ -325,7 +414,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
         </div>
       </div>
     ),
-    [globalFilterValue, onGlobalFilterChange, exportData]
+    [globalFilterValue, onGlobalFilterChange, exportData, localServerSearchTerm, handleServerSearch, handleClearServerSearch, serverSearchTerm, onServerSearchChange, searchType, onSearchTypeChange]
   );
 
   // Empty message component
@@ -426,21 +515,23 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
           </div>
 
           <div
-            className={`transition-all duration-300 ease-in-out overflow-hidden ${
-              isExpanded ? "max-h-full opacity-100" : "max-h-0 opacity-0"
-            }`}
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? "max-h-full opacity-100" : "max-h-0 opacity-0"
+              }`}
           >
             <div className="px-4 py-0">
               <DataTable
                 value={data}
                 header={header}
-                totalRecords={Number(totalRecords)}
+                // Only enable built-in paginator if NOT using server-side pagination
+                paginator={!pagination}
+                // Disable lazy loading to allow client-side filtering on the current page data
+                lazy={false}
+                totalRecords={!pagination ? Number(totalRecords) : undefined}
                 scrollable
                 scrollHeight="600px"
-                paginator
-                first={first}
-                onPage={onPageChange}
-                paginatorLeft
+                first={!pagination ? first : undefined}
+                onPage={!pagination ? onPageChange : undefined}
+                paginatorLeft={!pagination}
                 paginatorTemplate="RowsPerPageDropdown CurrentPageReport PrevPageLink NextPageLink"
                 rows={rowsPerPage}
                 rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
@@ -560,6 +651,27 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
                   />
                 )}
               </DataTable>
+
+              {/* Standalone Paginator for Server-Side Pagination */}
+              {pagination && (
+                <Paginator
+                  first={first}
+                  rows={rowsPerPage}
+                  totalRecords={Number(totalRecords)}
+                  rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
+                  onPageChange={(e) => {
+                    if (onPaginationChange) {
+                      onPaginationChange({
+                        page: (e.page ?? 0) + 1,
+                        pageSize: e.rows,
+                      });
+                    }
+                  }}
+                  template="RowsPerPageDropdown CurrentPageReport PrevPageLink NextPageLink"
+                  leftContent={<div />} // Spacer to match DataTable style if needed
+                  className="dark:bg-sidebar border-t border-gray-200 dark:border-gray-700"
+                />
+              )}
             </div>
           </div>
         </div>

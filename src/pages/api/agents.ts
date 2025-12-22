@@ -46,8 +46,6 @@ async function createAgent(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { is_active, agent_name } = req.body;
 
-    console.log("req.body", req.body);
-
     if (!agent_name) {
       return res.status(400).json({
         error: "Missing required fields (agent_name)",
