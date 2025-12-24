@@ -13,6 +13,7 @@ interface UseDashboardDataProps {
   pagination: { page: number; pageSize: number };
   serverSearchTerm?: string;
   searchType?: "call_id" | "caller_id";
+  globalSearchTerm?: string;
   fetchLast7Days?: boolean;
 }
 
@@ -23,6 +24,7 @@ export function useDashboardData({
   pagination,
   serverSearchTerm,
   searchType = "caller_id",
+  globalSearchTerm,
   fetchLast7Days = false,
 }: UseDashboardDataProps) {
   const { timezone } = useTimezone();
@@ -55,14 +57,14 @@ export function useDashboardData({
           : null,
       call:
         selectedClientId && utcDateRange
-          ? `call-${selectedClientId}-${serverSearchTerm ? 'search-' + serverSearchTerm + '-' + searchType : utcDateRange.from + '-' + utcDateRange.to}-${pagination.page}-${pagination.pageSize}`
+          ? `call-${selectedClientId}-${serverSearchTerm ? 'spec-' + serverSearchTerm + '-' + searchType : 'glob-' + (globalSearchTerm || 'none') + '-' + utcDateRange.from + '-' + utcDateRange.to}-${pagination.page}-${pagination.pageSize}`
           : null,
       agent:
         selectedClientId && utcDateRange
           ? `agent-${selectedClientId}-${utcDateRange.from}-${utcDateRange.to}`
           : null,
     }),
-    [userId, selectedClientId, utcDateRange, pagination, serverSearchTerm, searchType]
+    [userId, selectedClientId, utcDateRange, pagination, serverSearchTerm, searchType, globalSearchTerm]
   );
 
   // SWR queries
@@ -98,9 +100,11 @@ export function useDashboardData({
         num_of_records: pagination.pageSize,
       };
 
+      // Priority 1: Specific Search (Caller ID / Call ID) - Ignores Date Range
       if (serverSearchTerm) {
         payload.from_date = null;
         payload.to_date = null;
+        payload.search_term = null;
         if (searchType === "call_id") {
           payload.call_id = serverSearchTerm;
           payload.caller_id = null;
@@ -108,11 +112,14 @@ export function useDashboardData({
           payload.call_id = null;
           payload.caller_id = serverSearchTerm;
         }
-      } else {
+      }
+      // Priority 2: Global Search or No Search - Respects Date Range
+      else {
         payload.from_date = utcDateRange.from;
         payload.to_date = utcDateRange.to;
         payload.call_id = null;
         payload.caller_id = null;
+        payload.search_term = globalSearchTerm || null;
       }
 
       return postFetcher("/api/fetchCallRecords", payload);
@@ -141,14 +148,11 @@ export function useDashboardData({
   );
 
   // Transform and memoize data
-  // console.log('callDataQuery=>', callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated?.data);
-  // console.log('pagination info=>', callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated?.meta);
-  // console.log('last7DaysQuery=>', last7DaysQuery.data);
   const data = useMemo(
     () => ({
       clients: clientsQuery.data?.clients ?? [],
-      callRecords: callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated?.data ?? [],
-      paginationMeta: callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated?.meta,
+      callRecords: callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated_1?.data ?? [],
+      paginationMeta: callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated_1?.meta,
       dispositionChartData: transformGraphData(
         chartDataQuery.data?.graphData ?? []
       ),

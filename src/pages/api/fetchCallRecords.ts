@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import db from "@/lib/db"; // Adjust based on your actual DB wrapper
+import db from "@/lib/db";
 import { formatDateForDB } from "@/utils/formatDateTime";
 
 export default async function handler(
@@ -17,24 +17,25 @@ export default async function handler(
     to_date = `${defaultToDate} 23:59:59`,
     caller_id = null,
     call_id = null,
+    search_term = null,
     page = 1,
     num_of_records = 10,
   } = req.body;
 
-
-
   if (!client_id) {
     return res.status(400).json({ error: "client_id is required" });
   }
+
   try {
     const result = await db.query(
-      `SELECT * FROM get_client_data_paginated($1, $2, $3, $4, $5, $6, $7);`,
+      `SELECT * FROM get_client_data_paginated_1($1, $2, $3, $4, $5, $6, $7, $8);`,
       [
         client_id,
         from_date ? formatDateForDB(from_date) : null,
         to_date ? formatDateForDB(to_date) : null,
         caller_id,
         call_id,
+        search_term,
         page,
         num_of_records,
       ]
@@ -44,7 +45,6 @@ export default async function handler(
     });
   } catch (error) {
     console.error("Error getting records:", error);
-
     const message = error instanceof Error ? error.message : "Unknown error";
     res.status(500).json({ error: message });
   }

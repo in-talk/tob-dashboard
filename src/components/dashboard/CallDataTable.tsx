@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   DataTable,
   DataTableFilterMeta,
-  DataTableFilterMetaData,
   DataTablePageEvent,
 } from "primereact/datatable";
 import { Column, ColumnFilterElementTemplateOptions } from "primereact/column";
@@ -50,17 +49,7 @@ const DEFAULT_FILTER_COLOR =
 
 const ROWS_PER_PAGE_OPTIONS = [5, 10, 15, 20, 25, 50, 100, 200];
 
-const GLOBAL_FILTER_FIELDS = [
-  "agent",
-  "call_id",
-  "disposition",
-  "label",
-  "transcription",
-  "caller_id",
-];
-
 const INITIAL_FILTERS: DataTableFilterMeta = {
-  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   agent: {
     operator: FilterOperator.AND,
     constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }],
@@ -105,6 +94,8 @@ interface CallDataTableProps {
   onServerSearchChange?: (term: string) => void;
   searchType?: "call_id" | "caller_id";
   onSearchTypeChange?: (type: "call_id" | "caller_id") => void;
+  globalSearchTerm?: string;
+  onGlobalSearchChange?: (term: string) => void;
 }
 
 const CallDataTable: React.FC<CallDataTableProps> = ({
@@ -118,23 +109,43 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   onServerSearchChange,
   searchType = "caller_id",
   onSearchTypeChange,
+  globalSearchTerm,
+  onGlobalSearchChange,
 }) => {
   const [data, setData] = useState<CallRecord[]>(callRecords);
-  const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
   const [isExpanded, setIsExpanded] = useState(true);
   const [filters, setFilters] = useState<DataTableFilterMeta>(INITIAL_FILTERS);
   const [localServerSearchTerm, setLocalServerSearchTerm] = useState(serverSearchTerm || "");
+  const [localGlobalSearchTerm, setLocalGlobalSearchTerm] = useState(globalSearchTerm || "");
 
   const { data: session } = useSession();
   const role = session?.user?.role;
 
+  // Debounced Global Search Effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localGlobalSearchTerm === globalSearchTerm) return;
+      if (localGlobalSearchTerm.length >= 2 || localGlobalSearchTerm === "") {
+        if (onGlobalSearchChange) {
+          onGlobalSearchChange(localGlobalSearchTerm);
+        }
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [localGlobalSearchTerm, onGlobalSearchChange, globalSearchTerm]);
+
+  // Sync local terms with props
   useEffect(() => {
     setLocalServerSearchTerm(serverSearchTerm || "");
   }, [serverSearchTerm]);
 
+  useEffect(() => {
+    setLocalGlobalSearchTerm(globalSearchTerm || "");
+  }, [globalSearchTerm]);
+
   const handleServerSearch = useCallback(() => {
     if (onServerSearchChange) {
-      onServerSearchChange(localServerSearchTerm);
+      onServerSearchChange(localServerSearchTerm.trim());
     }
   }, [onServerSearchChange, localServerSearchTerm]);
 
@@ -191,21 +202,6 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
     return 20;
   }, [pagination]);
 
-  const onGlobalFilterChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      setFilters((prevFilters) => {
-        const newFilters = { ...prevFilters };
-        if (newFilters["global"]) {
-          (newFilters["global"] as DataTableFilterMetaData).value = value;
-        }
-        return newFilters;
-      });
-      setGlobalFilterValue(value);
-    },
-    []
-  );
-
   const exportData = useCallback(() => {
     exportDispositionCSV({
       callRecords: data,
@@ -221,7 +217,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
     window.open(playerUrl, "_blank");
   }, []);
 
-  // Template functions - memoized to prevent recreation
+  // Template functions
   const agentBodyTemplate = useCallback(
     (rowData: CallRecord) => (
       <span
@@ -398,12 +394,18 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <InputText
-              value={globalFilterValue}
-              onChange={onGlobalFilterChange}
-              placeholder="Search current page..."
-              className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              value={localGlobalSearchTerm}
+              onChange={(e) => setLocalGlobalSearchTerm(e.target.value)}
+              placeholder="Global search (all pages)..."
+              className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white w-64"
             />
+            {isLoading && localGlobalSearchTerm.length >= 2 && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+              </div>
+            )}
           </div>
+
           <button
             onClick={exportData}
             className="px-4 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-300 flex items-center gap-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)]"
@@ -414,11 +416,9 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
         </div>
       </div>
     ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onServerSearchChange, onSearchTypeChange, role, searchType, localServerSearchTerm, handleServerSearch, serverSearchTerm, handleClearServerSearch, globalFilterValue, onGlobalFilterChange, exportData]
+    [onServerSearchChange, onSearchTypeChange, role, searchType, localServerSearchTerm, handleServerSearch, serverSearchTerm, handleClearServerSearch, localGlobalSearchTerm, isLoading, exportData]
   );
 
-  // Empty message component
   const emptyMessage = useMemo(
     () => (
       <div className="flex flex-col items-center justify-center py-12">
@@ -427,14 +427,13 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
           No call records found
         </p>
         <p className="text-gray-400 dark:text-gray-500 text-sm">
-          Try adjusting your search or filter criteria
+          Try adjusting your search or date range
         </p>
       </div>
     ),
     []
   );
 
-  // DataTable pt configuration
   const ptConfig = useMemo(
     () => ({
       header: { className: "bg-white dark:bg-sidebar" },
@@ -453,7 +452,6 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
     []
   );
 
-  // Column style configurations
   const columnStyles = useMemo(
     () => ({
       base: { padding: "0", background: "transparent" },
@@ -471,7 +469,6 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
     [role]
   );
 
-  // Effects
   useEffect(() => {
     setData(callRecords);
   }, [callRecords]);
@@ -523,9 +520,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
               <DataTable
                 value={data}
                 header={header}
-                // Only enable built-in paginator if NOT using server-side pagination
                 paginator={!pagination}
-                // Disable lazy loading to allow client-side filtering on the current page data
                 lazy={false}
                 totalRecords={!pagination ? Number(totalRecords) : undefined}
                 scrollable
@@ -539,8 +534,8 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
                 currentPageReportTemplate=" {first} - {last} of {totalRecords}"
                 dataKey="call_id"
                 filters={filters}
+                onFilter={(e) => setFilters(e.filters)}
                 filterDisplay="menu"
-                globalFilterFields={GLOBAL_FILTER_FIELDS}
                 emptyMessage={emptyMessage}
                 stripedRows
                 size="small"
@@ -653,7 +648,6 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
                 )}
               </DataTable>
 
-              {/* Standalone Paginator for Server-Side Pagination */}
               {pagination && (
                 <Paginator
                   first={first}
@@ -669,7 +663,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
                     }
                   }}
                   template="RowsPerPageDropdown CurrentPageReport PrevPageLink NextPageLink"
-                  leftContent={<div />} // Spacer to match DataTable style if needed
+                  leftContent={<div />}
                   className="dark:bg-sidebar border-t border-gray-200 dark:border-gray-700"
                 />
               )}

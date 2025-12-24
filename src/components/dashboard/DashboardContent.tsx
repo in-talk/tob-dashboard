@@ -48,6 +48,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
   const [searchType, setSearchType] = useState<"call_id" | "caller_id">(
     "caller_id"
   );
+  const [globalSearchTerm, setGlobalSearchTerm] = useState("");
   const [showLast7Days, setShowLast7Days] = useState(false);
 
   const { data, isLoading, error, utcDateRange, queries } = useDashboardData({
@@ -57,6 +58,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
     pagination,
     serverSearchTerm,
     searchType,
+    globalSearchTerm,
     fetchLast7Days: showLast7Days,
   });
 
@@ -74,7 +76,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
   // Reset pagination when search term changes
   useEffect(() => {
     setPagination((prev) => ({ ...prev, page: 1 }));
-  }, [serverSearchTerm, searchType]);
+  }, [serverSearchTerm, searchType, globalSearchTerm]);
 
   // Cache previous call records
   useEffect(() => {
@@ -181,6 +183,8 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
           onServerSearchChange={setServerSearchTerm}
           searchType={searchType}
           onSearchTypeChange={setSearchType}
+          globalSearchTerm={globalSearchTerm}
+          onGlobalSearchChange={setGlobalSearchTerm}
         />
       </div>
 
