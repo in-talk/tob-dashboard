@@ -76,7 +76,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
   // Reset pagination when search term changes
   useEffect(() => {
     setPagination((prev) => ({ ...prev, page: 1 }));
-  }, [serverSearchTerm, searchType, globalSearchTerm]);
+  }, [serverSearchTerm, searchType, globalSearchTerm, dateRange]);
 
   // Cache previous call records
   useEffect(() => {

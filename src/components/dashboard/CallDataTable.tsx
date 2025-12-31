@@ -22,8 +22,7 @@ import { CallRecord } from "@/types/callRecord";
 import { useSession } from "next-auth/react";
 import { formatCallDuration } from "@/utils/formatCallDuration";
 import AudioPlayer from "../AudioPlayer";
-import { utcToCurrentTimezone } from "@/utils/timezone";
-import { formatDateTime } from "@/utils/formatDateTime";
+import { formatDateInTimezone } from "@/utils/timezone";
 import SyncingProgressBars from "../ui/SyncingProgressBars";
 import CallDetailsModal from "../CallDetailsModal";
 import { exportDispositionCSV } from "@/utils/csvExport";
@@ -264,8 +263,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   }, []);
 
   const createdAtBodyTemplate = useCallback((rowData: CallRecord) => {
-    const currentTimezone = utcToCurrentTimezone(rowData.created_at);
-    const createdAt = formatDateTime(currentTimezone);
+    const createdAt = formatDateInTimezone(rowData.created_at);
     return (
       <span className="text-gray-900 text-sm dark:text-gray-100">
         {createdAt || "-"}
