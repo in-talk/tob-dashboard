@@ -46,7 +46,7 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
         totalLb: acc.totalLb + parseInt(agent.lb.count),
         totalNa: acc.totalNa + parseInt(agent.na.count),
         totalNp: acc.totalNp + parseInt(agent.np.count),
-        totalHp: acc.totalHp + parseInt(agent.hp.count),
+        totalHp: acc.totalHp + parseInt(agent.rec.count),
       }),
       {
         totalCallBK: 0,
@@ -166,14 +166,14 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
       disposition: "np",
     },
     {
-      label: "HP",
+      label: "REC",
       icon: ThumbsDown,
       value: totals.totalHp,
       bgLight: "bg-orange-100",
       bgDark: "dark:bg-orange-400",
       textColor: "text-orange-900",
       gradient: "from-orange-500 to-orange-600",
-      disposition: "hp",
+      disposition: "rec",
     },
   ];
 

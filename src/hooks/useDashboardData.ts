@@ -151,8 +151,8 @@ export function useDashboardData({
   const data = useMemo(
     () => ({
       clients: clientsQuery.data?.clients ?? [],
-      callRecords: callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated_1?.data ?? [],
-      paginationMeta: callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated_1?.meta,
+      callRecords: callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated?.data ?? [],
+      paginationMeta: callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated?.meta,
       dispositionChartData: transformGraphData(
         chartDataQuery.data?.graphData ?? []
       ),

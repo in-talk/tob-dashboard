@@ -28,7 +28,7 @@ export default async function handler(
 
   try {
     const result = await db.query(
-      `SELECT * FROM get_client_data_paginated_1($1, $2, $3, $4, $5, $6, $7, $8);`,
+      `SELECT * FROM get_client_data_paginated($1, $2, $3, $4, $5, $6, $7, $8);`,
       [
         client_id,
         from_date ? formatDateForDB(from_date) : null,

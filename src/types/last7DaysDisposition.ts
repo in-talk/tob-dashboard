@@ -1,7 +1,7 @@
 export interface AgentDispositionBreakdown {
     a: number;
     dc: number;
-    hp: number;
+    rec: number;
     lb: number;
     na: number;
     np: number;
@@ -19,7 +19,7 @@ export interface AgentDispositionBreakdown {
 export interface OverallDispositionBreakdown {
     a: number;
     dc: number;
-    hp: number;
+    rec: number;
     lb: number;
     na: number;
     np: number;

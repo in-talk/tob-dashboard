@@ -57,7 +57,7 @@ const AgentDispositionReport = ({
     AgentReportRow,
     "agentName" | "totalCalls"
   >)[] = [
-    "dnc", "callbk", "fas", "a", "hp", "dc", "dair", "ri", "lb", "np", "na", "dnq", "other",
+    "dnc", "callbk", "fas", "a", "rec", "dc", "dair", "ri", "lb", "np", "na", "dnq", "other",
   ];
 
   const dynamicColumns = useMemo(() => {

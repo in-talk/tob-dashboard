@@ -12,7 +12,7 @@ export type AgentReportRow = {
   fas: DispositionData;
   callbk: DispositionData;
   a: DispositionData;
-  hp: DispositionData;
+  rec: DispositionData;
   dc: DispositionData;
   dair: DispositionData;
   ri: DispositionData;
@@ -37,7 +37,7 @@ export function transformAgentData(
       dnc: { count: data.dnc_count, percentage: data.dnc_percentage },
       callbk: { count: data.callbk_count, percentage: data.callbk_percentage },
       fas: { count: data.fas_count, percentage: data.fas_percentage },
-      hp: { count: data.hp_count, percentage: data.hp_percentage },
+      rec: { count: data.rec_count, percentage: data.rec_percentage },
       a: { count: data.a_count, percentage: data.a_percentage },
       dc: { count: data.dc_count, percentage: data.dc_percentage },
       dair: { count: data.dair_count, percentage: data.dair_percentage },
