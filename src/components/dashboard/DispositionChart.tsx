@@ -14,7 +14,7 @@ import {
 
 const allDispositionLabels = [
   "XFER", "DNC", "DC", "DAIR", "RI", "CALLBK", "A", "LB",
-  "NP", "NA", "FAS", "DNQ", "HP",
+  "NP", "NA", "FAS", "DNQ", "REC",
 ];
 
 const dispositionColors: Record<string, string> = {

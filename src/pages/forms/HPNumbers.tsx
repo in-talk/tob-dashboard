@@ -222,7 +222,7 @@ export default function HpNumbersPage() {
       setIsTempLoading(false);
       toast({
         variant: "destructive",
-        description: "Failed to fetch HP numbers.",
+        description: "Failed to fetch REC numbers.",
       });
     }
   }, [pageSize]);
@@ -314,7 +314,7 @@ export default function HpNumbersPage() {
 
         const numbers = jsonData
           .map(row => String(row[0]).trim())
-          .filter(num => num && num !== "HP Number" && num !== "undefined" && num !== "null");
+          .filter(num => num && num !== "REC Number" && num !== "undefined" && num !== "null");
 
         if (numbers.length === 0) {
           toast({
@@ -364,7 +364,7 @@ export default function HpNumbersPage() {
   const downloadExcel = useCallback(
     (data: string[], filename: string, sheetName: string) => {
       try {
-        const wsData = [["HP Number"], ...data.map((item) => [item])];
+        const wsData = [["REC Number"], ...data.map((item) => [item])];
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(wsData);
         ws["!cols"] = [{ wch: 20 }];
@@ -547,7 +547,7 @@ export default function HpNumbersPage() {
         <div className="mb-6 flex justify-between items-end">
           <div>
             <h1 className={`text-2xl font-semibold ${textPrimary} mb-1`}>
-              HP Numbers Management
+              REC Numbers Management
             </h1>
             <p className={`text-sm ${textSecondary}`}>
               Select and move items from Temp to Main list
@@ -601,7 +601,7 @@ export default function HpNumbersPage() {
                         d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                       />
                     </svg>
-                    HP Numbers Temp
+                    REC Numbers Temp
                   </h2>
                   <div className="flex gap-2">
                     <button
@@ -707,7 +707,7 @@ export default function HpNumbersPage() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search HP number..."
+                    placeholder="Search REC number..."
                     className="pr-10"
                   />
                   {searchQuery && (
@@ -731,7 +731,7 @@ export default function HpNumbersPage() {
                   value={newHpNumber}
                   onChange={(e) => setNewHpNumber(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAddHpNumber()}
-                  placeholder="Add new HP number"
+                  placeholder="Add new REC number"
                 />
                 <Button onClick={handleAddHpNumber}>Add</Button>
               </div>
@@ -763,7 +763,7 @@ export default function HpNumbersPage() {
                         d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
                       />
                     </svg>
-                    HP Numbers
+                    REC Numbers
                   </h2>
                   <button
                     onClick={handleDownloadMainList}

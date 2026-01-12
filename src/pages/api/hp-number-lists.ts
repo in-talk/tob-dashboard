@@ -108,7 +108,7 @@ export default async function handler(
       }
 
       return res.status(200).json({
-        message: "HP numbers updated successfully",
+        message: "REC numbers updated successfully",
       });
     }
 
