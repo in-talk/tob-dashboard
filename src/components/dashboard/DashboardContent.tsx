@@ -103,7 +103,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
   }, [lastUpdated]);
 
   const handleStatWiseDisposition = useCallback(
-    async (disposition: string) => {
+    async (disposition: string, count: number) => {
       if (!selectedClientId) {
         console.error("Client ID is required for export");
         return;
@@ -111,17 +111,26 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
 
       setExportingDisposition(disposition);
       try {
-        // Fetch ALL records for this disposition
+        // Prepare the payload
+        const payload: Record<string, unknown> = {
+          client_id: selectedClientId,
+          from_date: utcDateRange.from,
+          to_date: utcDateRange.to,
+          page: 1,
+          num_of_records: count || 100000,
+        };
+
+        // For specific dispositions, use search_term to filter at database level
+        // For "totalCalls", don't pass search_term to get all records
+        if (disposition.toLowerCase() !== 'totalcalls') {
+          payload.search_term = disposition.toUpperCase();
+        }
+
+        // Fetch records filtered by disposition using search_term
         const response = await fetch("/api/fetchCallRecords", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            client_id: selectedClientId,
-            from_date: utcDateRange.from,
-            to_date: utcDateRange.to,
-            page: 1,
-            num_of_records: data.paginationMeta?.total_records || 100000,
-          }),
+          body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
@@ -131,7 +140,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
         const result = await response.json();
         const allRecords = result.callRecords?.rows?.[0]?.get_client_data_paginated?.data ?? [];
 
-        // Export all records with the selected disposition filter
+        // Export the records (already filtered by search_term)
         exportDispositionCSV({
           callRecords: allRecords,
           disposition,
@@ -145,7 +154,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
         setExportingDisposition(null);
       }
     },
-    [selectedClientId, utcDateRange, data.paginationMeta?.total_records, session?.user?.role]
+    [selectedClientId, utcDateRange, session?.user?.role]
   );
 
   if (error) {

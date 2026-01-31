@@ -17,7 +17,7 @@ import React, { useMemo } from "react";
 interface StatsProps {
   agentReport: AgentReportRow[];
   isLoading: boolean;
-  onClick?: (disposition: string) => void;
+  onClick?: (disposition: string, count: number) => void;
   exportingDisposition?: string | null;
 }
 
@@ -180,9 +180,9 @@ function Stats({ agentReport, isLoading, onClick, exportingDisposition }: StatsP
 
   const maxValue = Math.max(...cards.map((c) => c.value));
 
-  const handleCardClick = (disposition: string) => {
+  const handleCardClick = (disposition: string, count: number) => {
     if (onClick) {
-      onClick(disposition);
+      onClick(disposition, count);
     }
   };
 
@@ -244,7 +244,7 @@ interface StatCardProps {
   index: number;
   maxValue: number;
   isLoading: boolean;
-  onClick: (disposition: string) => void;
+  onClick: (disposition: string, count: number) => void;
   isExporting?: boolean;
 }
 
@@ -263,7 +263,7 @@ function StatCard({
 
   return (
     <div
-      onClick={() => isClickable && onClick(card.disposition)}
+      onClick={() => isClickable && onClick(card.disposition, card.value)}
       className={`
         ${card.bgLight} ${card.bgDark} px-4 py-1 rounded-lg 
         relative overflow-hidden group transition-all duration-300 
