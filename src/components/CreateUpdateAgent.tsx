@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { mutate } from "swr";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -8,6 +8,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Edit } from "lucide-react";
 
 import { createAgentData } from "@/constants";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/Select";
+import { Campaign } from "@/types/campaign";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +42,7 @@ import { toast } from "@/hooks/use-toast";
 const createAgentSchema = z.object({
   is_active: z.boolean().default(true),
   agent_name: z.string().min(1, "Agent Name is required"),
+  campaign_id: z.string().min(1, "Campaign is required"),
 });
 
 export type CreateAgentValues = z.infer<typeof createAgentSchema>;
@@ -42,21 +51,44 @@ type CreateOrUpdateAgentProps = {
   mode?: "create" | "update";
   initialData?: Partial<CreateAgentValues>;
   agentId?: string;
+  campaigns?: Campaign[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 export default function CreateUpdateAgent({
   mode = "create",
   initialData,
   agentId,
+  campaigns,
+  open: externalOpen,
+  onOpenChange: externalOnOpenChange,
 }: CreateOrUpdateAgentProps) {
-  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isDialogOpen = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setDialogOpen = externalOnOpenChange !== undefined ? externalOnOpenChange : setInternalOpen;
   const form = useForm<CreateAgentValues>({
     resolver: zodResolver(createAgentSchema),
     defaultValues: initialData ?? {
       is_active: true,
       agent_name: "",
+      campaign_id: "",
     },
   });
+
+  const lastResetData = useRef<string>("");
+
+  useEffect(() => {
+    if (isDialogOpen && initialData) {
+      const currentDataStr = JSON.stringify(initialData);
+      if (currentDataStr !== lastResetData.current) {
+        form.reset(initialData);
+        lastResetData.current = currentDataStr;
+      }
+    } else if (!isDialogOpen) {
+      lastResetData.current = "";
+    }
+  }, [isDialogOpen, initialData, form]);
 
   const onSubmit = async (data: CreateAgentValues) => {
     const payload = { ...data, metadata: {}, agent_id: agentId };
@@ -69,11 +101,12 @@ export default function CreateUpdateAgent({
 
     const result = await res.json();
 
-    if (!res.ok) {
+    if (!result.ok) {
       toast({
         variant: "destructive",
         description: result.error || "Something went wrong",
       });
+      return;
     }
 
     toast({
@@ -124,6 +157,36 @@ export default function CreateUpdateAgent({
                       <FormLabel>Agent Name</FormLabel>
                       <FormControl>
                         <Input className="!mt-0" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="campaign_id"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel>Campaign</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select campaign" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {campaigns?.map((campaign) => (
+                              <SelectItem
+                                key={campaign.campaign_id}
+                                value={campaign.campaign_id.toString()}
+                              >
+                                {campaign.campaign_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -7,13 +7,13 @@ export default async function handler(
 ) {
   switch (req.method) {
     case "GET":
-      return getAgentsByCampaign(req, res);
+      return getClientsByUser(req, res);
     case "POST":
-      return createAgentByCampaign(req, res);
+      return createClientByUser(req, res);
     case "PUT":
-      return updateAgentByCampaign(req, res);
+      return updateClientByUser(req, res);
     case "DELETE":
-      return deleteAgentByCampaign(req, res);
+      return deleteClientByUser(req, res);
     default:
       res.setHeader("Allow", ["GET", "POST", "PUT", "DELETE"]);
       return res
@@ -22,10 +22,10 @@ export default async function handler(
   }
 }
 
-async function getAgentsByCampaign(req: NextApiRequest, res: NextApiResponse) {
+async function getClientsByUser(req: NextApiRequest, res: NextApiResponse) {
   try {
     const result = await db.query(`
-      SELECT c.name as client_name,
+      SELECT cbu.id, c.name as client_name,
           c.client_id, u.name as user_name,
           u.id as user_id, cbu.updated_at
           FROM clients c
@@ -35,61 +35,62 @@ async function getAgentsByCampaign(req: NextApiRequest, res: NextApiResponse) {
 
     return res.status(200).json(result.rows);
   } catch (error: unknown) {
-    console.error("Failed to fetch agents by campaign:", error);
+    console.error("Failed to fetch clients by user:", error);
     if (error instanceof Error) {
       return res.status(500).json({ error: error.message });
     }
     return res
       .status(500)
-      .json({ error: "Failed to fetch agents by campaign" });
+      .json({ error: "Failed to fetch clients by user" });
   }
 }
 
-async function createAgentByCampaign(
+async function createClientByUser(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   try {
-    const { is_active = false, agent_id, campaign_id } = req.body;
+    const { client_id, user_id } = req.body;
 
-    if (!agent_id || !campaign_id) {
+    if (!client_id || !user_id) {
       return res.status(400).json({
-        error: "Missing required fields (agent_id, campaign_id)",
+        error: "Missing required fields (client_id, user_id)",
       });
     }
 
     const insertResult = await db.query(
       `
-        INSERT INTO agents_by_campaign (isactive, agent_id, campaign_id)
-        VALUES ($1, $2, $3)
+        INSERT INTO clients_by_users (client_id, user_id)
+        VALUES ($1, $2)
         RETURNING id;
       `,
-      [is_active, agent_id, campaign_id]
+      [client_id, user_id]
     );
 
     const newId = insertResult.rows[0].id;
 
     return res.status(201).json({
-      message: "Agent-Campaign relation created successfully",
+      ok: true,
+      message: "Client-User relation created successfully",
       id: newId,
     });
   } catch (error: unknown) {
-    console.error("Error creating agent-campaign relation:", error);
+    console.error("Error creating client-user relation:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
     return res
       .status(500)
-      .json({ error: "An unknown error occurred while creating relation" });
+      .json({ ok: false, error: "An unknown error occurred while creating relation" });
   }
 }
 
-async function updateAgentByCampaign(
+async function updateClientByUser(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   try {
-    const { id, agent_id, campaign_id, is_active } = req.body;
+    const { id, client_id, user_id } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: "Record ID is required" });
@@ -97,32 +98,33 @@ async function updateAgentByCampaign(
 
     const updateResult = await db.query(
       `
-        UPDATE agents_by_campaign
-        SET agent_id = $1, campaign_id = $2, isactive = $3, updated_at = NOW()
-        WHERE id = $4
+        UPDATE clients_by_users
+        SET client_id = $1, user_id = $2, updated_at = NOW()
+        WHERE id = $3
         RETURNING *;
       `,
-      [agent_id, campaign_id, is_active, id]
+      [client_id, user_id, id]
     );
 
     if (updateResult.rows.length === 0) {
-      return res.status(404).json({ error: "Record not found" });
+      return res.status(404).json({ ok: false, error: "Record not found" });
     }
 
     return res.status(200).json({
-      message: "Agent-Campaign relation updated successfully",
+      ok: true,
+      message: "Client-User relation updated successfully",
       record: updateResult.rows[0],
     });
   } catch (error: unknown) {
-    console.error("Error updating agent-campaign relation:", error);
+    console.error("Error updating client-user relation:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }
 
-async function deleteAgentByCampaign(
+async function deleteClientByUser(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -134,22 +136,22 @@ async function deleteAgentByCampaign(
     }
 
     const deleteResult = await db.query(
-      "DELETE FROM agents_by_campaign WHERE id = $1 RETURNING *;",
+      "DELETE FROM clients_by_users WHERE id = $1 RETURNING *;",
       [id]
     );
 
     if (deleteResult.rows.length === 0) {
-      return res.status(404).json({ error: "Record not found" });
+      return res.status(404).json({ ok: false, error: "Record not found" });
     }
 
     return res
       .status(200)
-      .json({ message: "Agent-Campaign relation deleted successfully" });
+      .json({ ok: true, message: "Client-User relation deleted successfully" });
   } catch (error: unknown) {
-    console.error("Error deleting agent-campaign relation:", error);
+    console.error("Error deleting client-user relation:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }

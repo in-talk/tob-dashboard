@@ -18,6 +18,7 @@ interface StatsProps {
   agentReport: AgentReportRow[];
   isLoading: boolean;
   onClick?: (disposition: string) => void;
+  exportingDisposition?: string | null;
 }
 
 interface StatCard {
@@ -31,7 +32,7 @@ interface StatCard {
   disposition: string;
 }
 
-function Stats({ agentReport, isLoading, onClick }: StatsProps) {
+function Stats({ agentReport, isLoading, onClick, exportingDisposition }: StatsProps) {
   // Calculate totals using reduce to sum across all agents
   const totals = useMemo(() => {
     return agentReport.reduce(
@@ -45,14 +46,14 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
         totalCallBK: acc.totalCallBK + parseInt(agent.callbk.count),
         totalLb: acc.totalLb + parseInt(agent.lb.count),
         totalNa: acc.totalNa + parseInt(agent.na.count),
-        totalNp: acc.totalNp + parseInt(agent.np.count),
+        totalDc: acc.totalDc + parseInt(agent.dc.count),
         totalHp: acc.totalHp + parseInt(agent.rec.count),
       }),
       {
         totalCallBK: 0,
         totalNa: 0,
         totalHp: 0,
-        totalNp: 0,
+        totalDc: 0,
         totalLb: 0,
         totalCalls: 0,
         totalXfer: 0,
@@ -156,9 +157,9 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
       disposition: "na",
     },
     {
-      label: "NP",
+      label: "DC",
       icon: ShieldAlert,
-      value: totals.totalNp,
+      value: totals.totalDc,
       bgLight: "bg-green-100",
       bgDark: "dark:bg-green-400",
       textColor: "text-green-900",
@@ -199,6 +200,7 @@ function Stats({ agentReport, isLoading, onClick }: StatsProps) {
           maxValue={maxValue}
           isLoading={isLoading}
           onClick={handleCardClick}
+          isExporting={exportingDisposition === card.disposition}
         />
       ))}
 
@@ -243,6 +245,7 @@ interface StatCardProps {
   maxValue: number;
   isLoading: boolean;
   onClick: (disposition: string) => void;
+  isExporting?: boolean;
 }
 
 function StatCard({
@@ -251,11 +254,12 @@ function StatCard({
   maxValue,
   isLoading,
   onClick,
+  isExporting = false,
 }: StatCardProps) {
   const progressWidth =
     maxValue > 0 ? Math.min((card.value / maxValue) * 100, 100) : 0;
 
-  const isClickable = !isLoading && card.value > 0;
+  const isClickable = !isLoading && card.value > 0 && !isExporting;
 
   return (
     <div
@@ -264,10 +268,9 @@ function StatCard({
         ${card.bgLight} ${card.bgDark} px-4 py-1 rounded-lg 
         relative overflow-hidden group transition-all duration-300 
         bg-gradient-to-br ${card.gradient}
-        ${
-          isClickable
-            ? "hover:shadow-lg hover:scale-105 cursor-pointer"
-            : "opacity-60 cursor-default"
+        ${isClickable
+          ? "hover:shadow-lg hover:scale-105 cursor-pointer"
+          : "opacity-60 cursor-default"
         }
       `}
       style={{
@@ -286,11 +289,14 @@ function StatCard({
 
       <div className="flex items-center gap-2 relative z-10">
         <div
-          className={`p-1 rounded-lg bg-white/20 backdrop-blur-sm transition-transform duration-300 ${
-            isClickable ? "group-hover:rotate-12" : ""
-          }`}
+          className={`p-1 rounded-lg bg-white/20 backdrop-blur-sm transition-transform duration-300 ${isClickable ? "group-hover:rotate-12" : ""
+            }`}
         >
-          <card.icon className="w-5 h-5 text-white drop-shadow-sm" />
+          {isExporting ? (
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+          ) : (
+            <card.icon className="w-5 h-5 text-white drop-shadow-sm" />
+          )}
         </div>
         <span className="text-sm font-bold text-white drop-shadow-sm">
           {card.label}

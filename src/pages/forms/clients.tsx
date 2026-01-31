@@ -1,7 +1,8 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import React, { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import useSWR, { mutate } from "swr";
 import { deleteClientAlert, usersComponentData } from "@/constants";
 import { DataTable } from "primereact/datatable";
@@ -58,6 +59,9 @@ function Clients() {
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [selectedCampaign, setSelectedCampaign] = useState<string>("");
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const { data: session } = useSession();
 
   const filteredClients = useMemo(() => {
     if (!clients) return [];
@@ -85,11 +89,12 @@ function Clients() {
 
       const data = await res.json();
 
-      if (!res.ok) {
+      if (!data.ok) {
         toast({
           variant: "destructive",
           description: data.error || "Failed to delete client",
         });
+        return;
       } else {
         toast({
           variant: "success",
@@ -179,11 +184,10 @@ function Clients() {
 
   const activeTemplate = (rowData: Client) => (
     <span
-      className={`px-2 py-1 rounded-full text-xs font-semibold ${
-        rowData.is_active
-          ? "bg-green-100 text-green-700"
-          : "bg-red-100 text-red-700"
-      }`}
+      className={`px-2 py-1 rounded-full text-xs font-semibold ${rowData.is_active
+        ? "bg-green-100 text-green-700"
+        : "bg-red-100 text-red-700"
+        }`}
     >
       {rowData.is_active ? "Active" : "Inactive"}
     </span>
@@ -199,42 +203,19 @@ function Clients() {
   };
 
   const actionsTemplate = (
-    rowData: Client,
-    campaigns: Campaign[] | undefined,
-    users: User[] | undefined
+    rowData: Client
   ) => {
-    const initialData = {
-      user_id: rowData.user_id,
-      campaign_id: rowData.campaign_id,
-      model: rowData.model,
-      version: rowData.version,
-      is_active: rowData.is_active,
-      number_of_lines: rowData.number_of_lines,
-      name: rowData.name,
-      updated_by: rowData.updated_by,
-      description: rowData.description,
-      vicidial_address: rowData.vicidial_address,
-      vicidial_address_folder: rowData.vicidial_address_folder,
-      vicidial_transfer_address_folder: rowData.vicidial_transfer_address_folder,
-      age_limit: rowData.age_limit,
-      vicidial_api_user: rowData.vicidial_api_user,
-      vicidial_api_password: rowData.vicidial_api_password,
-      transfer_group_name: rowData.transfer_group_name,
-      vicidial_transfer_address: rowData.vicidial_transfer_address,
-      vicidial_transfer_api_user: rowData.vicidial_transfer_api_user,
-      vicidial_transfer_api_pass: rowData.vicidial_transfer_api_pass,
-      vicidial_transfer_user: rowData.vicidial_transfer_user,
-    };
-
     return (
       <div className="flex justify-center space-x-2">
-        <CreateUpdateClient
-          mode="update"
-          initialData={initialData}
-          client_id={rowData.client_id}
-          campaigns={campaigns}
-          users={users}
-        />
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setEditingClient(rowData);
+            setEditOpen(true);
+          }}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
@@ -312,8 +293,19 @@ function Clients() {
             Clear Filters
           </Button>
         </div>
-        <CreateUpdateClient mode="create" campaigns={campaigns} users={users} />
+        <CreateUpdateClient mode="create" campaigns={campaigns} users={users} sessionUser={session?.user?.name} />
       </div>
+
+      <CreateUpdateClient
+        mode="update"
+        open={isEditOpen}
+        onOpenChange={setEditOpen}
+        initialData={editingClient ?? {}}
+        client_id={editingClient?.client_id}
+        campaigns={campaigns}
+        users={users}
+        sessionUser={session?.user?.name}
+      />
 
       <div className="bg-gray-100 px-6 py-4 shadow-lg dark:bg-sidebar rounded-xl border">
         <DataTable
@@ -389,7 +381,7 @@ function Clients() {
 
           <Column
             header="Actions"
-            body={(rowData) => actionsTemplate(rowData, campaigns, users)}
+            body={(rowData) => actionsTemplate(rowData)}
             align="center"
             style={{ ...columnStyles.base, width: "10%" }}
           />

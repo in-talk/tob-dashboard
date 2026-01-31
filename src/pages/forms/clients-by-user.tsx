@@ -24,66 +24,66 @@ import { Column } from "primereact/column";
 
 // custom dialog text (same as agents)
 import { deleteAgentAlert } from "@/constants";
-import CreateUpdateAgentByCampaign from "@/components/CreateUpdateAgentByCamapaign";
-import { Agent } from "@/types/agent";
-import { Campaign } from "@/types/campaign";
+import CreateUpdateClientByUser from "@/components/CreateUpdateClientByUser";
+import { Client } from "@/types/client";
+import { User } from "@/types/user";
 import { fetcher } from "@/utils/fetcher";
 
 // types
 export interface ClientsByUser {
   id: string;
-  agent_id: string;
-  agent_name: string;
-  campaign_id: string;
-  campaign_name: string;
-  is_active: boolean;
+  client_id: string;
+  client_name: string;
+  user_id: string;
+  user_name: string;
   updated_at: string;
 }
 
 function ClientsByUser() {
-    const { data, error, isLoading } = useSWR<ClientsByUser[]>(
-      "/api/agents-by-campaign",
-      fetcher,
-      { revalidateOnFocus: false }
-    );
+  const { data, error, isLoading } = useSWR<ClientsByUser[]>(
+    "/api/clients-by-user",
+    fetcher,
+    { revalidateOnFocus: false }
+  );
 
 
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: campaigns } = useSWR<Campaign[]>(
-    "/api/fetchCampaigns",
+  const { data: users } = useSWR<User[]>(
+    "/api/get-users",
     fetcher,
     {
       revalidateOnFocus: false,
     }
   );
 
-  const { data: agents } = useSWR<Agent[]>("/api/agents", fetcher, {
+  const { data: clients } = useSWR<Client[]>("/api/clients", fetcher, {
     revalidateOnFocus: false,
   });
 
   const handleDelete = async (id: string) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/agents-by-campaign", {
+      const res = await fetch("/api/clients-by-user", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
 
       const response = await res.json();
-      if (!res.ok) {
+      if (!response.ok) {
         toast({
           variant: "destructive",
           description: response.error || "Failed to delete record",
         });
+        return;
       } else {
         toast({
           variant: "success",
           description: "Relation deleted successfully",
         });
-        mutate("/api/agents-by-campaign");
+        mutate("/api/clients-by-user");
       }
     } catch (err) {
       console.error("Delete failed:", err);
@@ -127,8 +127,8 @@ function ClientsByUser() {
     const term = searchTerm.toLowerCase();
     return data.filter(
       (row) =>
-        row.agent_name.toLowerCase().includes(term) ||
-        row.campaign_name.toLowerCase().includes(term)
+        row.client_name.toLowerCase().includes(term) ||
+        row.user_name.toLowerCase().includes(term)
     );
   }, [data, searchTerm]);
 
@@ -136,38 +136,26 @@ function ClientsByUser() {
     <span className="text-sm text-gray-800 dark:text-gray-100">#{row.id}</span>
   );
 
-  const agentTemplate = (row: ClientsByUser) => (
+  const clientTemplate = (row: ClientsByUser) => (
     <div className="flex flex-col gap-2">
       <span className="font-medium text-xs text-gray-800 dark:text-gray-100">
-        # {row.agent_id}
+        # {row.client_id}
       </span>
       <span className="font-medium text-sm text-gray-800 dark:text-gray-100">
-        {row.agent_name}
+        {row.client_name}
       </span>
     </div>
   );
 
-  const campaignTemplate = (row: ClientsByUser) => (
+  const userTemplate = (row: ClientsByUser) => (
     <div className="flex flex-col gap-2">
       <span className="font-medium text-xs text-gray-800 dark:text-gray-100">
-        # {row.campaign_id}
+        # {row.user_id}
       </span>
       <span className="font-medium text-sm text-gray-800 dark:text-gray-100">
-        {row.campaign_name}
+        {row.user_name}
       </span>
     </div>
-  );
-
-  const activeTemplate = (row: ClientsByUser) => (
-    <span
-      className={`px-2 py-1 rounded-full text-xs font-semibold ${
-        row.is_active
-          ? "bg-green-100 text-green-700"
-          : "bg-red-100 text-red-700"
-      }`}
-    >
-      {row.is_active ? "Active" : "Inactive"}
-    </span>
   );
 
   const dateTemplate = (row: ClientsByUser) => {
@@ -181,19 +169,18 @@ function ClientsByUser() {
 
   const actionsTemplate = (row: ClientsByUser) => {
     const initialData = {
-      agent_id: row.agent_id,
-      campaign_id: row.campaign_id,
-      is_active: row.is_active,
+      client_id: row.client_id,
+      user_id: row.user_id,
     };
 
     return (
       <div className="flex justify-center space-x-2">
-        <CreateUpdateAgentByCampaign
+        <CreateUpdateClientByUser
           mode="update"
           initialData={initialData}
           recordId={row.id}
-          agents={agents}
-          campaigns={campaigns}
+          clients={clients}
+          users={users}
         />
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -228,16 +215,16 @@ function ClientsByUser() {
     );
   };
 
-    if (error) return <div>Something wrong</div>;
-    if (isLoading)
-      return (
-        <div className="flex justify-center items-center h-full bg-white dark:bg-sidebar">
-          <div className="relative w-12 h-12 top-[0px]">
-            <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-spin border-t-transparent"></div>
-            <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-ping opacity-25"></div>
-          </div>
+  if (error) return <div>Something wrong</div>;
+  if (isLoading)
+    return (
+      <div className="flex justify-center items-center h-full bg-white dark:bg-sidebar">
+        <div className="relative w-12 h-12 top-[0px]">
+          <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-spin border-t-transparent"></div>
+          <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-ping opacity-25"></div>
         </div>
-      );
+      </div>
+    );
 
   return (
     <div className="px-6">
@@ -246,16 +233,16 @@ function ClientsByUser() {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="Search by agent or campaign..."
+            placeholder="Search by client or user..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm pl-8"
           />
         </div>
-        <CreateUpdateAgentByCampaign
+        <CreateUpdateClientByUser
           mode="create"
-          agents={agents}
-          campaigns={campaigns}
+          clients={clients}
+          users={users}
         />
       </div>
 
@@ -276,19 +263,14 @@ function ClientsByUser() {
             style={{ ...columnStyles.base, width: "10%" }}
           />
           <Column
-            header="Agent"
-            body={agentTemplate}
-            style={{ ...columnStyles.base, width: "20%" }}
+            header="Client"
+            body={clientTemplate}
+            style={{ ...columnStyles.base, width: "30%" }}
           />
           <Column
-            header="Campaign"
-            body={campaignTemplate}
-            style={{ ...columnStyles.base, width: "25%" }}
-          />
-          <Column
-            header="Status"
-            body={activeTemplate}
-            style={{ ...columnStyles.base, width: "15%" }}
+            header="User"
+            body={userTemplate}
+            style={{ ...columnStyles.base, width: "30%" }}
           />
           <Column
             header="Updated At"

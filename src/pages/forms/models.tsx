@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Trash2 } from "lucide-react";
+import { Edit, Search, Trash2 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import useSWR, { mutate } from "swr";
 import { toast } from "@/hooks/use-toast";
@@ -41,6 +41,8 @@ function Models() {
 
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [editingModel, setEditingModel] = useState<Model | null>(null);
 
   const handleDelete = async (modelId: string) => {
     setLoading(true);
@@ -55,11 +57,12 @@ function Models() {
 
       const data = await res.json();
 
-      if (!res.ok) {
+      if (!data.ok) {
         toast({
           variant: "destructive",
           description: data.error || "Failed to delete model",
         });
+        return;
       } else {
         toast({
           variant: "success",
@@ -142,21 +145,17 @@ function Models() {
   );
 
   const actionsTemplate = (rowData: Model) => {
-    const initialData = {
-      model_name: rowData.model_name,
-      description: rowData.description,
-      campaign_id: rowData.campaign_name,
-      model_number: rowData.model_number,
-    };
-
     return (
       <div className="flex justify-center space-x-2">
-        <CreateUpdateModel
-          mode="update"
-          initialData={initialData}
-          modelId={rowData.model_id}
-          campaigns={campaigns}
-        />
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setEditingModel(rowData);
+            setEditOpen(true);
+          }}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <div>
@@ -217,6 +216,20 @@ function Models() {
         <CreateUpdateModel mode="create" campaigns={campaigns} />
       </div>
 
+      <CreateUpdateModel
+        mode="update"
+        open={isEditOpen}
+        onOpenChange={setEditOpen}
+        initialData={editingModel ? {
+          model_name: editingModel.model_name,
+          description: editingModel.description,
+          campaign_id: editingModel.campaign_id?.toString(),
+          model_number: editingModel.model_number,
+        } : {}}
+        modelId={editingModel?.model_id}
+        campaigns={campaigns}
+      />
+
       <div className="bg-gray-100 px-6 py-4 shadow-lg dark:bg-sidebar rounded-xl border">
         <DataTable
           value={filteredModels || []}
@@ -262,7 +275,7 @@ function Models() {
           />
         </DataTable>
       </div>
-    </div>
+    </div >
   );
 }
 

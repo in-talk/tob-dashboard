@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { mutate } from "swr";
@@ -68,6 +68,12 @@ export default function CreateUpdateAgentByCampaign({
       is_active: false,
     },
   });
+
+  useEffect(() => {
+    if (isDialogOpen) {
+      form.reset(initialData);
+    }
+  }, [isDialogOpen]);
   const activeAgents = agents?.filter((a) => a.is_active);
   const activeCampaigns = campaigns?.filter((c) => c.isactive);
 
@@ -83,7 +89,7 @@ export default function CreateUpdateAgentByCampaign({
 
       const result = await res.json();
 
-      if (!res.ok) {
+      if (!result.ok) {
         toast({
           variant: "destructive",
           description: result.error || "Something went wrong",
@@ -146,7 +152,7 @@ export default function CreateUpdateAgentByCampaign({
                     <FormControl>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select Campaign" />
@@ -177,7 +183,7 @@ export default function CreateUpdateAgentByCampaign({
                     <FormControl>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select Agent" />
