@@ -138,7 +138,7 @@ export default function ClientPage() {
       : `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
   };
 
-    useEffect(() => {
+  useEffect(() => {
     if (!autoRefresh) return;
 
     const interval = setInterval(() => {

@@ -31,7 +31,7 @@ async function getAgentsByCampaign(req: NextApiRequest, res: NextApiResponse) {
         c.campaign_name, 
         ac.agent_id,
         ac.campaign_id,
-        ac.isactive,
+        ac.isactive as is_active,
         ac.updated_at 
       FROM agents_by_campaign ac
       INNER JOIN agents a ON ac.agent_id = a.agent_id
@@ -76,17 +76,18 @@ async function createAgentByCampaign(
     const newId = insertResult.rows[0].id;
 
     return res.status(201).json({
+      ok: true,
       message: "Agent-Campaign relation created successfully",
       id: newId,
     });
   } catch (error: unknown) {
     console.error("Error creating agent-campaign relation:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
     return res
       .status(500)
-      .json({ error: "An unknown error occurred while creating relation" });
+      .json({ ok: false, error: "An unknown error occurred while creating relation" });
   }
 }
 
@@ -112,19 +113,20 @@ async function updateAgentByCampaign(
     );
 
     if (updateResult.rows.length === 0) {
-      return res.status(404).json({ error: "Record not found" });
+      return res.status(404).json({ ok: false, error: "Record not found" });
     }
 
     return res.status(200).json({
+      ok: true,
       message: "Agent-Campaign relation updated successfully",
       record: updateResult.rows[0],
     });
   } catch (error: unknown) {
     console.error("Error updating agent-campaign relation:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }
 
@@ -145,17 +147,17 @@ async function deleteAgentByCampaign(
     );
 
     if (deleteResult.rows.length === 0) {
-      return res.status(404).json({ error: "Record not found" });
+      return res.status(404).json({ ok: false, error: "Record not found" });
     }
 
     return res
       .status(200)
-      .json({ message: "Agent-Campaign relation deleted successfully" });
+      .json({ ok: true, message: "Agent-Campaign relation deleted successfully" });
   } catch (error: unknown) {
     console.error("Error deleting agent-campaign relation:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Trash2 } from "lucide-react";
+import { Edit, Search, Trash2 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import useSWR, { mutate } from "swr";
 import { deleteAgentAlert, usersComponentData } from "@/constants";
@@ -24,6 +24,7 @@ import { GetServerSideProps } from "next";
 
 import CreateUpdateAgent from "@/components/CreateUpdateAgent";
 import { Agent } from "@/types/agent";
+import { Campaign } from "@/types/campaign";
 import { Input } from "@/components/ui/input";
 import { fetcher } from "@/utils/fetcher";
 
@@ -32,8 +33,18 @@ function Agents() {
     revalidateOnFocus: false,
   });
 
+  const { data: campaigns } = useSWR<Campaign[]>(
+    "/api/fetchCampaigns",
+    fetcher,
+    {
+      revalidateOnFocus: false,
+    }
+  );
+
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
 
   const handleDelete = async (agentId: string) => {
     setLoading(true);
@@ -48,11 +59,12 @@ function Agents() {
 
       const data = await res.json();
 
-      if (!res.ok) {
+      if (!data.ok) {
         toast({
           variant: "destructive",
           description: data.error || "Failed to delete agent",
         });
+        return;
       } else {
         toast({
           variant: "success",
@@ -116,13 +128,18 @@ function Agents() {
     </span>
   );
 
+  const campaignTemplate = (rowData: Agent) => (
+    <span className="text-sm text-gray-800 dark:text-gray-100">
+      {rowData.campaign_name || "-"}
+    </span>
+  );
+
   const activeTemplate = (rowData: Agent) => (
     <span
-      className={`px-2 py-1 rounded-full text-xs font-semibold ${
-        rowData.is_active
-          ? "bg-green-100 text-green-700"
-          : "bg-red-100 text-red-700"
-      }`}
+      className={`px-2 py-1 rounded-full text-xs font-semibold ${rowData.is_active
+        ? "bg-green-100 text-green-700"
+        : "bg-red-100 text-red-700"
+        }`}
     >
       {rowData.is_active ? "Active" : "Inactive"}
     </span>
@@ -138,18 +155,17 @@ function Agents() {
   };
 
   const actionsTemplate = (rowData: Agent) => {
-    const initialData = {
-      isActive: rowData.is_active,
-      agent_name: rowData.agent_name,
-    };
-
     return (
       <div className="flex justify-center space-x-2">
-        <CreateUpdateAgent
-          mode="update"
-          initialData={initialData}
-          agentId={rowData.agent_id}
-        />
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setEditingAgent(rowData);
+            setEditOpen(true);
+          }}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
@@ -205,8 +221,17 @@ function Agents() {
             className="max-w-sm pl-8"
           />
         </div>
-        <CreateUpdateAgent mode="create" />
+        <CreateUpdateAgent mode="create" campaigns={campaigns} />
       </div>
+
+      <CreateUpdateAgent
+        mode="update"
+        open={isEditOpen}
+        onOpenChange={setEditOpen}
+        initialData={editingAgent ?? {}}
+        agentId={editingAgent?.agent_id}
+        campaigns={campaigns}
+      />
 
       <div className="bg-gray-100 px-6 py-4 shadow-lg dark:bg-sidebar rounded-xl border">
         <DataTable
@@ -227,6 +252,11 @@ function Agents() {
           <Column
             header="Agent Name"
             body={agentNameTemplate}
+            style={{ ...columnStyles.base, width: "15%" }}
+          />
+          <Column
+            header="Campaign"
+            body={campaignTemplate}
             style={{ ...columnStyles.base, width: "15%" }}
           />
 

@@ -29,6 +29,7 @@ async function getModels(req: NextApiRequest, res: NextApiResponse) {
         m.model_id, 
         m.model_name, 
         c.campaign_name, 
+        m.campaign_id,
         m.description, 
         m.model_number
       FROM models m
@@ -75,15 +76,16 @@ async function createModel(req: NextApiRequest, res: NextApiResponse) {
     const newModelId = insertResult.rows[0].model_id;
 
     return res.status(201).json({
+      ok: true,
       message: "Model created successfully",
       modelId: newModelId,
     });
   } catch (error: unknown) {
     console.error("Error creating model:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }
 
@@ -111,19 +113,20 @@ async function updateModel(req: NextApiRequest, res: NextApiResponse) {
     );
 
     if (updateResult.rows.length === 0) {
-      return res.status(404).json({ error: "Model not found" });
+      return res.status(404).json({ ok: false, error: "Model not found" });
     }
 
     return res.status(200).json({
+      ok: true,
       message: "Model updated successfully",
       model: updateResult.rows[0],
     });
   } catch (error: unknown) {
     console.error("Error updating model:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }
 
@@ -141,15 +144,15 @@ async function deleteModel(req: NextApiRequest, res: NextApiResponse) {
     );
 
     if (deleteResult.rows.length === 0) {
-      return res.status(404).json({ error: "Model not found" });
+      return res.status(404).json({ ok: false, error: "Model not found" });
     }
 
-    return res.status(200).json({ message: "Model deleted successfully" });
+    return res.status(200).json({ ok: true, message: "Model deleted successfully" });
   } catch (error: unknown) {
     console.error("Error deleting model:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }

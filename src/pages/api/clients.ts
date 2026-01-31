@@ -149,16 +149,17 @@ async function createClient(req: NextApiRequest, res: NextApiResponse) {
     const newClientId = insertResult.rows[0].client_id;
 
     return res.status(201).json({
+      ok: true,
       message: "Client created successfully",
       clientId: newClientId,
     });
   } catch (error: unknown) {
     console.error("Error creating client:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
 
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }
 
@@ -213,9 +214,9 @@ async function updateClient(req: NextApiRequest, res: NextApiResponse) {
     name = $16,
     description = $17,
     updated_by = $18,
-    updated_at = CURRENT_TIMESTAMP
-    age_limit = $19
-    vicidial_transfer_address_folder = $20
+    updated_at = CURRENT_TIMESTAMP,
+    age_limit = $19,
+    vicidial_transfer_address_folder = $20,
     vicidial_address_folder = $21
   WHERE client_id = $22
   RETURNING *`,
@@ -242,15 +243,16 @@ async function updateClient(req: NextApiRequest, res: NextApiResponse) {
         vicidial_transfer_address_folder,
         vicidial_address_folder,
         client_id,
-        
+
       ]
     );
 
     if (updateResult.rows.length === 0) {
-      return res.status(404).json({ error: "Client not found" });
+      return res.status(404).json({ ok: false, error: "Client not found" });
     }
 
     return res.status(200).json({
+      ok: true,
       message: "Client updated successfully",
       client: updateResult.rows[0],
     });
@@ -258,10 +260,10 @@ async function updateClient(req: NextApiRequest, res: NextApiResponse) {
     console.error("Error updating client:", error);
 
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
 
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }
 
@@ -279,16 +281,16 @@ async function deleteClient(req: NextApiRequest, res: NextApiResponse) {
     );
 
     if (deleteResult.rows.length === 0) {
-      return res.status(404).json({ error: "Client not found" });
+      return res.status(404).json({ ok: false, error: "Client not found" });
     }
 
-    return res.status(200).json({ message: "Client deleted successfully" });
+    return res.status(200).json({ ok: true, message: "Client deleted successfully" });
   } catch (error: unknown) {
     console.error("Error deleting client:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
 
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }

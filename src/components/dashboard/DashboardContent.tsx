@@ -50,6 +50,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
   );
   const [globalSearchTerm, setGlobalSearchTerm] = useState("");
   const [showLast7Days, setShowLast7Days] = useState(false);
+  const [exportingDisposition, setExportingDisposition] = useState<string | null>(null);
 
   const { data, isLoading, error, utcDateRange, queries } = useDashboardData({
     userId,
@@ -77,7 +78,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
   useEffect(() => {
     setPagination((prev) => ({ ...prev, page: 1 }));
   }, [serverSearchTerm, searchType, globalSearchTerm, dateRange]);
-
+  console.log('changes=>', data.callRecords.length)
   // Cache previous call records
   useEffect(() => {
     if (data.callRecords.length > 0) {
@@ -102,15 +103,58 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
   }, [lastUpdated]);
 
   const handleStatWiseDisposition = useCallback(
-    (disposition: string) => {
-      exportDispositionCSV({
-        callRecords: data.callRecords,
-        disposition,
-        utcDateRange,
-        role: session?.user?.role || "user",
-      });
+    async (disposition: string, count: number) => {
+      if (!selectedClientId) {
+        console.error("Client ID is required for export");
+        return;
+      }
+
+      setExportingDisposition(disposition);
+      try {
+        // Prepare the payload
+        const payload: Record<string, unknown> = {
+          client_id: selectedClientId,
+          from_date: utcDateRange.from,
+          to_date: utcDateRange.to,
+          page: 1,
+          num_of_records: count || 100000,
+        };
+
+        // For specific dispositions, use search_term to filter at database level
+        // For "totalCalls", don't pass search_term to get all records
+        if (disposition.toLowerCase() !== 'totalcalls') {
+          payload.search_term = disposition.toUpperCase();
+        }
+
+        // Fetch records filtered by disposition using search_term
+        const response = await fetch("/api/fetchCallRecords", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch records for export");
+        }
+
+        const result = await response.json();
+        const allRecords = result.callRecords?.rows?.[0]?.get_client_data_paginated?.data ?? [];
+
+        // Export the records (already filtered by search_term)
+        exportDispositionCSV({
+          callRecords: allRecords,
+          disposition,
+          utcDateRange,
+          role: session?.user?.role || "user",
+        });
+      } catch (error) {
+        console.error("Error exporting disposition data:", error);
+        alert("Failed to export data. Please try again.");
+      } finally {
+        setExportingDisposition(null);
+      }
     },
-    [data.callRecords, session?.user?.role, utcDateRange]
+    [selectedClientId, utcDateRange, session?.user?.role]
   );
 
   if (error) {
@@ -160,6 +204,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
         onClick={handleStatWiseDisposition}
         agentReport={data.agentReport ?? []}
         isLoading={queries.agentReport.isLoading}
+        exportingDisposition={exportingDisposition}
       />
 
       <DispositionChart

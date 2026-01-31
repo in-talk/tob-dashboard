@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { mutate } from "swr";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -39,18 +39,20 @@ import { Campaign } from "@/types/campaign";
 
 const createModelSchema = z.object({
   model_name: z.string().min(1, "Model name is required"),
-  campaign_name: z.string().min(1, "Campaign selection is required"),
+  campaign_id: z.string().min(1, "Campaign selection is required"),
   description: z.string().optional(),
   model_number: z.string().min(1, "Model number is required"),
 });
 
-export type CreateModelValues = z.infer<typeof createModelSchema>;
+type CreateModelValues = z.infer<typeof createModelSchema>;
 
 type CreateOrUpdateModelProps = {
   mode?: "create" | "update";
   initialData?: Partial<CreateModelValues>;
   modelId?: string;
   campaigns?: Campaign[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 export default function CreateUpdateModel({
@@ -58,18 +60,36 @@ export default function CreateUpdateModel({
   initialData,
   modelId,
   campaigns = [],
+  open: externalOpen,
+  onOpenChange: externalOnOpenChange,
 }: CreateOrUpdateModelProps) {
-  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isDialogOpen = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setDialogOpen = externalOnOpenChange !== undefined ? externalOnOpenChange : setInternalOpen;
 
   const form = useForm<CreateModelValues>({
     resolver: zodResolver(createModelSchema),
     defaultValues: initialData ?? {
       model_name: "",
-      campaign_name: "",
+      campaign_id: "",
       description: "",
       model_number: "1",
     },
   });
+
+  const lastResetData = useRef<string>("");
+
+  useEffect(() => {
+    if (isDialogOpen && initialData) {
+      const currentDataStr = JSON.stringify(initialData);
+      if (currentDataStr !== lastResetData.current) {
+        form.reset(initialData);
+        lastResetData.current = currentDataStr;
+      }
+    } else if (!isDialogOpen) {
+      lastResetData.current = "";
+    }
+  }, [isDialogOpen, initialData, form]);
 
   const onSubmit = async (data: CreateModelValues) => {
     const payload = { ...data, model_id: modelId };
@@ -82,7 +102,7 @@ export default function CreateUpdateModel({
 
     const result = await res.json();
 
-    if (!res.ok) {
+    if (!result.ok) {
       toast({
         variant: "destructive",
         description: result.error || "Something went wrong",
@@ -147,7 +167,7 @@ export default function CreateUpdateModel({
               {/* Campaign Dropdown */}
               <FormField
                 control={form.control}
-                name="campaign_name"
+                name="campaign_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Campaign</FormLabel>

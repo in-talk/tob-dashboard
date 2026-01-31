@@ -25,11 +25,16 @@ export default async function handler(
 
 async function getAgents(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const result = await db.query(`  SELECT * FROM agents
-    ORDER BY agent_id ASC;`);
+    const result = await db.query(`
+      SELECT a.*, c.campaign_name 
+      FROM agents a
+      LEFT JOIN campaigns c ON a.campaign_id = c.campaign_id
+      ORDER BY a.agent_id ASC;
+    `);
     const agents = result.rows.map((agent: Agent) => ({
       ...agent,
       agent_id: agent.agent_id ? agent.agent_id.toString() : null,
+      campaign_id: agent.campaign_id ? agent.campaign_id.toString() : null,
     }));
     return res.status(200).json(agents);
   } catch (error: unknown) {
@@ -44,7 +49,7 @@ async function getAgents(req: NextApiRequest, res: NextApiResponse) {
 
 async function createAgent(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const { is_active, agent_name } = req.body;
+    const { is_active, agent_name, campaign_id } = req.body;
 
     if (!agent_name) {
       return res.status(400).json({
@@ -54,32 +59,33 @@ async function createAgent(req: NextApiRequest, res: NextApiResponse) {
 
     const insertResult = await db.query(
       `INSERT INTO agents (
-       is_active, agent_name
+       is_active, agent_name, campaign_id
       ) VALUES (
-        $1, $2
+        $1, $2, $3
       ) RETURNING agent_id`,
-      [is_active, agent_name]
+      [is_active, agent_name, campaign_id]
     );
 
     const newAgentId = insertResult.rows[0].agent_id;
 
     return res.status(201).json({
+      ok: true,
       message: "Agent created successfully",
       clientId: newAgentId,
     });
   } catch (error: unknown) {
     console.error("Error creating agent:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
 
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }
 
 async function updateAgent(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const { is_active, agent_id, agent_name } = req.body;
+    const { is_active, agent_id, agent_name, campaign_id } = req.body;
 
     if (!agent_id) {
       return res.status(400).json({ error: "Agent ID is required" });
@@ -90,18 +96,20 @@ async function updateAgent(req: NextApiRequest, res: NextApiResponse) {
   UPDATE agents 
   SET 
     agent_name = $1,
-    is_active = $2
-  WHERE agent_id = $3
+    is_active = $2,
+    campaign_id = $3
+  WHERE agent_id = $4
   RETURNING *;
   `,
-      [agent_name, is_active, agent_id]
+      [agent_name, is_active, campaign_id, agent_id]
     );
 
     if (updateResult.rows.length === 0) {
-      return res.status(404).json({ error: "Agent not found" });
+      return res.status(404).json({ ok: false, error: "Agent not found" });
     }
 
     return res.status(200).json({
+      ok: true,
       message: "Agent updated successfully",
       client: updateResult.rows[0],
     });
@@ -109,10 +117,10 @@ async function updateAgent(req: NextApiRequest, res: NextApiResponse) {
     console.error("Error updating Agent:", error);
 
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
 
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }
 
@@ -130,16 +138,16 @@ async function deleteAgent(req: NextApiRequest, res: NextApiResponse) {
     );
 
     if (deleteResult.rows.length === 0) {
-      return res.status(404).json({ error: "Agent not found" });
+      return res.status(404).json({ ok: false, error: "Agent not found" });
     }
 
-    return res.status(200).json({ message: "Agent deleted successfully" });
+    return res.status(200).json({ ok: true, message: "Agent deleted successfully" });
   } catch (error: unknown) {
     console.error("Error deleting agent:", error);
     if (error instanceof Error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ ok: false, error: error.message });
     }
 
-    return res.status(500).json({ error: "An unknown error occurred" });
+    return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }

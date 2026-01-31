@@ -2,23 +2,74 @@
 
 import { User } from "@/types/user";
 import { Edit, Trash2 } from "lucide-react";
-import React, { useMemo } from "react";
-import useSWR from "swr";
+import React, { useMemo, useState } from "react";
+import useSWR, { mutate } from "swr";
 import { usersComponentData } from "@/constants";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
-import CreateUser from "@/components/CreateUser";
+import CreateUpdateUser from "@/components/CreateUpdateUser";
 import { GetServerSideProps } from "next";
 import { withAuth } from "@/utils/auth";
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { fetcher } from "@/utils/fetcher";
+import { toast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 function Users() {
   const {
     data: users,
     error,
     isLoading,
-  } = useSWR<User[]>("/api/get-users", fetcher);
+  } = useSWR<User[]>("/api/users", fetcher);
+
+  const [loading, setLoading] = useState(false);
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  const handleDelete = async (id: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+
+      const result = await res.json();
+
+      if (!result.ok) {
+        toast({
+          variant: "destructive",
+          description: result.error || "Failed to delete user",
+        });
+        return;
+      }
+
+      toast({
+        variant: "success",
+        description: "User deleted successfully",
+      });
+      mutate("/api/users");
+    } catch (err) {
+      console.error("Delete failed:", err);
+      toast({
+        variant: "destructive",
+        description: "Something went wrong",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const ptConfig = useMemo(
     () => ({
@@ -39,11 +90,10 @@ function Users() {
 
   const columnStyles = useMemo(
     () => ({
-      base: { padding: "4px", background: "transparent" },
+      base: { padding: "8px", background: "transparent" },
       username: { minWidth: "150px" },
-      clientId: { minWidth: "50px" },
       role: { minWidth: "80px" },
-      actions: { minWidth: "80px", },
+      actions: { minWidth: "100px" },
     }),
     []
   );
@@ -74,40 +124,70 @@ function Users() {
     </div>
   );
 
-  const clientIdTemplate = (rowData: User) =>
-    rowData.client_id ? (
-      <span className="font-bold">{rowData.client_id}</span>
-    ) : (
-      <span className="text-gray-400">
-        {usersComponentData.labels.missingClientId}
-      </span>
-    );
+  const roleTemplate = (rowData: User) => (
+    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${rowData.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+      }`}>
+      {rowData.role.toUpperCase()}
+    </span>
+  );
 
-  const roleTemplate = (rowData: User) =>
-    rowData.client_id ? (
-      <span className="font-normal">{rowData.role}</span>
-    ) : (
-      <span className="text-gray-400">
-        {usersComponentData.labels.missingClientId}
-      </span>
-    );
-
-  const actionsTemplate = () => (
+  const actionsTemplate = (rowData: User) => (
     <div className="flex justify-center space-x-2">
-      <button className="bg-gray-700 hover:bg-gray-600 text-white py-1 px-3 rounded-md flex items-center justify-center">
+      <Button
+        variant="ghost"
+        className="bg-gray-700 hover:bg-gray-600 text-white py-1 px-3 rounded-md"
+        onClick={() => {
+          setEditingUser(rowData);
+          setEditOpen(true);
+        }}
+      >
         <Edit className="h-4 w-4" />
-      </button>
-      <button className="bg-red-600 hover:bg-red-500 text-white py-1 px-3 rounded-md flex items-center justify-center">
-        <Trash2 className="h-4 w-4" />
-      </button>
+      </Button>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            disabled={loading}
+            variant="ghost"
+            className="text-white bg-red-700 hover:bg-red-900 hover:text-white"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this user? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleDelete(rowData.id)}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 
   return (
     <div className="px-6">
-      <div className="flex justify-end items-center my-2">
-        <CreateUser />
+      <div className="flex justify-end items-center my-4">
+        <CreateUpdateUser mode="create" />
       </div>
+
+      <CreateUpdateUser
+        mode="update"
+        open={isEditOpen}
+        onOpenChange={setEditOpen}
+        initialData={editingUser ? {
+          name: editingUser.name,
+          email: editingUser.email,
+          role: editingUser.role,
+        } : {}}
+        userId={editingUser?.id}
+      />
 
       <div className="bg-gray-100 px-6 py-4 shadow-lg dark:bg-sidebar rounded-xl border">
         <DataTable
@@ -125,26 +205,21 @@ function Users() {
             header="User"
             body={nameTemplate}
             sortable
-            style={{ ...columnStyles.base, ...columnStyles.username }}
-          />
-          <Column
-            field="client_id"
-            header={usersComponentData.labels.clientId}
-            body={clientIdTemplate}
-            style={{ ...columnStyles.base, ...columnStyles.clientId }}
+            style={{ ...columnStyles.base, ...columnStyles.username, width: "50%" }}
           />
           <Column
             field="role"
-            header={usersComponentData.labels.role}
+            header="Role"
             body={roleTemplate}
-            style={{ ...columnStyles.base, ...columnStyles.role }}
+            sortable
+            style={{ ...columnStyles.base, ...columnStyles.role, width: "30%" }}
           />
 
           <Column
             header="Actions"
             body={actionsTemplate}
             align="center"
-            style={{ ...columnStyles.base, ...columnStyles.actions }}
+            style={{ ...columnStyles.base, ...columnStyles.actions, width: "20%" }}
           />
         </DataTable>
       </div>

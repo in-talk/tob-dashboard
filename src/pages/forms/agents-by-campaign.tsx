@@ -41,11 +41,11 @@ export interface AgentByCampaign {
 }
 
 function AgentByCampaign() {
-    const { data, error, isLoading } = useSWR<AgentByCampaign[]>(
-      "/api/agents-by-campaign",
-      fetcher,
-      { revalidateOnFocus: false }
-    );
+  const { data, error, isLoading } = useSWR<AgentByCampaign[]>(
+    "/api/agents-by-campaign",
+    fetcher,
+    { revalidateOnFocus: false }
+  );
 
 
   const [loading, setLoading] = useState(false);
@@ -73,11 +73,12 @@ function AgentByCampaign() {
       });
 
       const response = await res.json();
-      if (!res.ok) {
+      if (!response.ok) {
         toast({
           variant: "destructive",
           description: response.error || "Failed to delete record",
         });
+        return;
       } else {
         toast({
           variant: "success",
@@ -160,11 +161,10 @@ function AgentByCampaign() {
 
   const activeTemplate = (row: AgentByCampaign) => (
     <span
-      className={`px-2 py-1 rounded-full text-xs font-semibold ${
-        row.is_active
+      className={`px-2 py-1 rounded-full text-xs font-semibold ${row.is_active
           ? "bg-green-100 text-green-700"
           : "bg-red-100 text-red-700"
-      }`}
+        }`}
     >
       {row.is_active ? "Active" : "Inactive"}
     </span>
@@ -228,16 +228,16 @@ function AgentByCampaign() {
     );
   };
 
-    if (error) return <div>Something wrong</div>;
-    if (isLoading)
-      return (
-        <div className="flex justify-center items-center h-full bg-white dark:bg-sidebar">
-          <div className="relative w-12 h-12 top-[0px]">
-            <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-spin border-t-transparent"></div>
-            <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-ping opacity-25"></div>
-          </div>
+  if (error) return <div>Something wrong</div>;
+  if (isLoading)
+    return (
+      <div className="flex justify-center items-center h-full bg-white dark:bg-sidebar">
+        <div className="relative w-12 h-12 top-[0px]">
+          <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-spin border-t-transparent"></div>
+          <div className="absolute w-12 h-12 border-4 border-primary rounded-full animate-ping opacity-25"></div>
         </div>
-      );
+      </div>
+    );
 
   return (
     <div className="px-6">

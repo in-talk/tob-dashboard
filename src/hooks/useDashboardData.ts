@@ -100,6 +100,8 @@ export function useDashboardData({
         num_of_records: pagination.pageSize,
       };
 
+      console.log('page size=>', pagination.pageSize)
+
       // Priority 1: Specific Search (Caller ID / Call ID) - Ignores Date Range
       if (serverSearchTerm) {
         payload.from_date = null;

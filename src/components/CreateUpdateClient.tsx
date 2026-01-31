@@ -1,7 +1,6 @@
 "use client";
 
-import {  useState } from "react";
-import { useSession } from "next-auth/react";
+import { useEffect, useState, useRef } from "react";
 import { mutate } from "swr";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -70,8 +69,11 @@ type CreateOrUpdateClientProps = {
   mode?: "create" | "update";
   initialData?: Partial<CreateClientValues>;
   client_id?: string;
-  campaigns?:Campaign[]
-  users?:User[]
+  campaigns?: Campaign[];
+  users?: User[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  sessionUser?: string;
 };
 
 
@@ -80,20 +82,40 @@ export default function CreateUpdateClient({
   initialData,
   client_id,
   campaigns,
-  users
+  users,
+  open: externalOpen,
+  onOpenChange: externalOnOpenChange,
+  sessionUser,
 }: CreateOrUpdateClientProps) {
-  const { data: session } = useSession();
-
-  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isDialogOpen = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setDialogOpen = externalOnOpenChange !== undefined ? externalOnOpenChange : setInternalOpen;
   const form = useForm<CreateClientValues>({
     resolver: zodResolver(createClientSchema),
     defaultValues: initialData ?? {
       is_active: true,
       version: 1,
       model: 1,
-      updated_by: session?.user?.name ?? "",
+      updated_by: sessionUser ?? "",
     },
   });
+
+  const lastResetData = useRef<string>("");
+
+  useEffect(() => {
+    if (isDialogOpen && initialData) {
+      const currentDataStr = JSON.stringify(initialData);
+      if (currentDataStr !== lastResetData.current) {
+        form.reset({
+          ...initialData,
+          updated_by: sessionUser ?? initialData?.updated_by ?? "",
+        });
+        lastResetData.current = currentDataStr;
+      }
+    } else if (!isDialogOpen) {
+      lastResetData.current = "";
+    }
+  }, [isDialogOpen, initialData, form, sessionUser]);
 
   const onSubmit = async (data: CreateClientValues) => {
     const payload = { ...data, metadata: {}, client_id };
@@ -106,11 +128,12 @@ export default function CreateUpdateClient({
 
     const result = await res.json();
 
-    if (!res.ok) {
+    if (!result.ok) {
       toast({
         variant: "destructive",
         description: result.error || "Something went wrong",
       });
+      return;
     }
 
     toast({
@@ -167,7 +190,6 @@ export default function CreateUpdateClient({
                           className="!mt-0"
                           {...field}
                           readOnly
-                          value={session?.user.name}
                         />
                       </FormControl>
                       <FormMessage />
@@ -209,23 +231,23 @@ export default function CreateUpdateClient({
                   control={form.control}
                   name="age_limit"
                   render={({ field }) => (
-                     <FormItem>
-                        <FormLabel>Age Limit</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="!mt-0"
-                            {...field}
-                            value={
-                              typeof field.value === "string" ||
+                    <FormItem>
+                      <FormLabel>Age Limit</FormLabel>
+                      <FormControl>
+                        <Input
+                          className="!mt-0"
+                          {...field}
+                          value={
+                            typeof field.value === "string" ||
                               typeof field.value === "number"
-                                ? field.value
-                                : ""
-                            }
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                              ? field.value
+                              : ""
+                          }
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
               </div>
@@ -259,7 +281,7 @@ export default function CreateUpdateClient({
                               type="number"
                               value={
                                 field.value !== undefined &&
-                                field.value !== null
+                                  field.value !== null
                                   ? String(field.value)
                                   : ""
                               }
@@ -290,7 +312,7 @@ export default function CreateUpdateClient({
                     <FormLabel >User</FormLabel>
                     <FormControl>
                       <Select
-                      
+
                         onValueChange={(val) => field.onChange(Number(val))}
                         value={field.value?.toString() ?? ""}
                       >
@@ -303,7 +325,7 @@ export default function CreateUpdateClient({
                               key={user.id}
                               value={user.id.toString()}
                             >
-                              {user.name}
+                              {user.name} ({user.email})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -367,7 +389,7 @@ export default function CreateUpdateClient({
                             {...field}
                             value={
                               typeof field.value === "string" ||
-                              typeof field.value === "number"
+                                typeof field.value === "number"
                                 ? field.value
                                 : ""
                             }
@@ -401,7 +423,7 @@ export default function CreateUpdateClient({
                             {...field}
                             value={
                               typeof field.value === "string" ||
-                              typeof field.value === "number"
+                                typeof field.value === "number"
                                 ? field.value
                                 : ""
                             }
