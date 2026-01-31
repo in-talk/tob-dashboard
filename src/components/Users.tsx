@@ -1,10 +1,8 @@
 import { User } from "@/types/user";
-import { Calendar, Edit, Eye, IdCard, MoreVertical } from "lucide-react";
-import { useRouter } from "next/router";
+import { Calendar, Edit, IdCard, MoreVertical } from "lucide-react";
 import React from "react";
 import useSWR from "swr";
 import CreateUser from "./CreateUser";
-import { cn } from "@/lib/utils";
 import { usersComponentData } from "@/constants";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -15,7 +13,6 @@ function Users() {
     error,
     isLoading,
   } = useSWR<User[]>("/api/get-users", fetcher);
-  const router = useRouter();
 
   if (isLoading)
     return (
@@ -68,11 +65,11 @@ function Users() {
                   <IdCard className="h-4 w-4 mr-1" />
                   {usersComponentData.labels.clientId}
                 </span>
-                <span className="text-dark dark:text-white font-bold">
+                {/* <span className="text-dark dark:text-white font-bold">
                   {user.client_id
                     ? user.client_id
                     : usersComponentData.labels.missingClientId}
-                </span>
+                </span> */}
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-dark dark:text-gray-400 flex items-center">
@@ -86,7 +83,7 @@ function Users() {
             </div>
 
             <div className="flex space-x-2">
-              <button
+              {/* <button
                 onClick={() => router.push(`/client/${user.client_id}`)}
                 disabled={!user.client_id}
                 title={
@@ -103,7 +100,7 @@ function Users() {
               >
                 <Eye className="h-4 w-4" />
                 <span>{usersComponentData.actions.viewDetails}</span>
-              </button>
+              </button> */}
               <button className="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center">
                 <Edit className="h-4 w-4" />
               </button>

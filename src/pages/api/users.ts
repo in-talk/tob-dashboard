@@ -32,6 +32,7 @@ async function getUsers(req: NextApiRequest, res: NextApiResponse) {
         }));
 
         return res.status(200).json(users);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("Failed to fetch users:", error);
         return res.status(500).json({ ok: false, error: `Failed to fetch users: ${error.message}` });
@@ -69,6 +70,7 @@ async function createUser(req: NextApiRequest, res: NextApiResponse) {
             message: "User created successfully",
             userId: insertResult.rows[0].id,
         });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("Error creating user:", error);
         return res.status(500).json({ ok: false, error: error.message });
@@ -104,6 +106,7 @@ async function updateUser(req: NextApiRequest, res: NextApiResponse) {
             ok: true,
             message: "User updated successfully",
         });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("Error updating user:", error);
         return res.status(500).json({ ok: false, error: error.message });
@@ -128,6 +131,7 @@ async function deleteUser(req: NextApiRequest, res: NextApiResponse) {
         }
 
         return res.status(200).json({ ok: true, message: "User deleted successfully" });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("Error deleting user:", error);
         return res.status(500).json({ ok: false, error: error.message });
