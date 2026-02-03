@@ -73,7 +73,7 @@ export default function CreateUpdateAgentByCampaign({
     if (isDialogOpen) {
       form.reset(initialData);
     }
-  }, [isDialogOpen]);
+  }, [form, initialData, isDialogOpen]);
   const activeAgents = agents?.filter((a) => a.is_active);
   const activeCampaigns = campaigns?.filter((c) => c.isactive);
 

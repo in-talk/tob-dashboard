@@ -39,6 +39,7 @@ export default async function handler(
         );
 
         // Extraction logic for JSONB return { total_records: ..., data: [...] }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let data: any[] = [];
         if (result.rows.length > 0) {
             const functionResult = result.rows[0].get_interactions_report;

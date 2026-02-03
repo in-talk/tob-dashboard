@@ -365,6 +365,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
     [dispositionOptions]
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const searchTypeOptions = [
     { label: "Caller ID", value: "caller_id" },
     { label: "Call ID", value: "call_id" },
@@ -433,6 +434,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
         </div>
       </div>
     ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [onServerSearchChange, onSearchTypeChange, role, searchType, localServerSearchTerm, handleServerSearch, serverSearchTerm, handleClearServerSearch, localGlobalSearchTerm, isLoading, exportData]
   );
 
