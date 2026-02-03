@@ -116,6 +116,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   const [filters, setFilters] = useState<DataTableFilterMeta>(INITIAL_FILTERS);
   const [localServerSearchTerm, setLocalServerSearchTerm] = useState(serverSearchTerm || "");
   const [localGlobalSearchTerm, setLocalGlobalSearchTerm] = useState(globalSearchTerm || "");
+  const [pageInput, setPageInput] = useState("");
 
   const { data: session } = useSession();
   const role = session?.user?.role;
@@ -201,6 +202,24 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
     return 20;
   }, [pagination]);
 
+  const handleGoToPage = useCallback(() => {
+    const pageNumber = parseInt(pageInput);
+    // data[0].total_records is a string from the API, so we must cast to Number
+    const totalPages = Math.ceil(Number(totalRecords) / rowsPerPage);
+
+    if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
+      if (onPaginationChange) {
+        onPaginationChange({
+          page: pageNumber,
+          pageSize: rowsPerPage,
+        });
+      }
+      setPageInput("");
+    } else {
+      alert(`Please enter a valid page number between 1 and ${totalPages}`);
+    }
+  }, [pageInput, totalRecords, rowsPerPage, onPaginationChange]);
+
   const exportData = useCallback(() => {
     exportDispositionCSV({
       callRecords: data,
@@ -247,7 +266,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   const callerIdBodyTemplate = useCallback(
     (rowData: CallRecord) => (
       <span className="text-gray-900 dark:text-gray-100">
-        {rowData.caller_id} {rowData.caller_count > 1 && role === "admin" ? `(${rowData.caller_count})` : ""}
+        {rowData.caller_id} `(${rowData.caller_count})`
       </span>
     ),
     []
@@ -661,7 +680,26 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
                     }
                   }}
                   template="RowsPerPageDropdown CurrentPageReport PrevPageLink NextPageLink"
-                  leftContent={<div />}
+                  leftContent={
+                    <div className="flex items-center gap-2 pl-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400 hidden md:inline">Go to:</span>
+                      <InputText
+                        value={pageInput}
+                        onChange={(e) => setPageInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleGoToPage();
+                        }}
+                        placeholder="#"
+                        className="w-12 p-1 text-center text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      />
+                      <button
+                        onClick={handleGoToPage}
+                        className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
+                      >
+                        Go
+                      </button>
+                    </div>
+                  }
                   className="dark:bg-sidebar border-t border-gray-200 dark:border-gray-700"
                 />
               )}

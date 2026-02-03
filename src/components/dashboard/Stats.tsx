@@ -164,7 +164,7 @@ function Stats({ agentReport, isLoading, onClick, exportingDisposition }: StatsP
       bgDark: "dark:bg-green-400",
       textColor: "text-green-900",
       gradient: "from-green-500 to-green-600",
-      disposition: "np",
+      disposition: "dc",
     },
     {
       label: "REC",

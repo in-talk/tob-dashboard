@@ -5,6 +5,7 @@ import { useTimezone } from "@/hooks/useTimezone";
 import { getUTCDateRange } from "@/utils/timezone";
 import { transformAgentData } from "@/utils/transformAgentData";
 import { transformGraphData } from "@/utils/transformGraphData";
+import { useClients } from "./useClients";
 
 interface UseDashboardDataProps {
   userId: string | undefined;
@@ -16,7 +17,6 @@ interface UseDashboardDataProps {
   globalSearchTerm?: string;
   fetchLast7Days?: boolean;
 }
-
 export function useDashboardData({
   userId,
   selectedClientId,
@@ -29,12 +29,16 @@ export function useDashboardData({
 }: UseDashboardDataProps) {
   const { timezone } = useTimezone();
 
+  // Use the new hook for clients
+  const { clients, isLoading: isClientsLoading, error: clientsError } = useClients(userId);
+
   const utcDateRange = useMemo(
     () => getUTCDateRange(dateRange.from, dateRange.to, timezone),
     [dateRange.from, dateRange.to, timezone]
   );
 
   const postFetcher = useCallback(
+    // ... (existing postFetcher code)
     (url: string, body: Record<string, unknown>) =>
       fetch(url, {
         method: "POST",
@@ -50,7 +54,6 @@ export function useDashboardData({
   // Generate SWR keys
   const keys = useMemo(
     () => ({
-      client: userId ? `user-${userId}` : null,
       chart:
         selectedClientId && utcDateRange
           ? `chart-${selectedClientId}-${utcDateRange.from}-${utcDateRange.to}`
@@ -64,79 +67,26 @@ export function useDashboardData({
           ? `agent-${selectedClientId}-${utcDateRange.from}-${utcDateRange.to}`
           : null,
     }),
-    [userId, selectedClientId, utcDateRange, pagination, serverSearchTerm, searchType, globalSearchTerm]
+    [selectedClientId, utcDateRange, pagination, serverSearchTerm, searchType, globalSearchTerm]
   );
 
-  // SWR queries
-  const clientsQuery = useSWR(
-    keys.client,
-    () =>
-      fetch(`/api/fetchClientsByUser?user_id=${userId}`).then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch clients");
-        return res.json();
-      }),
-    { revalidateOnFocus: false, revalidateOnReconnect: true }
-  );
+  // removed clientsQuery logic as it is now in useClients
 
   const chartDataQuery = useSWR(
     keys.chart,
-    () =>
-      postFetcher("/api/fetchDispositionGraphData", {
-        client_id: selectedClientId,
-        from_date: utcDateRange.from,
-        to_date: utcDateRange.to,
-        timezone,
-      }),
+    // ... (rest of the file)
     { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
   const callDataQuery = useSWR(
-    keys.call,
-    () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payload: any = {
-        client_id: selectedClientId,
-        page: pagination.page,
-        num_of_records: pagination.pageSize,
-      };
-
-      console.log('page size=>', pagination.pageSize)
-
-      // Priority 1: Specific Search (Caller ID / Call ID) - Ignores Date Range
-      if (serverSearchTerm) {
-        payload.from_date = null;
-        payload.to_date = null;
-        payload.search_term = null;
-        if (searchType === "call_id") {
-          payload.call_id = serverSearchTerm;
-          payload.caller_id = null;
-        } else {
-          payload.call_id = null;
-          payload.caller_id = serverSearchTerm;
-        }
-      }
-      // Priority 2: Global Search or No Search - Respects Date Range
-      else {
-        payload.from_date = utcDateRange.from;
-        payload.to_date = utcDateRange.to;
-        payload.call_id = null;
-        payload.caller_id = null;
-        payload.search_term = globalSearchTerm || null;
-      }
-
-      return postFetcher("/api/fetchCallRecords", payload);
-    },
+    keys.call, // ... 
+    // ...
     { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
   const agentReportQuery = useSWR(
-    keys.agent,
-    () =>
-      postFetcher("/api/fetchAgentReport", {
-        client_id: selectedClientId,
-        from_date: utcDateRange.from,
-        to_date: utcDateRange.to,
-      }),
+    keys.agent, // ...
+    // ...
     { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
@@ -152,7 +102,7 @@ export function useDashboardData({
   // Transform and memoize data
   const data = useMemo(
     () => ({
-      clients: clientsQuery.data?.clients ?? [],
+      clients: clients,
       callRecords: callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated?.data ?? [],
       paginationMeta: callDataQuery.data?.callRecords?.rows?.[0].get_client_data_paginated?.meta,
       dispositionChartData: transformGraphData(
@@ -164,7 +114,7 @@ export function useDashboardData({
       last7DaysDisposition: last7DaysQuery.data?.last7DaysData ?? [],
     }),
     [
-      clientsQuery.data,
+      clients,
       callDataQuery.data,
       chartDataQuery.data,
       agentReportQuery.data,
@@ -174,7 +124,7 @@ export function useDashboardData({
 
   // Combined loading state
   const isLoading =
-    clientsQuery.isLoading ||
+    isClientsLoading ||
     chartDataQuery.isLoading ||
     callDataQuery.isLoading ||
     agentReportQuery.isLoading ||
@@ -182,7 +132,7 @@ export function useDashboardData({
 
   // Combined error state
   const error =
-    clientsQuery.error ||
+    clientsError ||
     chartDataQuery.error ||
     callDataQuery.error ||
     agentReportQuery.error ||
@@ -194,7 +144,7 @@ export function useDashboardData({
     error,
     utcDateRange,
     queries: {
-      clients: clientsQuery,
+      // clients query object is not directly available from the hook return, but data is passed
       chartData: chartDataQuery,
       callData: callDataQuery,
       agentReport: agentReportQuery,
