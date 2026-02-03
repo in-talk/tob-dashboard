@@ -17,6 +17,7 @@ interface UseDashboardDataProps {
   globalSearchTerm?: string;
   fetchLast7Days?: boolean;
 }
+
 export function useDashboardData({
   userId,
   selectedClientId,
@@ -38,7 +39,6 @@ export function useDashboardData({
   );
 
   const postFetcher = useCallback(
-    // ... (existing postFetcher code)
     (url: string, body: Record<string, unknown>) =>
       fetch(url, {
         method: "POST",
@@ -70,23 +70,65 @@ export function useDashboardData({
     [selectedClientId, utcDateRange, pagination, serverSearchTerm, searchType, globalSearchTerm]
   );
 
-  // removed clientsQuery logic as it is now in useClients
-
   const chartDataQuery = useSWR(
     keys.chart,
-    // ... (rest of the file)
+    () =>
+      postFetcher("/api/fetchDispositionGraphData", {
+        client_id: selectedClientId,
+        from_date: utcDateRange.from,
+        to_date: utcDateRange.to,
+        timezone,
+      }),
     { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
   const callDataQuery = useSWR(
-    keys.call, // ... 
-    // ...
+    keys.call,
+    () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: any = {
+        client_id: selectedClientId,
+        page: pagination.page,
+        num_of_records: pagination.pageSize,
+      };
+
+      console.log('page size=>', pagination.pageSize)
+
+      // Priority 1: Specific Search (Caller ID / Call ID) - Ignores Date Range
+      if (serverSearchTerm) {
+        payload.from_date = null;
+        payload.to_date = null;
+        payload.search_term = null;
+        if (searchType === "call_id") {
+          payload.call_id = serverSearchTerm;
+          payload.caller_id = null;
+        } else {
+          payload.call_id = null;
+          payload.caller_id = serverSearchTerm;
+        }
+      }
+      // Priority 2: Global Search or No Search - Respects Date Range
+      else {
+        payload.from_date = utcDateRange.from;
+        payload.to_date = utcDateRange.to;
+        payload.call_id = null;
+        payload.caller_id = null;
+        payload.search_term = globalSearchTerm || null;
+      }
+
+      return postFetcher("/api/fetchCallRecords", payload);
+    },
     { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
   const agentReportQuery = useSWR(
-    keys.agent, // ...
-    // ...
+    keys.agent,
+    () =>
+      postFetcher("/api/fetchAgentReport", {
+        client_id: selectedClientId,
+        from_date: utcDateRange.from,
+        to_date: utcDateRange.to,
+      }),
     { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
@@ -144,7 +186,6 @@ export function useDashboardData({
     error,
     utcDateRange,
     queries: {
-      // clients query object is not directly available from the hook return, but data is passed
       chartData: chartDataQuery,
       callData: callDataQuery,
       agentReport: agentReportQuery,
