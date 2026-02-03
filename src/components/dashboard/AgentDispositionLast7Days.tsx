@@ -24,7 +24,7 @@ const AgentDispositionLast7Days: React.FC<AgentDispositionLast7DaysProps> = ({
     const [expandedRows, setExpandedRows] = useState<any>(null);
 
     const dispositionKeys = [
-        "a", "dc", "rec", "lb", "na", "np", "ri", "dnc", "dnq", "fas", "dair", "xfer", "callbk"
+        "xfer", "a", "dc", "rec", "lb", "na", "np", "ri", "dnc", "dnq", "fas", "dair", "callbk"
     ];
 
     const renderDispositionColumns = (isOverall: boolean) => {

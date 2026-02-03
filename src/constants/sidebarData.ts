@@ -6,6 +6,7 @@ import {
   User,
   Blocks,
   FormInputIcon,
+  FileText,
 } from "lucide-react";
 import { Campaign } from "@/lib/utils";
 
@@ -119,6 +120,17 @@ export const sideBarData = {
         {
           title: "Age function analyzer",
           url: "/age_classifier",
+        },
+      ],
+    },
+    {
+      name: "Reports",
+      url: "/reports",
+      icon: FileText,
+      items: [
+        {
+          title: "Interactions Report",
+          url: "/reports/interactions",
         },
       ],
     },
