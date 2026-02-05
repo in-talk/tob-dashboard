@@ -266,7 +266,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   const callerIdBodyTemplate = useCallback(
     (rowData: CallRecord) => (
       <span className="text-gray-900 dark:text-gray-100">
-        {rowData.caller_id} `(${rowData.caller_count})`
+        {rowData.caller_id} (<a href="#">{rowData.caller_count}</a>)
       </span>
     ),
     []
