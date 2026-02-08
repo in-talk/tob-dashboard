@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { mutate } from "swr";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Edit } from "lucide-react";
 
 import { User } from "@/types/user";
+import { Model } from "@/types/model";
 import { Campaign } from "@/pages/keyword_finder";
 import { createClientData } from "@/constants";
 
@@ -71,6 +72,7 @@ type CreateOrUpdateClientProps = {
   client_id?: string;
   campaigns?: Campaign[];
   users?: User[];
+  models?: Model[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   sessionUser?: string;
@@ -83,6 +85,7 @@ export default function CreateUpdateClient({
   client_id,
   campaigns,
   users,
+  models,
   open: externalOpen,
   onOpenChange: externalOnOpenChange,
   sessionUser,
@@ -117,6 +120,28 @@ export default function CreateUpdateClient({
     }
   }, [isDialogOpen, initialData, form, sessionUser]);
 
+  // Watch campaign_id to filter models
+  const watchedCampaignId = useWatch({ control: form.control, name: "campaign_id" });
+
+  const filteredModels = useMemo(() => {
+    if (!models || !watchedCampaignId) return [];
+    return models.filter(
+      (m) => m.campaign_id?.toString() === watchedCampaignId.toString()
+    );
+  }, [models, watchedCampaignId]);
+
+  // Reset model when campaign changes (only in create mode or when user actively changes)
+  const prevCampaignId = useRef<number | undefined>(initialData?.campaign_id);
+  useEffect(() => {
+    if (watchedCampaignId && watchedCampaignId !== prevCampaignId.current) {
+      // Only reset if it's not the initial load with existing data
+      if (prevCampaignId.current !== undefined) {
+        form.setValue("model", 0);
+      }
+      prevCampaignId.current = watchedCampaignId;
+    }
+  }, [watchedCampaignId, form]);
+
   const onSubmit = async (data: CreateClientValues) => {
     const payload = { ...data, metadata: {}, client_id };
 
@@ -144,6 +169,18 @@ export default function CreateUpdateClient({
           ? "Client updated successfully"
           : createClientData.message.success),
     });
+
+    if (mode === "create") {
+      setTimeout(() => {
+        toast({
+          variant: "default",
+          title: "⚠️ Assign Agents",
+          description:
+            "Please assign agents to this client for it to work. Go to Forms → Client Agents to manage assignments.",
+          duration: 8000,
+        });
+      }, 500);
+    }
 
     mutate("/api/clients");
 
@@ -267,7 +304,43 @@ export default function CreateUpdateClient({
                   )}
                 />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2 ">
-                  {["model", "version", "number_of_lines"].map((fieldName) => (
+                  <FormField
+                    control={form.control}
+                    name="model"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Model</FormLabel>
+                        <FormControl>
+                          <Select
+                            onValueChange={(val) => field.onChange(Number(val))}
+                            value={field.value ? field.value.toString() : ""}
+                          >
+                            <SelectTrigger className="w-full !mt-0">
+                              <SelectValue placeholder={
+                                !watchedCampaignId
+                                  ? "Select campaign first"
+                                  : filteredModels.length === 0
+                                    ? "No models for this campaign"
+                                    : "Select model"
+                              } />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {filteredModels.map((model) => (
+                                <SelectItem
+                                  key={model.model_id}
+                                  value={model.model_number.toString()}
+                                >
+                                  {model.model_name} (#{model.model_number})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {["version", "number_of_lines"].map((fieldName) => (
                     <FormField
                       key={fieldName}
                       control={form.control}
