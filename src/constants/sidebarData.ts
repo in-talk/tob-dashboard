@@ -59,6 +59,10 @@ export const sideBarData = {
           url: "/forms/models",
         },
         {
+          title: "Client Agents",
+          url: "/forms/client-agents",
+        },
+        {
           title: "REC Numbers",
           url: "/forms/HPNumbers",
         },

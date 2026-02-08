@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { User } from "@/types/user";
+import { Model } from "@/types/model";
 import { fetcher } from "@/utils/fetcher";
 
 function Clients() {
@@ -53,6 +54,10 @@ function Clients() {
   );
 
   const { data: users } = useSWR<User[]>("/api/get-users", fetcher, {
+    revalidateOnFocus: false,
+  });
+
+  const { data: models } = useSWR<Model[]>("/api/models", fetcher, {
     revalidateOnFocus: false,
   });
 
@@ -293,7 +298,7 @@ function Clients() {
             Clear Filters
           </Button>
         </div>
-        <CreateUpdateClient mode="create" campaigns={campaigns} users={users} sessionUser={session?.user?.name} />
+        <CreateUpdateClient mode="create" campaigns={campaigns} users={users} models={models} sessionUser={session?.user?.name} />
       </div>
 
       <CreateUpdateClient
@@ -304,6 +309,7 @@ function Clients() {
         client_id={editingClient?.client_id}
         campaigns={campaigns}
         users={users}
+        models={models}
         sessionUser={session?.user?.name}
       />
 

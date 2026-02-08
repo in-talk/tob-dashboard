@@ -78,10 +78,13 @@ const AudioProcessor: React.FC = () => {
     });
 
     try {
-      const response = await fetch("/api/process-audio", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_KEYWORD_API_URL || ""}/api/process-audio`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       if (!response.ok) {
         throw new Error(await response.text());
