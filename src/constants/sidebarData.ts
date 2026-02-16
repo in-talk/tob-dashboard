@@ -39,31 +39,31 @@ export const sideBarData = {
       icon: FormInputIcon,
       items: [
         {
-          title: "Clients",
+          title: "Add New Clients",
           url: "/forms/clients",
         },
         {
-          title: "Agents",
+          title: "Add New Agents",
           url: "/forms/agents",
         },
         {
-          title: "Agents By Campaign",
+          title: "Assign Campaign to Agents",
           url: "/forms/agents-by-campaign",
         },
         {
-          title: "Clients By User",
+          title: "Assign Clients to Users",
           url: "/forms/clients-by-user",
         },
         {
-          title: "Models",
+          title: "Add New Models",
           url: "/forms/models",
         },
         {
-          title: "Client Agents",
+          title: "Assign Agents to Clients",
           url: "/forms/client-agents",
         },
         {
-          title: "REC Numbers",
+          title: "Add REC/Honeypot Numbers",
           url: "/forms/HPNumbers",
         },
       ],

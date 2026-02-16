@@ -29,4 +29,5 @@ export interface AgentDispositionData {
   rec_percentage: string;
   other_count: string;
   other_percentage: string;
+  client_id?: string;
 }

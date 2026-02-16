@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useRef } from "react";
-import { Upload, X, AlertCircle, CheckCircle } from "lucide-react";
+import { Upload, X, AlertCircle, CheckCircle, Volume2 } from "lucide-react";
 import type { AudioFile, ProcessingStatus } from "../types/audio";
 import {
   generateUniqueId,
@@ -18,6 +18,8 @@ const AudioProcessor: React.FC = () => {
     type: "idle",
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [addBackground, setAddBackground] = useState(false);
+  const [backgroundVolume, setBackgroundVolume] = useState(0.15);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = useCallback(
@@ -73,13 +75,19 @@ const AudioProcessor: React.FC = () => {
     });
 
     const formData = new FormData();
+    
+    // Add background options
+    formData.append("addBackground", addBackground.toString());
+    formData.append("backgroundVolume", backgroundVolume.toString());
+    
+    // Add all files
     files.forEach(({ file }) => {
       formData.append("files", file);
     });
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_KEYWORD_API_URL || ""}/api/process-audio`,
+        `${process.env.NEXT_PUBLIC_KEYWORD_API_URL || ""}/process-audio`,
         {
           method: "POST",
           body: formData,
@@ -87,7 +95,8 @@ const AudioProcessor: React.FC = () => {
       );
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+        throw new Error(errorData.detail || "Processing failed");
       }
 
       const blob = await response.blob();
@@ -120,6 +129,8 @@ const AudioProcessor: React.FC = () => {
   const handleReset = () => {
     setFiles([]);
     setStatus({ message: "", type: "idle" });
+    setAddBackground(false);
+    setBackgroundVolume(0.15);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -166,6 +177,66 @@ const AudioProcessor: React.FC = () => {
               {audioProcessorData.upload.supportedFormats}
             </span>
           </label>
+        </div>
+
+        {/* Background Audio Options */}
+        <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="addBackground"
+              checked={addBackground}
+              onChange={(e) => setAddBackground(e.target.checked)}
+              className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label
+              htmlFor="addBackground"
+              className="flex items-center space-x-2 text-sm font-medium text-gray-700 cursor-pointer"
+            >
+              <Volume2 size={18} />
+              <span>Add Background Noise</span>
+            </label>
+          </div>
+
+          {addBackground && (
+            <div className="ml-7 space-y-2">
+              <label
+                htmlFor="backgroundVolume"
+                className="block text-sm text-gray-600"
+              >
+                Background Volume: {backgroundVolume.toFixed(2)}
+              </label>
+              <div className="flex items-center space-x-3">
+                <input
+                  type="range"
+                  id="backgroundVolume"
+                  min="0.01"
+                  max="0.5"
+                  step="0.01"
+                  value={backgroundVolume}
+                  onChange={(e) => setBackgroundVolume(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <input
+                  type="number"
+                  min="0.01"
+                  max="0.5"
+                  step="0.01"
+                  value={backgroundVolume}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    if (value >= 0.01 && value <= 0.5) {
+                      setBackgroundVolume(value);
+                    }
+                  }}
+                  className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md"
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                Recommended: 0.10 - 0.20 for subtle background noise
+              </p>
+            </div>
+          )}
         </div>
 
         {files.length > 0 && (

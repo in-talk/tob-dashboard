@@ -6,6 +6,7 @@ import { getUTCDateRange } from "@/utils/timezone";
 import { transformAgentData } from "@/utils/transformAgentData";
 import { transformGraphData } from "@/utils/transformGraphData";
 import { useClients } from "./useClients";
+import { Client } from "@/types/client";
 
 interface UseDashboardDataProps {
   userId: string | undefined;
@@ -16,6 +17,19 @@ interface UseDashboardDataProps {
   searchType?: "call_id" | "caller_id";
   globalSearchTerm?: string;
   fetchLast7Days?: boolean;
+  showAllClients?: boolean;
+}
+
+interface CallRecordsPayload {
+  [key: string]: unknown;
+  client_id: string | null;
+  page: number;
+  num_of_records: number;
+  from_date?: Date | string | null;
+  to_date?: Date | string | null;
+  search_term?: string | null;
+  call_id?: string | null;
+  caller_id?: string | null;
 }
 
 export function useDashboardData({
@@ -27,6 +41,7 @@ export function useDashboardData({
   searchType = "caller_id",
   globalSearchTerm,
   fetchLast7Days = false,
+  showAllClients = false,
 }: UseDashboardDataProps) {
   const { timezone } = useTimezone();
 
@@ -66,8 +81,12 @@ export function useDashboardData({
         selectedClientId && utcDateRange
           ? `agent-${selectedClientId}-${utcDateRange.from}-${utcDateRange.to}`
           : null,
+      allClientsAgent:
+        showAllClients && clients && clients.length > 0 && utcDateRange
+          ? `all-clients-agent-${utcDateRange.from}-${utcDateRange.to}-${clients.map((c: Client) => c.client_id).join(',')}`
+          : null,
     }),
-    [selectedClientId, utcDateRange, pagination, serverSearchTerm, searchType, globalSearchTerm]
+    [selectedClientId, utcDateRange, pagination, serverSearchTerm, searchType, globalSearchTerm, showAllClients, clients]
   );
 
   const chartDataQuery = useSWR(
@@ -85,8 +104,7 @@ export function useDashboardData({
   const callDataQuery = useSWR(
     keys.call,
     () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payload: any = {
+      const payload: CallRecordsPayload = {
         client_id: selectedClientId,
         page: pagination.page,
         num_of_records: pagination.pageSize,
@@ -130,6 +148,17 @@ export function useDashboardData({
     { revalidateOnFocus: false, revalidateOnReconnect: true }
   );
 
+  const allClientsAgentReportQuery = useSWR(
+    keys.allClientsAgent,
+    () =>
+      postFetcher("/api/fetchAgentReport", {
+        client_ids: clients?.map((c: Client) => c.client_id),
+        from_date: utcDateRange.from,
+        to_date: utcDateRange.to,
+      }),
+    { revalidateOnFocus: false, revalidateOnReconnect: true }
+  );
+
   const last7DaysQuery = useSWR(
     selectedClientId && fetchLast7Days ? ["/api/fetchAgentDispositionLast7Days", selectedClientId] : null,
     ([url, cid]: [string, string]) =>
@@ -151,6 +180,9 @@ export function useDashboardData({
       agentReport: transformAgentData(
         agentReportQuery.data?.agentRecords ?? []
       ),
+      allClientsAgentReport: transformAgentData(
+        allClientsAgentReportQuery.data?.agentRecords ?? []
+      ),
       last7DaysDisposition: last7DaysQuery.data?.last7DaysData ?? [],
     }),
     [
@@ -158,6 +190,7 @@ export function useDashboardData({
       callDataQuery.data,
       chartDataQuery.data,
       agentReportQuery.data,
+      allClientsAgentReportQuery.data,
       last7DaysQuery.data,
     ]
   );
@@ -168,7 +201,8 @@ export function useDashboardData({
     chartDataQuery.isLoading ||
     callDataQuery.isLoading ||
     agentReportQuery.isLoading ||
-    last7DaysQuery.isLoading;
+    last7DaysQuery.isLoading ||
+    (showAllClients && allClientsAgentReportQuery.isLoading);
 
   // Combined error state
   const error =
@@ -176,7 +210,8 @@ export function useDashboardData({
     chartDataQuery.error ||
     callDataQuery.error ||
     agentReportQuery.error ||
-    last7DaysQuery.error;
+    last7DaysQuery.error ||
+    allClientsAgentReportQuery.error;
 
   return {
     data,
@@ -187,6 +222,7 @@ export function useDashboardData({
       chartData: chartDataQuery,
       callData: callDataQuery,
       agentReport: agentReportQuery,
+      allClientsAgentReport: allClientsAgentReportQuery,
       last7DaysDisposition: last7DaysQuery,
     },
   };

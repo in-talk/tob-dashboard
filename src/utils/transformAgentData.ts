@@ -21,6 +21,7 @@ export type AgentReportRow = {
   na: DispositionData;
   dnq: DispositionData;
   other: DispositionData;
+  client_id?: string;
 };
 
 export function transformAgentData(
@@ -28,6 +29,7 @@ export function transformAgentData(
 ): AgentReportRow[] | null {
   const transformedData = rawData.map((data) => {
     return {
+      client_id: data.client_id,
       agentName: data.agent_name,
       totalCalls: parseInt(data.total_calls, 10),
       xfer: {

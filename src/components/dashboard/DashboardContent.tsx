@@ -22,6 +22,12 @@ const AgentDispositionLast7Days = dynamic(
     ssr: false,
   }
 );
+const AllClientsAgentReport = dynamic(
+  () => import("./AllClientsAgentReport"),
+  {
+    ssr: false,
+  }
+);
 
 interface DashboardContentProps {
   userId: string | undefined;
@@ -51,8 +57,11 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
   const [globalSearchTerm, setGlobalSearchTerm] = useState("");
   const [showLast7Days, setShowLast7Days] = useState(false);
   const [exportingDisposition, setExportingDisposition] = useState<string | null>(null);
+  const [isAgentReportExpanded, setIsAgentReportExpanded] = useState(true);
 
-  const { data, isLoading, error, utcDateRange, queries } = useDashboardData({
+  const [isAllClientsReportExpanded, setIsAllClientsReportExpanded] = useState(false);
+
+  const { data, isLoading, utcDateRange, queries } = useDashboardData({
     userId,
     selectedClientId,
     dateRange,
@@ -61,6 +70,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
     searchType,
     globalSearchTerm,
     fetchLast7Days: showLast7Days,
+    showAllClients: isAllClientsReportExpanded
   });
 
 
@@ -157,31 +167,14 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
     [selectedClientId, utcDateRange, session?.user?.role]
   );
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <p className="text-red-500 text-lg mb-4">
-            Error loading dashboard data
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!userId) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-500">Please log in to view dashboard</p>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="flex items-center justify-center h-screen">
+  //       <div className="text-center">
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -237,16 +230,29 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
         <AgentDispositionReport
           agentReport={data.agentReport ?? []}
           isLoading={queries.agentReport.isLoading}
+          isExpanded={isAgentReportExpanded}
+          onToggle={() => setIsAgentReportExpanded(!isAgentReportExpanded)}
         />
-
         {session?.user?.role === "admin" && (
-          <AgentDispositionLast7Days
-            data={data.last7DaysDisposition ?? []}
-            isLoading={queries.last7DaysDisposition.isLoading}
-            isExpanded={showLast7Days}
-            onToggle={() => setShowLast7Days(!showLast7Days)}
-          />
+          <>
+            <AllClientsAgentReport
+              agentReport={data.allClientsAgentReport ?? []}
+              clients={data.clients ?? []}
+              isLoading={queries.allClientsAgentReport.isLoading}
+              isExpanded={isAllClientsReportExpanded}
+              onToggle={() => setIsAllClientsReportExpanded(!isAllClientsReportExpanded)}
+            />
+
+
+            <AgentDispositionLast7Days
+              data={data.last7DaysDisposition ?? []}
+              isLoading={queries.last7DaysDisposition.isLoading}
+              isExpanded={showLast7Days}
+              onToggle={() => setShowLast7Days(!showLast7Days)}
+            />
+          </>
         )}
+
       </div>
     </div>
   );
