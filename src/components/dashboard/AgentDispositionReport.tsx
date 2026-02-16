@@ -11,13 +11,25 @@ import { agentDispositionReportText } from "@/constants";
 const AgentDispositionReport = ({
   agentReport,
   isLoading,
+  isExpanded,
+  onToggle,
 }: {
   agentReport: AgentReportRow[];
   isLoading: boolean;
+  isExpanded?: boolean;
+  onToggle?: () => void;
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [internalExpanded, setInternalExpanded] = useState(true);
 
-  const toggleAccordion = () => setIsExpanded(!isExpanded);
+  const isComponentExpanded = isExpanded !== undefined ? isExpanded : internalExpanded;
+
+  const toggleAccordion = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setInternalExpanded(!internalExpanded);
+    }
+  };
 
   // Base columns
   const baseColumns = [
@@ -55,10 +67,10 @@ const AgentDispositionReport = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const dynamicDispositionKeys: (keyof Omit<
     AgentReportRow,
-    "agentName" | "totalCalls"
+    "agentName" | "totalCalls" | "client_id"
   >)[] = [
-    "dnc", "callbk", "fas", "a", "rec", "dc", "dair", "ri", "lb", "np", "na", "dnq", "other",
-  ];
+      "dnc", "callbk", "fas", "a", "rec", "dc", "dair", "ri", "lb", "np", "na", "dnq", "other",
+    ];
 
   const dynamicColumns = useMemo(() => {
     return dynamicDispositionKeys
@@ -98,11 +110,11 @@ const AgentDispositionReport = ({
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {isExpanded
+                  {isComponentExpanded
                     ? agentDispositionReportText.toggle.collapse
                     : agentDispositionReportText.toggle.expand}
                 </span>
-                {isExpanded ? (
+                {isComponentExpanded ? (
                   <ChevronUp className="w-5 h-5 text-gray-500 transition-transform duration-200" />
                 ) : (
                   <ChevronDown className="w-5 h-5 text-gray-500 transition-transform duration-200" />
@@ -113,9 +125,8 @@ const AgentDispositionReport = ({
 
           {/* Accordion Body */}
           <div
-            className={`transition-all duration-300 ease-in-out overflow-hidden ${
-              isExpanded ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
-            }`}
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${isComponentExpanded ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+              }`}
           >
             <div className="bg-light dark:bg-sidebar border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
               <DataTable

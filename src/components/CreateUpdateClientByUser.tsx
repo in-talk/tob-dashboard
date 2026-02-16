@@ -151,7 +151,7 @@ export default function CreateUpdateClientByUser({
                                                 <SelectTrigger className="w-full">
                                                     <SelectValue placeholder="Select User" />
                                                 </SelectTrigger>
-                                                <SelectContent>
+                                                <SelectContent className="max-h-[200px]">
                                                     {users?.map((user) => (
                                                         <SelectItem
                                                             key={user.id}
@@ -182,7 +182,7 @@ export default function CreateUpdateClientByUser({
                                                 <SelectTrigger className="w-full">
                                                     <SelectValue placeholder="Select Client" />
                                                 </SelectTrigger>
-                                                <SelectContent>
+                                                <SelectContent className="max-h-[200px]">
                                                     {clients?.map((client) => (
                                                         <SelectItem
                                                             key={client.client_id}
