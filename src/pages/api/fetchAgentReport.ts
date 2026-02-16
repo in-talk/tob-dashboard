@@ -32,6 +32,7 @@ export default async function handler(
 
   try {
     let queryText = "";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let queryParams: any[] = [];
 
     if (targetClientIds.length > 1) {

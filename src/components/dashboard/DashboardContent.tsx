@@ -61,7 +61,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
 
   const [isAllClientsReportExpanded, setIsAllClientsReportExpanded] = useState(false);
 
-  const { data, isLoading, error, utcDateRange, queries } = useDashboardData({
+  const { data, isLoading, utcDateRange, queries } = useDashboardData({
     userId,
     selectedClientId,
     dateRange,

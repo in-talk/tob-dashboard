@@ -6,6 +6,7 @@ import { getUTCDateRange } from "@/utils/timezone";
 import { transformAgentData } from "@/utils/transformAgentData";
 import { transformGraphData } from "@/utils/transformGraphData";
 import { useClients } from "./useClients";
+import { Client } from "@/types/client";
 
 interface UseDashboardDataProps {
   userId: string | undefined;
@@ -17,6 +18,18 @@ interface UseDashboardDataProps {
   globalSearchTerm?: string;
   fetchLast7Days?: boolean;
   showAllClients?: boolean;
+}
+
+interface CallRecordsPayload {
+  [key: string]: unknown;
+  client_id: string | null;
+  page: number;
+  num_of_records: number;
+  from_date?: Date | string | null;
+  to_date?: Date | string | null;
+  search_term?: string | null;
+  call_id?: string | null;
+  caller_id?: string | null;
 }
 
 export function useDashboardData({
@@ -70,7 +83,7 @@ export function useDashboardData({
           : null,
       allClientsAgent:
         showAllClients && clients && clients.length > 0 && utcDateRange
-          ? `all-clients-agent-${utcDateRange.from}-${utcDateRange.to}-${clients.map(c => c.client_id).join(',')}`
+          ? `all-clients-agent-${utcDateRange.from}-${utcDateRange.to}-${clients.map((c: Client) => c.client_id).join(',')}`
           : null,
     }),
     [selectedClientId, utcDateRange, pagination, serverSearchTerm, searchType, globalSearchTerm, showAllClients, clients]
@@ -91,8 +104,7 @@ export function useDashboardData({
   const callDataQuery = useSWR(
     keys.call,
     () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payload: any = {
+      const payload: CallRecordsPayload = {
         client_id: selectedClientId,
         page: pagination.page,
         num_of_records: pagination.pageSize,
@@ -140,7 +152,7 @@ export function useDashboardData({
     keys.allClientsAgent,
     () =>
       postFetcher("/api/fetchAgentReport", {
-        client_ids: clients?.map((c) => c.client_id),
+        client_ids: clients?.map((c: Client) => c.client_id),
         from_date: utcDateRange.from,
         to_date: utcDateRange.to,
       }),
