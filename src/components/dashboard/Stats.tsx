@@ -191,7 +191,7 @@ function Stats({ agentReport, isLoading, onClick, exportingDisposition }: StatsP
   }
 
   return (
-    <div className="grid grid-cols-12 gap-4 mb-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 gap-3 sm:gap-4 mb-2">
       {cards.map((card, idx) => (
         <StatCard
           key={card.disposition}

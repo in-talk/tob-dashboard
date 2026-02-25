@@ -77,10 +77,10 @@ function AutoRefresh({
   getTimeAgo,
   disabled,
 }: AutoRefreshProps) {
-    const { data: session } = useSession();
-    const userRole = session?.user?.role;
-    const refreshSlots = userRole === "admin" ? refreshSlotsAdmin : refreshSlotsClient;
-  
+  const { data: session } = useSession();
+  const userRole = session?.user?.role;
+  const refreshSlots = userRole === "admin" ? refreshSlotsAdmin : refreshSlotsClient;
+
   return (
     <div className="flex items-center gap-4 flex-wrap py-2">
       <label className="flex items-center gap-2">
@@ -99,7 +99,7 @@ function AutoRefresh({
         value={`${refreshInterval}`}
         onValueChange={(value) => setRefreshInterval(Number(value))}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-full sm:w-[180px]">
           <SelectValue placeholder="Select interval" />
         </SelectTrigger>
         <SelectContent>

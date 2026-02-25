@@ -257,11 +257,11 @@ function Clients() {
   };
 
   return (
-    <div className="px-6">
-      <div className="flex justify-between items-center my-2">
-        <div className="flex gap-4">
+    <div className="px-3 sm:px-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 my-2">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <Select value={selectedUser} onValueChange={setSelectedUser}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Filter by User" />
             </SelectTrigger>
             <SelectContent>
@@ -274,7 +274,7 @@ function Clients() {
           </Select>
 
           <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Filter by Campaign" />
             </SelectTrigger>
             <SelectContent>
@@ -313,7 +313,7 @@ function Clients() {
         sessionUser={session?.user?.name}
       />
 
-      <div className="bg-gray-100 px-6 py-4 shadow-lg dark:bg-sidebar rounded-xl border">
+      <div className="bg-gray-100 px-3 sm:px-6 py-4 shadow-lg dark:bg-sidebar rounded-xl border overflow-x-auto">
         <DataTable
           value={filteredClients || []}
           scrollable

@@ -39,7 +39,7 @@ function ClientSelector({
         value={clients.length === 1 ? clients[0].client_id : selectedClientId ?? ""}
         onValueChange={(value) => onClientChange(value || null)}
       >
-        <SelectTrigger className="w-[300px]">
+        <SelectTrigger className="w-full sm:w-[300px]">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
