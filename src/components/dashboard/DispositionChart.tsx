@@ -117,10 +117,10 @@ const DispositionChart = ({
   }
 
   return (
-    <div className="rounded-xl bg-white dark:bg-sidebar border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-      <div className="py-4 px-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/20">
+    <div className="rounded-xl bg-white dark:bg-sidebar border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden min-w-0">
+      <div className="py-3 sm:py-4 px-4 sm:px-6 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-gray-50/50 dark:bg-gray-900/20">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Disposition Performance</h1>
+          <h1 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Disposition Performance</h1>
           <p className="text-xs text-gray-500">Real-time percentage breakdown across intervals</p>
         </div>
         {isLoading && (
@@ -131,8 +131,8 @@ const DispositionChart = ({
         )}
       </div>
 
-      <div className="p-4">
-        <ResponsiveContainer width="100%" height={350}>
+      <div className="p-2 sm:p-4">
+        <ResponsiveContainer width="100%" height={250} className="sm:!h-[350px]">
           {isLoading ? (
             <div className="flex justify-center items-center h-full">
               <div className="relative w-12 h-12">
@@ -232,14 +232,14 @@ const DispositionChart = ({
         </ResponsiveContainer>
       </div>
 
-      <div className="px-6 py-4 bg-gray-50/50 dark:bg-gray-900/20 border-t border-gray-100 dark:border-gray-800 flex items-center justify-center flex-wrap gap-x-4 gap-y-2">
+      <div className="px-3 sm:px-6 py-3 sm:py-4 bg-gray-50/50 dark:bg-gray-900/20 border-t border-gray-100 dark:border-gray-800 flex items-center justify-center flex-wrap gap-x-2 sm:gap-x-4 gap-y-2">
         {activeDispositionLabels.map((label) => (
           <button
             key={label}
             onClick={() => handleLegendClick(label)}
             className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all duration-200 hover:bg-white dark:hover:bg-gray-800 border ${focusedLine === label
-                ? "border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-800"
-                : "border-transparent"
+              ? "border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-800"
+              : "border-transparent"
               }`}
           >
             <div

@@ -103,18 +103,18 @@ export default function InteractionsReport() {
                 <title>Interactions Report - InTalk Dashboard</title>
             </Head>
 
-            <div className="flex flex-1 flex-col gap-6 p-6">
+            <div className="flex flex-1 flex-col gap-4 sm:gap-6 p-3 sm:p-6">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-                        <FileText className="h-8 w-8 text-blue-600" />
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+                        <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
                         Interactions Report
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400">
+                    <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">
                         Generate and download detailed reports of interactions based on specific criteria.
                     </p>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 bg-white dark:bg-sidebar border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-sm">
+                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 bg-white dark:bg-sidebar border border-gray-200 dark:border-gray-700 p-4 sm:p-6 rounded-xl shadow-sm">
 
                     {/* Client Selection */}
                     {clients.length > 0 && (

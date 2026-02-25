@@ -90,7 +90,7 @@ const AgentDispositionReport = ({
   }, [agentReport, dynamicDispositionKeys]);
 
   return (
-    <div className="p-2 bg-gray-100 dark:bg-sidebar rounded-xl overflow-hidden">
+    <div className="p-2 bg-gray-100 dark:bg-sidebar rounded-xl overflow-hidden min-w-0">
       {/* Loading bar */}
       <div className="pt-1 min-h-[4px]">{isLoading && <SyncingProgressBars />}</div>
 

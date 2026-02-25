@@ -57,7 +57,7 @@ export default function BulkKeywordFinder() {
           // Convert to JSON
           const jsonData = XLSX.utils.sheet_to_json(worksheet, {
             header: 1,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
           }) as any[][];
 
           // Extract transcripts from first column (skip header if exists)
@@ -173,7 +173,7 @@ export default function BulkKeywordFinder() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto px-3 sm:px-6 py-6">
       <h1 className="text-3xl font-bold mb-6">Transcript Label Appender</h1>
 
       <div className="bg-white shadow-md rounded-lg p-6 mb-6">
