@@ -41,7 +41,15 @@ import { toast } from "@/hooks/use-toast";
 
 const createAgentSchema = z.object({
   is_active: z.boolean().default(true),
-  agent_name: z.string().min(1, "Agent Name is required"),
+  agent_name: z
+    .string()
+    .min(1, "Agent Name is required")
+    .refine((val) => !/\s/.test(val), {
+      message: "Agent Name must not contain spaces",
+    })
+    .refine((val) => /^[a-zA-Z0-9-]+$/.test(val), {
+      message: "Agent Name can only contain letters, numbers, and hyphens (-)",
+    }),
   campaign_id: z.string().min(1, "Campaign is required"),
 });
 
