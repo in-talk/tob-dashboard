@@ -35,7 +35,7 @@ export default function DashboardHeader({
   isLoading,
 }: DashboardHeaderProps) {
   return (
-    <div className="w-full flex justify-between items-start sticky top-0 z-10 bg-gray-100 dark:bg-sidebar p-3 rounded-sm">
+    <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sticky top-0 z-10 bg-gray-100 dark:bg-sidebar p-3 rounded-sm">
       <AutoRefresh
         refreshInterval={refreshInterval}
         autoRefresh={autoRefresh}

@@ -269,11 +269,10 @@ function ClientAgents() {
 
   const statusTemplate = (rowData: AssignedAgent) => (
     <span
-      className={`px-2 py-1 rounded-full text-xs font-semibold ${
-        rowData.is_active
+      className={`px-2 py-1 rounded-full text-xs font-semibold ${rowData.is_active
           ? "bg-green-100 text-green-700"
           : "bg-red-100 text-red-700"
-      }`}
+        }`}
     >
       {rowData.is_active ? "Active" : "Inactive"}
     </span>
@@ -313,11 +312,11 @@ function ClientAgents() {
   );
 
   return (
-    <div className="px-6">
+    <div className="px-3 sm:px-6">
       {/* Header: Client selector */}
       <div className="flex flex-col gap-4 my-4">
-        <div className="flex items-center gap-4">
-          <div className="w-80">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="w-full sm:w-80">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
               Select Client
             </label>
@@ -353,7 +352,7 @@ function ClientAgents() {
           </div>
 
           {selectedClient && (
-            <div className="mt-5 flex items-center gap-3">
+            <div className="sm:mt-5 flex flex-wrap items-center gap-2 sm:gap-3">
               <div className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-md">
                 <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
                   Client: {selectedClientName}
@@ -440,11 +439,10 @@ function ClientAgents() {
                       </span>
                     </div>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                        agent.is_active
+                      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${agent.is_active
                           ? "bg-green-100 text-green-700"
                           : "bg-red-100 text-red-700"
-                      }`}
+                        }`}
                     >
                       {agent.is_active ? "Active" : "Inactive"}
                     </span>

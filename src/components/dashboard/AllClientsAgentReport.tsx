@@ -107,7 +107,7 @@ const AllClientsAgentReport = ({
     };
 
     return (
-        <div className="w-full max-w-full p-2 bg-gray-100 dark:bg-sidebar rounded-xl overflow-hidden mt-6">
+        <div className="w-full max-w-full p-2 bg-gray-100 dark:bg-sidebar rounded-xl overflow-hidden mt-6 min-w-0">
             <div
                 className="p-2 bg-white dark:bg-sidebar border-b border-gray-200 dark:border-gray-700 mb-4 rounded-lg shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
                 onClick={onToggle}

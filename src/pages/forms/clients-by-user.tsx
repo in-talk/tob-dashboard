@@ -227,16 +227,16 @@ function ClientsByUser() {
     );
 
   return (
-    <div className="px-6">
-      <div className="flex justify-between items-center my-4">
-        <div className="relative w-64">
+    <div className="px-3 sm:px-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 my-4">
+        <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           <Input
             type="text"
             placeholder="Search by client or user..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm pl-8"
+            className="w-full sm:max-w-sm pl-8"
           />
         </div>
         <CreateUpdateClientByUser
@@ -246,7 +246,7 @@ function ClientsByUser() {
         />
       </div>
 
-      <div className="bg-gray-100 px-6 py-4 shadow-lg dark:bg-sidebar rounded-xl border">
+      <div className="bg-gray-100 px-3 sm:px-6 py-4 shadow-lg dark:bg-sidebar rounded-xl border overflow-x-auto">
         <DataTable
           value={filteredData || []}
           scrollable
