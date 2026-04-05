@@ -10,6 +10,7 @@ export enum Campaign {
   SOLAR = 30000,
   FE = 40000,
   FETEST = 40001,
+  FEV2 = 40002,
   MVA = 50000,
   MC = 60000,
 }
