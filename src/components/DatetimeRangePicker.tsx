@@ -14,7 +14,7 @@ interface DateTimeRangePickerProps {
   initialStartTime?: string;
   initialEndTime?: string;
   autoRefresh?: boolean;
-  disabled?:boolean
+  disabled?: boolean
 }
 
 const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
@@ -41,12 +41,12 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
 
   useEffect(() => {
     if (!from || !to) return;
-    
+
     if (from > to) {
       setError("End date/time cannot be before start date/time");
       return;
     }
-    
+
     setError("");
   }, [from, to]);
 
@@ -102,11 +102,11 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
     const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const fromOnly = from ? new Date(from.getFullYear(), from.getMonth(), from.getDate()) : null;
     const toOnly = to ? new Date(to.getFullYear(), to.getMonth(), to.getDate()) : null;
-    
+
     const isStart = fromOnly && dateOnly.getTime() === fromOnly.getTime();
     const isEnd = toOnly && dateOnly.getTime() === toOnly.getTime();
     const isInRange = isDateInRange(date);
-    const isHovered = hoverDate && 
+    const isHovered = hoverDate &&
       dateOnly.getTime() === new Date(hoverDate.getFullYear(), hoverDate.getMonth(), hoverDate.getDate()).getTime();
     const isToday = dateOnly.getTime() === new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).getTime();
 
@@ -158,7 +158,7 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
 
   const setToNow = (type: "start" | "end"): void => {
     const now = new Date();
-    
+
     if (type === "start") {
       setFrom(now);
     } else {
@@ -169,7 +169,7 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
 
   const handleApply = (): void => {
     if (!from || !to) return;
-    
+
     if (from > to) {
       setError("End date/time cannot be before start date/time");
       return;
@@ -208,13 +208,13 @@ const DateTimeRangePicker: React.FC<DateTimeRangePickerProps> = ({
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-40" 
+          <div
+            className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          
+
           {/* Panel */}
-          <div className="absolute top-full mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+          <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
             {/* Header */}
             <div className="px-4 py-3 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-100">
               <div className="flex items-center justify-between">

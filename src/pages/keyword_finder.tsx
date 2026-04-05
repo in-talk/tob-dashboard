@@ -108,7 +108,7 @@ export default function KeywordFinder() {
   const prettyJson = JSON.stringify(response, null, 2);
 
   return (
-    <div className="p-6 space-y-6 overflow-x-hidden">
+    <div className="px-3 sm:p-6 py-4 space-y-6 overflow-x-hidden">
       <form onSubmit={handleSubmit}>
         <div className="flex flex-wrap gap-4 items-end">
           <div className="flex-1 min-w-[170px]">
@@ -116,10 +116,10 @@ export default function KeywordFinder() {
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               required
-              className="h-10 resize-none w-[550px] py-7"
+              className="h-10 resize-none w-full sm:w-[550px] py-7"
               placeholder={keywordFinderPageData.transcriptPlaceholder}
             />
-            
+
           </div>
           <div className="w-40 min-w-[8rem]">
             <Input

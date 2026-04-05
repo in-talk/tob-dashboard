@@ -172,7 +172,7 @@ function Users() {
   );
 
   return (
-    <div className="px-6">
+    <div className="px-3 sm:px-6">
       <div className="flex justify-end items-center my-4">
         <CreateUpdateUser mode="create" />
       </div>
@@ -189,7 +189,7 @@ function Users() {
         userId={editingUser?.id}
       />
 
-      <div className="bg-gray-100 px-6 py-4 shadow-lg dark:bg-sidebar rounded-xl border">
+      <div className="bg-gray-100 px-3 sm:px-6 py-4 shadow-lg dark:bg-sidebar rounded-xl border overflow-x-auto">
         <DataTable
           value={users || []}
           scrollable

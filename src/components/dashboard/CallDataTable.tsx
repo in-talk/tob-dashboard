@@ -373,15 +373,15 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
 
   const header = useMemo(
     () => (
-      <div className="flex flex-wrap gap-4 justify-end items-center mb-2">
-        <div className="flex gap-4 items-center">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 justify-end items-stretch sm:items-center mb-2">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center w-full sm:w-auto">
           {onServerSearchChange && onSearchTypeChange && role === "admin" && (
-            <div className="flex gap-2 items-center mr-4">
+            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center sm:mr-4">
               <Dropdown
                 value={searchType}
                 options={searchTypeOptions}
                 onChange={(e) => onSearchTypeChange(e.value)}
-                className="w-32 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="w-full sm:w-32 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               />
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -389,23 +389,25 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
                   value={localServerSearchTerm}
                   onChange={(e) => setLocalServerSearchTerm(e.target.value)}
                   placeholder={`Search ${searchType === "call_id" ? "Call ID" : "Caller ID"}`}
-                  className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white w-64"
+                  className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white w-full sm:w-64"
                 />
               </div>
-              <button
-                onClick={handleServerSearch}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Search
-              </button>
-              {serverSearchTerm && (
+              <div className="flex gap-2">
                 <button
-                  onClick={handleClearServerSearch}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  onClick={handleServerSearch}
+                  className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Clear
+                  Search
                 </button>
-              )}
+                {serverSearchTerm && (
+                  <button
+                    onClick={handleClearServerSearch}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -415,7 +417,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
               value={localGlobalSearchTerm}
               onChange={(e) => setLocalGlobalSearchTerm(e.target.value)}
               placeholder="Global search (all pages)..."
-              className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white w-64"
+              className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white w-full sm:w-64"
             />
             {isLoading && localGlobalSearchTerm.length >= 2 && (
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -426,7 +428,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
 
           <button
             onClick={exportData}
-            className="px-4 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-300 flex items-center gap-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)]"
+            className="px-4 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)]"
           >
             <Download className="w-4 h-4" />
             Export CSV
@@ -493,11 +495,11 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   }, [callRecords]);
 
   return (
-    <div className="p-2 bg-gray-100 dark:bg-sidebar rounded-xl">
+    <div className="p-2 bg-gray-100 dark:bg-sidebar rounded-xl min-w-0 overflow-x-hidden">
       <div className="pt-1 min-h-[4px]">
         {isLoading && <SyncingProgressBars />}
       </div>
-      <div className="max-w-full mx-auto">
+      <div className="max-w-full mx-auto min-w-0">
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
           <div
             className="p-2 bg-white dark:bg-sidebar border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
