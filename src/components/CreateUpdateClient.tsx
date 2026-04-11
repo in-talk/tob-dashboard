@@ -5,7 +5,7 @@ import { mutate } from "swr";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Edit } from "lucide-react";
+import { Edit, X } from "lucide-react";
 
 import { User } from "@/types/user";
 import { Model } from "@/types/model";
@@ -303,7 +303,37 @@ export default function CreateUpdateClient({
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2 ">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2 ">
+                  <FormField
+                    control={form.control}
+                    name="campaign_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Campaign</FormLabel>
+                        <FormControl>
+                          <Select
+                            onValueChange={(val) => field.onChange(Number(val))}
+                            value={field.value?.toString() ?? ""}
+                          >
+                            <SelectTrigger className="w-full !mt-0">
+                              <SelectValue placeholder="Select campaign" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {campaigns?.map((campaign) => (
+                                <SelectItem
+                                  key={campaign.campaign_id}
+                                  value={campaign.campaign_id.toString()}
+                                >
+                                  {campaign.campaign_name}-{campaign.campaign_code}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="model"
@@ -340,38 +370,6 @@ export default function CreateUpdateClient({
                       </FormItem>
                     )}
                   />
-                  {["version", "number_of_lines"].map((fieldName) => (
-                    <FormField
-                      key={fieldName}
-                      control={form.control}
-                      name={fieldName as keyof CreateClientValues}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{fieldName.replace(/_/g, " ")}</FormLabel>
-                          <FormControl>
-                            <Input
-                              className="!mt-0"
-                              type="number"
-                              value={
-                                field.value !== undefined &&
-                                  field.value !== null
-                                  ? String(field.value)
-                                  : ""
-                              }
-                              onChange={(e) =>
-                                field.onChange(
-                                  e.target.value === ""
-                                    ? undefined
-                                    : Number(e.target.value)
-                                )
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  ))}
                 </div>
               </div>
             </div>
@@ -408,36 +406,41 @@ export default function CreateUpdateClient({
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="campaign_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Campaign</FormLabel>
-                    <FormControl>
-                      <Select
-                        onValueChange={(val) => field.onChange(Number(val))}
-                        value={field.value?.toString() ?? ""}
-                      >
-                        <SelectTrigger className="w-full !mt-0">
-                          <SelectValue placeholder="Select campaign" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {campaigns?.map((campaign) => (
-                            <SelectItem
-                              key={campaign.campaign_id}
-                              value={campaign.campaign_id.toString()}
-                            >
-                              {campaign.campaign_name}-{campaign.campaign_code}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+                {["version", "number_of_lines"].map((fieldName) => (
+                  <FormField
+                    key={fieldName}
+                    control={form.control}
+                    name={fieldName as keyof CreateClientValues}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{fieldName.replace(/_/g, " ")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            className="!mt-0"
+                            type="number"
+                            value={
+                              field.value !== undefined &&
+                                field.value !== null
+                                ? String(field.value)
+                                : ""
+                            }
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value === ""
+                                  ? undefined
+                                  : Number(e.target.value)
+                              )
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
@@ -447,7 +450,6 @@ export default function CreateUpdateClient({
                   "vicidial_address_folder",
                   "vicidial_api_user",
                   "vicidial_api_password",
-                  "transfer_group_name",
                 ].map((fieldName) => (
                   <FormField
                     key={fieldName}
@@ -474,6 +476,92 @@ export default function CreateUpdateClient({
                     )}
                   />
                 ))}
+
+                {/* Transfer Group Name - Chip/Tag Input */}
+                <FormField
+                  control={form.control}
+                  name="transfer_group_name"
+                  render={({ field }) => {
+                    const tags = (field.value || "")
+                      .split(",")
+                      .map((t: string) => t.trim())
+                      .filter(Boolean);
+
+                    const addTag = (value: string) => {
+                      const trimmed = value.trim();
+                      if (!trimmed) return;
+                      const current = tags;
+                      if (!current.includes(trimmed)) {
+                        field.onChange([...current, trimmed].join(","));
+                      }
+                    };
+
+                    const removeTag = (index: number) => {
+                      const updated = tags.filter((_: string, i: number) => i !== index);
+                      field.onChange(updated.join(","));
+                    };
+
+                    return (
+                      <FormItem>
+                        <FormLabel>Transfer Group Name</FormLabel>
+                        <FormControl>
+                          <div
+                            className="flex flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[40px] cursor-text"
+                            onClick={(e) => {
+                              const input = (e.currentTarget as HTMLElement).querySelector("input");
+                              input?.focus();
+                            }}
+                          >
+                            {tags.map((tag: string, idx: number) => (
+                              <span
+                                key={`${tag}-${idx}`}
+                                className="inline-flex items-center gap-1 rounded-full bg-blue-600 text-white px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-blue-700"
+                              >
+                                {tag}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeTag(idx);
+                                  }}
+                                  className="ml-0.5 rounded-full p-0.5 hover:bg-blue-800 focus:outline-none"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                            <input
+                              className="flex-1 min-w-[120px] bg-transparent outline-none placeholder:text-muted-foreground text-sm"
+                              placeholder={tags.length === 0 ? "Type and press Enter or comma" : ""}
+                              onKeyDown={(e) => {
+                                const input = e.currentTarget;
+                                if (e.key === "Enter" || e.key === ",") {
+                                  e.preventDefault();
+                                  addTag(input.value.replace(/,/g, ""));
+                                  input.value = "";
+                                } else if (
+                                  e.key === "Backspace" &&
+                                  input.value === "" &&
+                                  tags.length > 0
+                                ) {
+                                  removeTag(tags.length - 1);
+                                }
+                              }}
+                              onBlur={(e) => {
+                                const val = e.currentTarget.value.trim();
+                                if (val) {
+                                  addTag(val.replace(/,/g, ""));
+                                  e.currentTarget.value = "";
+                                }
+                              }}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
               </div>
               <div>
                 {[

@@ -39,13 +39,18 @@ export const sideBarData = {
       icon: FormInputIcon,
       items: [
         {
-          title: "Add New Clients",
+          title: "Add/View Clients",
           url: "/forms/clients",
         },
         {
-          title: "Add New Agents",
+          title: "Add/View Agents",
           url: "/forms/agents",
         },
+        {
+          title: "Add/View Models",
+          url: "/forms/models",
+        },
+
         {
           title: "Assign Campaign to Agents",
           url: "/forms/agents-by-campaign",
@@ -53,10 +58,6 @@ export const sideBarData = {
         {
           title: "Assign Clients to Users",
           url: "/forms/clients-by-user",
-        },
-        {
-          title: "Add New Models",
-          url: "/forms/models",
         },
         {
           title: "Assign Agents to Clients",

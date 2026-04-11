@@ -42,7 +42,7 @@ function ClientSelector({
         <SelectTrigger className="w-full sm:w-[300px]">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-[300px] overflow-y-auto">
           <SelectGroup>
             <SelectLabel>Available Clients</SelectLabel>
             {clients.map((client, i) => (
