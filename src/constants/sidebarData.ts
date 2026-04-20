@@ -130,6 +130,10 @@ export const sideBarData = {
           title: "Age function analyzer",
           url: "/age_classifier",
         },
+        {
+          title: "Age Mechanism",
+          url: "/age-mechanism",
+        },
       ],
     },
     {
