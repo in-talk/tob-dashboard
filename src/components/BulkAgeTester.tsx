@@ -50,8 +50,9 @@ type BulkTestResponse = {
 };
 
 export default function BulkAgeTestPage() {
-  const [minAge, setMinAge] = useState<number>(40);
+  const [minAge, setMinAge] = useState<number>(20);
   const [maxAge, setMaxAge] = useState<number>(80);
+  const [positiveAndNegative, setPositiveAndNegative] = useState<boolean>(false);
   const [testCases, setTestCases] = useState<TestCase[]>([
     { text: "I am forty five", expected: "YES" },
     { text: "I'm sixty years old", expected: "NO" },
@@ -76,7 +77,7 @@ export default function BulkAgeTestPage() {
     UNSURE: "outline",
     NEGATIVEAGE: "secondary",
     AGEUNSURE: "warning",
-    
+
   } as const;
   const addTestCase = () => {
     if (newTestCase.text.trim()) {
@@ -162,7 +163,7 @@ export default function BulkAgeTestPage() {
           throw new Error(`Row ${index + 2}: Text is required`);
         }
 
-        if (!["YES", "NO", "UNSURE", "NEGATIVEAGE","AGEUNSURE"].includes(expected)) {
+        if (!["YES", "NO", "UNSURE", "NEGATIVEAGE", "AGEUNSURE"].includes(expected)) {
           throw new Error(
             `Row ${index + 2}: Expected must be YES, NO, UNSURE, NEGATIVEAGE or AGEUNSURE`
           );
@@ -179,8 +180,7 @@ export default function BulkAgeTestPage() {
       setTimeout(() => setUploadStatus(""), 3000);
     } catch (error) {
       setError(
-        `File upload error: ${
-          error instanceof Error ? error.message : "Unknown error"
+        `File upload error: ${error instanceof Error ? error.message : "Unknown error"
         }`
       );
       setUploadStatus("");
@@ -208,6 +208,7 @@ export default function BulkAgeTestPage() {
           min_age: minAge,
           max_age: maxAge,
           test_cases: testCases,
+          positiveAndNegative,
         }),
       });
 
@@ -218,7 +219,7 @@ export default function BulkAgeTestPage() {
 
       const data: BulkTestResponse = await res.json();
       setResponse(data);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -340,6 +341,23 @@ export default function BulkAgeTestPage() {
                     className="text-center h-12 text-lg border-2 focus:border-blue-500"
                   />
                 </div>
+              </div>
+
+              {/* Positive and Negative Toggle */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="positiveAndNegative"
+                  checked={positiveAndNegative}
+                  onChange={(e) => setPositiveAndNegative(e.target.checked)}
+                  className="h-5 w-5 rounded border-2 border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <label
+                  htmlFor="positiveAndNegative"
+                  className="text-sm font-semibold text-white-700 cursor-pointer select-none"
+                >
+                  Positive and Negative
+                </label>
               </div>
 
               {/* File Upload Section */}
@@ -614,11 +632,10 @@ export default function BulkAgeTestPage() {
                       {response.results.map((result, index) => (
                         <div
                           key={index}
-                          className={`p-4 rounded-lg border-2 transition-all hover:shadow-md ${
-                            result.is_correct
+                          className={`p-4 rounded-lg border-2 transition-all hover:shadow-md ${result.is_correct
                               ? "border-green-200 bg-green-50 hover:bg-green-100"
                               : "border-red-200 bg-red-50 hover:bg-red-100"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
@@ -645,11 +662,10 @@ export default function BulkAgeTestPage() {
                               </div>
                               <div className="text-right">
                                 <span
-                                  className={`text-sm font-medium ${
-                                    result.is_correct
+                                  className={`text-sm font-medium ${result.is_correct
                                       ? "text-green-600"
                                       : "text-red-600"
-                                  }`}
+                                    }`}
                                 >
                                   {result.is_correct
                                     ? "✓ Correct"

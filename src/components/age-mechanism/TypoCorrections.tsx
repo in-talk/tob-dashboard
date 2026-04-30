@@ -49,8 +49,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import CustomLoader from "@/components/ui/CustomLoader";
 
-const API_BASE = process.env.NEXT_PUBLIC_KEYWORD_API_URL || "";
-const ENDPOINT = `${API_BASE}/age-classifier/typo-corrections`;
+const API_ROUTE = "/api/age-classifier/typo-corrections";
 
 const typoSchema = z.object({
   pattern: z.string().min(1, "Pattern is required"),
@@ -62,7 +61,7 @@ type TypoFormValues = z.infer<typeof typoSchema>;
 
 export default function TypoCorrections() {
   const { data, error, isLoading } = useSWR<TypoCorrection[]>(
-    ENDPOINT,
+    API_ROUTE,
     fetcher
   );
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -103,7 +102,7 @@ export default function TypoCorrections() {
 
   const onSubmit = async (values: TypoFormValues) => {
     try {
-      const res = await fetch(ENDPOINT, {
+      const res = await fetch(API_ROUTE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -120,7 +119,7 @@ export default function TypoCorrections() {
           ? "Typo correction updated"
           : "Typo correction added",
       });
-      mutate(ENDPOINT);
+      mutate(API_ROUTE);
       setDialogOpen(false);
     } catch (err) {
       console.error(err);
@@ -134,11 +133,11 @@ export default function TypoCorrections() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`${ENDPOINT}/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_ROUTE}/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
 
       toast({ variant: "success", description: "Typo correction deleted" });
-      mutate(ENDPOINT);
+      mutate(API_ROUTE);
     } catch (err) {
       console.error(err);
       toast({ variant: "destructive", description: "Failed to delete" });
@@ -147,7 +146,7 @@ export default function TypoCorrections() {
 
   const handleToggleActive = async (item: TypoCorrection) => {
     try {
-      const res = await fetch(ENDPOINT, {
+      const res = await fetch(API_ROUTE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -162,7 +161,7 @@ export default function TypoCorrections() {
         variant: "success",
         description: `Typo correction ${item.active ? "deactivated" : "activated"}`,
       });
-      mutate(ENDPOINT);
+      mutate(API_ROUTE);
     } catch (err) {
       console.error(err);
       toast({ variant: "destructive", description: "Failed to update status" });

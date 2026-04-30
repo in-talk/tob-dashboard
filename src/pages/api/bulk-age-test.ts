@@ -11,6 +11,7 @@ type BulkTestRequest = {
   test_cases: TestCase[];
   min_age: number;
   max_age: number;
+  positiveAndNegative?: boolean;
 };
 
 export default async function handler(

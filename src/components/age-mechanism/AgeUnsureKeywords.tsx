@@ -49,8 +49,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import CustomLoader from "@/components/ui/CustomLoader";
 
-const API_BASE = process.env.NEXT_PUBLIC_KEYWORD_API_URL || "";
-const ENDPOINT = `${API_BASE}/age-classifier/age-unsure-label-keywords`;
+const API_ROUTE = "/api/age-classifier/age-unsure-label-keywords";
 
 const LABEL_COLORS: Record<string, { variant: "default" | "destructive" | "secondary"; className?: string }> = {
   DNC: { variant: "destructive" },
@@ -70,7 +69,7 @@ type KeywordFormValues = z.infer<typeof keywordSchema>;
 
 export default function AgeUnsureKeywords() {
   const { data, error, isLoading } = useSWR<AgeUnsureKeyword[]>(
-    ENDPOINT,
+    API_ROUTE,
     fetcher
   );
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -118,7 +117,7 @@ export default function AgeUnsureKeywords() {
 
   const onSubmit = async (values: KeywordFormValues) => {
     try {
-      const res = await fetch(ENDPOINT, {
+      const res = await fetch(API_ROUTE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -133,7 +132,7 @@ export default function AgeUnsureKeywords() {
         variant: "success",
         description: editingItem ? "Keyword updated" : "Keyword added",
       });
-      mutate(ENDPOINT);
+      mutate(API_ROUTE);
       setDialogOpen(false);
     } catch (err) {
       console.error(err);
@@ -147,11 +146,11 @@ export default function AgeUnsureKeywords() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`${ENDPOINT}/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_ROUTE}/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
 
       toast({ variant: "success", description: "Keyword deleted" });
-      mutate(ENDPOINT);
+      mutate(API_ROUTE);
     } catch (err) {
       console.error(err);
       toast({ variant: "destructive", description: "Failed to delete" });
@@ -160,7 +159,7 @@ export default function AgeUnsureKeywords() {
 
   const handleToggleActive = async (item: AgeUnsureKeyword) => {
     try {
-      const res = await fetch(ENDPOINT, {
+      const res = await fetch(API_ROUTE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -175,7 +174,7 @@ export default function AgeUnsureKeywords() {
         variant: "success",
         description: `Keyword ${item.active ? "deactivated" : "activated"}`,
       });
-      mutate(ENDPOINT);
+      mutate(API_ROUTE);
     } catch (err) {
       console.error(err);
       toast({ variant: "destructive", description: "Failed to update status" });

@@ -26,3 +26,10 @@ export type AgeUnsureKeyword = {
   label: "DNC" | "AH" | "NI";
   active: boolean;
 };
+
+export type PositiveNegativePattern = {
+  id: string;
+  text: string;
+  label: "YES" | "NO";
+  active: boolean;
+};
