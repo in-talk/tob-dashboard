@@ -22,7 +22,7 @@ export default async function handler(
     maxFileSize: 100 * 1024 * 1024, // 100 MB
   });
 
-  let tempFilePaths: string[] = [];
+  const tempFilePaths: string[] = [];
 
   try {
     // Parse incoming multipart form
@@ -47,8 +47,8 @@ export default async function handler(
     const uploadedFiles = Array.isArray(files.files)
       ? files.files
       : files.files
-      ? [files.files]
-      : [];
+        ? [files.files]
+        : [];
 
     for (const file of uploadedFiles as formidable.File[]) {
       if (!file?.filepath) continue;
@@ -88,7 +88,7 @@ export default async function handler(
     res.setHeader(
       "Content-Disposition",
       upstream.headers.get("content-disposition") ??
-        "attachment; filename=processed_audio.zip"
+      "attachment; filename=processed_audio.zip"
     );
     res.setHeader("Content-Length", buffer.byteLength);
     return res.send(buffer);
