@@ -49,8 +49,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import CustomLoader from "@/components/ui/CustomLoader";
 
-const API_BASE = process.env.NEXT_PUBLIC_KEYWORD_API_URL || "";
-const ENDPOINT = `${API_BASE}/age-classifier/non-age-patterns`;
+const API_ROUTE = "/api/age-classifier/non-age-patterns";
 
 const nonAgeSchema = z.object({
   text: z.string().min(1, "Text is required"),
@@ -64,7 +63,7 @@ type NonAgeFormValues = z.infer<typeof nonAgeSchema>;
 
 export default function NonAgePatterns() {
   const { data, error, isLoading } = useSWR<NonAgePattern[]>(
-    ENDPOINT,
+    API_ROUTE,
     fetcher
   );
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -105,7 +104,7 @@ export default function NonAgePatterns() {
 
   const onSubmit = async (values: NonAgeFormValues) => {
     try {
-      const res = await fetch(ENDPOINT, {
+      const res = await fetch(API_ROUTE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -122,7 +121,7 @@ export default function NonAgePatterns() {
           ? "Non-age pattern updated"
           : "Non-age pattern added",
       });
-      mutate(ENDPOINT);
+      mutate(API_ROUTE);
       setDialogOpen(false);
     } catch (err) {
       console.error(err);
@@ -136,11 +135,11 @@ export default function NonAgePatterns() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`${ENDPOINT}/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_ROUTE}/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
 
       toast({ variant: "success", description: "Non-age pattern deleted" });
-      mutate(ENDPOINT);
+      mutate(API_ROUTE);
     } catch (err) {
       console.error(err);
       toast({ variant: "destructive", description: "Failed to delete" });
@@ -149,7 +148,7 @@ export default function NonAgePatterns() {
 
   const handleToggleActive = async (item: NonAgePattern) => {
     try {
-      const res = await fetch(ENDPOINT, {
+      const res = await fetch(API_ROUTE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -164,7 +163,7 @@ export default function NonAgePatterns() {
         variant: "success",
         description: `Non-age pattern ${item.active ? "deactivated" : "activated"}`,
       });
-      mutate(ENDPOINT);
+      mutate(API_ROUTE);
     } catch (err) {
       console.error(err);
       toast({ variant: "destructive", description: "Failed to update status" });

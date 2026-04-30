@@ -12,6 +12,7 @@ import WeirdCases from "@/components/age-mechanism/WeirdCases";
 import TypoCorrections from "@/components/age-mechanism/TypoCorrections";
 import NonAgePatterns from "@/components/age-mechanism/NonAgePatterns";
 import AgeUnsureKeywords from "@/components/age-mechanism/AgeUnsureKeywords";
+import PositiveNegativePatterns from "@/components/age-mechanism/PositiveNegativePatterns";
 
 const API_BASE = process.env.NEXT_PUBLIC_KEYWORD_API_URL || "";
 
@@ -59,11 +60,12 @@ export default function AgeMechanism() {
       </div>
 
       <Tabs defaultValue="weird-cases" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="weird-cases">Weird Cases</TabsTrigger>
           <TabsTrigger value="typo-corrections">Typo Corrections</TabsTrigger>
           <TabsTrigger value="non-age-patterns">Non-Age Patterns</TabsTrigger>
           <TabsTrigger value="age-unsure-keywords">Unsure Keywords</TabsTrigger>
+          <TabsTrigger value="pos-neg-patterns">Pos/Neg Patterns</TabsTrigger>
         </TabsList>
         <TabsContent value="weird-cases">
           <WeirdCases />
@@ -76,6 +78,9 @@ export default function AgeMechanism() {
         </TabsContent>
         <TabsContent value="age-unsure-keywords">
           <AgeUnsureKeywords />
+        </TabsContent>
+        <TabsContent value="pos-neg-patterns">
+          <PositiveNegativePatterns />
         </TabsContent>
       </Tabs>
     </div>

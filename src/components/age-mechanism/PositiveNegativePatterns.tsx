@@ -9,7 +9,7 @@ import { Edit, Plus, Search, Trash2 } from "lucide-react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 
-import { WeirdCase } from "@/types/ageMechanism";
+import { PositiveNegativePattern } from "@/types/ageMechanism";
 import { fetcher } from "@/utils/fetcher";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -49,58 +49,68 @@ import {
 } from "@/components/ui/alert-dialog";
 import CustomLoader from "@/components/ui/CustomLoader";
 
-const API_ROUTE = "/api/age-classifier/weird-cases";
+// All calls go through the Next.js proxy route — never directly to the external API
+const API_ROUTE = "/api/age-classifier/positive-negative-patterns";
 
-const weirdCaseSchema = z.object({
-  input: z.string().min(1, "Input is required"),
-  output: z.string().min(1, "Output is required"),
-  category: z.string().min(1, "Category is required"),
+const patternSchema = z.object({
+  text: z.string().min(1, "Text is required"),
+  label: z.enum(["YES", "NO"], {
+    required_error: "Label is required",
+  }),
   active: z.boolean(),
 });
 
-type WeirdCaseFormValues = z.infer<typeof weirdCaseSchema>;
+type PatternFormValues = z.infer<typeof patternSchema>;
 
-export default function WeirdCases() {
-  const { data, error, isLoading } = useSWR<WeirdCase[]>(API_ROUTE, fetcher);
+export default function PositiveNegativePatterns() {
+  const { data, error, isLoading } = useSWR<PositiveNegativePattern[]>(
+    API_ROUTE,
+    fetcher
+  );
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<WeirdCase | null>(null);
+  const [editingItem, setEditingItem] = useState<PositiveNegativePattern | null>(null);
   const [search, setSearch] = useState("");
+  const [labelFilter, setLabelFilter] = useState<string>("all");
 
   const filteredData = useMemo(() => {
     if (!data) return [];
-    if (!search.trim()) return data;
-    const q = search.toLowerCase();
-    return data.filter(
-      (item) =>
-        item.input.toLowerCase().includes(q) ||
-        item.output.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q)
-    );
-  }, [data, search]);
+    let result = data;
+    if (labelFilter !== "all") {
+      result = result.filter((item) => item.label === labelFilter);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (item) =>
+          item.text.toLowerCase().includes(q) ||
+          item.label.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [data, search, labelFilter]);
 
-  const form = useForm<WeirdCaseFormValues>({
-    resolver: zodResolver(weirdCaseSchema),
-    defaultValues: { input: "", output: "", category: "phonetic", active: true },
+  const form = useForm<PatternFormValues>({
+    resolver: zodResolver(patternSchema),
+    defaultValues: { text: "", label: "YES", active: true },
   });
 
   const openCreate = () => {
     setEditingItem(null);
-    form.reset({ input: "", output: "", category: "phonetic", active: true });
+    form.reset({ text: "", label: "YES", active: true });
     setDialogOpen(true);
   };
 
-  const openEdit = (item: WeirdCase) => {
+  const openEdit = (item: PositiveNegativePattern) => {
     setEditingItem(item);
     form.reset({
-      input: item.input,
-      output: item.output,
-      category: item.category,
+      text: item.text,
+      label: item.label,
       active: item.active,
     });
     setDialogOpen(true);
   };
 
-  const onSubmit = async (values: WeirdCaseFormValues) => {
+  const onSubmit = async (values: PatternFormValues) => {
     try {
       const res = await fetch(API_ROUTE, {
         method: "POST",
@@ -109,13 +119,13 @@ export default function WeirdCases() {
       });
 
       if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err || "Failed to save");
+        const err = await res.json().catch(() => ({ error: "Failed to save" }));
+        throw new Error(err?.error || err?.detail || "Failed to save");
       }
 
       toast({
         variant: "success",
-        description: editingItem ? "Weird case updated" : "Weird case added",
+        description: editingItem ? "Pattern updated" : "Pattern added",
       });
       mutate(API_ROUTE);
       setDialogOpen(false);
@@ -123,7 +133,8 @@ export default function WeirdCases() {
       console.error(err);
       toast({
         variant: "destructive",
-        description: err instanceof Error ? err.message : "Something went wrong",
+        description:
+          err instanceof Error ? err.message : "Something went wrong",
       });
     }
   };
@@ -133,7 +144,7 @@ export default function WeirdCases() {
       const res = await fetch(`${API_ROUTE}/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
 
-      toast({ variant: "success", description: "Weird case deleted" });
+      toast({ variant: "success", description: "Pattern deleted" });
       mutate(API_ROUTE);
     } catch (err) {
       console.error(err);
@@ -141,15 +152,14 @@ export default function WeirdCases() {
     }
   };
 
-  const handleToggleActive = async (item: WeirdCase) => {
+  const handleToggleActive = async (item: PositiveNegativePattern) => {
     try {
       const res = await fetch(API_ROUTE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          input: item.input,
-          output: item.output,
-          category: item.category,
+          text: item.text,
+          label: item.label,
           active: !item.active,
         }),
       });
@@ -157,7 +167,7 @@ export default function WeirdCases() {
 
       toast({
         variant: "success",
-        description: `Weird case ${item.active ? "deactivated" : "activated"}`,
+        description: `Pattern ${item.active ? "deactivated" : "activated"}`,
       });
       mutate(API_ROUTE);
     } catch (err) {
@@ -183,7 +193,13 @@ export default function WeirdCases() {
     []
   );
 
-  const activeTemplate = (rowData: WeirdCase) => (
+  const labelTemplate = (rowData: PositiveNegativePattern) => (
+    <Badge variant={rowData.label === "YES" ? "default" : "destructive"}>
+      {rowData.label}
+    </Badge>
+  );
+
+  const activeTemplate = (rowData: PositiveNegativePattern) => (
     <Badge
       variant={rowData.active ? "default" : "destructive"}
       className="cursor-pointer"
@@ -193,7 +209,7 @@ export default function WeirdCases() {
     </Badge>
   );
 
-  const actionsTemplate = (rowData: WeirdCase) => (
+  const actionsTemplate = (rowData: PositiveNegativePattern) => (
     <div className="flex justify-center space-x-2">
       <Button
         variant="ghost"
@@ -213,9 +229,9 @@ export default function WeirdCases() {
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Weird Case</AlertDialogTitle>
+            <AlertDialogTitle>Delete Pattern</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to permanently delete this weird case? This
+              Are you sure you want to permanently delete this pattern? This
               action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -243,7 +259,7 @@ export default function WeirdCases() {
   if (error)
     return (
       <div className="text-destructive p-4">
-        Failed to load weird cases. Please try again.
+        Failed to load positive/negative patterns. Please try again.
       </div>
     );
 
@@ -252,17 +268,31 @@ export default function WeirdCases() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div className="flex items-center gap-3">
           <p className="text-sm text-muted-foreground">
-            ASR misrecognitions mapped to age values
+            Positive/negative text patterns for age classification scoring
           </p>
           <Badge variant="secondary">
-            {filteredData.length}{data && filteredData.length !== data.length ? ` / ${data.length}` : ""} entries
+            {filteredData.length}
+            {data && filteredData.length !== data.length
+              ? ` / ${data.length}`
+              : ""}{" "}
+            entries
           </Badge>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Select value={labelFilter} onValueChange={setLabelFilter}>
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="YES">YES</SelectItem>
+              <SelectItem value="NO">NO</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="relative flex-1 sm:flex-initial">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search weird cases..."
+              placeholder="Search patterns..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 w-full sm:w-[250px]"
@@ -272,7 +302,7 @@ export default function WeirdCases() {
             onClick={openCreate}
             className="bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)] shrink-0"
           >
-            <Plus className="mr-2 h-4 w-4" /> Add Weird Case
+            <Plus className="mr-2 h-4 w-4" /> Add Pattern
           </Button>
         </div>
       </div>
@@ -282,29 +312,24 @@ export default function WeirdCases() {
           value={filteredData}
           scrollable
           scrollHeight="550px"
-          tableStyle={{ minWidth: "600px" }}
+          tableStyle={{ minWidth: "500px" }}
           showGridlines
           pt={ptConfig}
           size="normal"
           removableSort
         >
           <Column
-            field="input"
-            header="Input"
+            field="text"
+            header="Text Pattern"
             sortable
-            style={{ padding: "8px", background: "transparent", width: "25%" }}
+            style={{ padding: "8px", background: "transparent", width: "40%" }}
           />
           <Column
-            field="output"
-            header="Output (Age)"
+            header="Label"
+            body={labelTemplate}
+            field="label"
             sortable
             style={{ padding: "8px", background: "transparent", width: "15%" }}
-          />
-          <Column
-            field="category"
-            header="Category"
-            sortable
-            style={{ padding: "8px", background: "transparent", width: "20%" }}
           />
           <Column
             header="Status"
@@ -315,7 +340,7 @@ export default function WeirdCases() {
             header="Actions"
             body={actionsTemplate}
             align="center"
-            style={{ padding: "8px", background: "transparent", width: "25%" }}
+            style={{ padding: "8px", background: "transparent", width: "30%" }}
           />
         </DataTable>
       </div>
@@ -324,20 +349,20 @@ export default function WeirdCases() {
         <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingItem ? "Edit Weird Case" : "Add Weird Case"}
+              {editingItem ? "Edit Pattern" : "Add Pattern"}
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="input"
+                name="text"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Input (ASR text)</FormLabel>
+                    <FormLabel>Text Pattern</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='e.g. "sexy fox"'
+                        placeholder='e.g. "i am interested"'
                         {...field}
                         disabled={!!editingItem}
                       />
@@ -348,35 +373,21 @@ export default function WeirdCases() {
               />
               <FormField
                 control={form.control}
-                name="output"
+                name="label"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Output (Age)</FormLabel>
-                    <FormControl>
-                      <Input placeholder='e.g. "60"' {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
+                    <FormLabel>Label</FormLabel>
                     <FormControl>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
+                          <SelectValue placeholder="Select label" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="phonetic">Phonetic</SelectItem>
-                          <SelectItem value="slang">Slang</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                          <SelectItem value="YES">YES (Positive)</SelectItem>
+                          <SelectItem value="NO">NO (Negative)</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>
@@ -419,9 +430,9 @@ export default function WeirdCases() {
                     <CustomLoader />
                   </>
                 ) : editingItem ? (
-                  "Update Weird Case"
+                  "Update Pattern"
                 ) : (
-                  "Add Weird Case"
+                  "Add Pattern"
                 )}
               </Button>
             </form>
