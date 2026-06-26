@@ -59,7 +59,7 @@ const LABEL_COLORS: Record<string, { variant: "default" | "destructive" | "secon
 
 const keywordSchema = z.object({
   keyword: z.string().min(1, "Keyword is required"),
-  label: z.enum(["DNC", "AH", "NI"], {
+  label: z.enum(["DNC", "AH", "NI", "IDL"], {
     required_error: "Label is required",
   }),
   active: z.boolean(),
@@ -292,6 +292,7 @@ export default function AgeUnsureKeywords() {
               <SelectItem value="DNC">DNC</SelectItem>
               <SelectItem value="AH">AH</SelectItem>
               <SelectItem value="NI">NI</SelectItem>
+              <SelectItem value="IDL">IDL</SelectItem>
             </SelectContent>
           </Select>
           <div className="relative flex-1 sm:flex-initial">
@@ -394,6 +395,7 @@ export default function AgeUnsureKeywords() {
                           <SelectItem value="DNC">DNC (Do Not Call)</SelectItem>
                           <SelectItem value="AH">AH (Already Have)</SelectItem>
                           <SelectItem value="NI">NI (Not Interested)</SelectItem>
+                          <SelectItem value="IDL">IDL (In Decision Loop)</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>
