@@ -87,6 +87,7 @@ export default function LabelSemanticFields({
         variant: "destructive",
         description: `Unknown campaign: ${collectionType}`,
       });
+      console.error(e);
       return;
     }
 
