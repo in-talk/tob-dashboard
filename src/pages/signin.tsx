@@ -1,10 +1,19 @@
 "use client";
 
+// ───────────────────────────────────────────────────────────────────────
+// CAPTCHA DISABLED
+// All Google reCAPTCHA wiring is preserved below as comments so it can
+// be re-enabled later by removing the `// ` line comments and the
+// `/* */` JSX-comment markers, and by restoring the matching constants
+// in `src/constants/index.ts` and the `react-google-recaptcha` import.
+// Sign-in currently runs WITHOUT captcha verification.
+// ───────────────────────────────────────────────────────────────────────
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { EyeOpenIcon, EyeClosedIcon } from "@radix-ui/react-icons";
-import ReCAPTCHA from "react-google-recaptcha";
+// import ReCAPTCHA from "react-google-recaptcha";
 import Image from "next/image";
 import CustomLoader from "@/components/ui/CustomLoader";
 import { signInPageData } from "@/constants";
@@ -39,7 +48,7 @@ const errorVariants: Variants = {
 };
 
 const BUTTON_SCALE_ANIMATION = 0.98 as const;
-const RECAPTCHA_THEME: "light" | "dark" = "light";
+// const RECAPTCHA_THEME: "light" | "dark" = "light";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -47,16 +56,16 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  // const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [isFormFocused, setIsFormFocused] = useState(false);
-  
-  const recaptchaRef = useRef<ReCAPTCHA>(null);
+
+  // const recaptchaRef = useRef<ReCAPTCHA>(null);
   const hasRedirected = useRef(false);
-  
+
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+  // const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   // Memoized callbacks to prevent re-renders
   const handleFocus = useCallback(() => setIsFormFocused(true), []);
@@ -71,6 +80,7 @@ export default function SignIn() {
     }
   }, [session, status, router]);
 
+  /* CAPTCHA DISABLED — handlers preserved for revival
   const handleRecaptchaChange = useCallback((token: string | null) => {
     setRecaptchaToken(token);
     if (error === signInPageData.errors.recaptchaRequired) {
@@ -122,38 +132,41 @@ export default function SignIn() {
       return false;
     }
   }, []);
+  */
 
   const handleSignIn = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!siteKey) {
-      setError(signInPageData.errors.recaptchaConfig);
-      return;
-    }
+    // CAPTCHA DISABLED — siteKey + token gates removed
+    // if (!siteKey) {
+    //   setError(signInPageData.errors.recaptchaConfig);
+    //   return;
+    // }
 
     if (!email || !password) {
       setError("Please enter both email and password");
       return;
     }
 
-    if (!recaptchaToken) {
-      setError(signInPageData.errors.recaptchaRequired);
-      return;
-    }
+    // CAPTCHA DISABLED — token requirement removed
+    // if (!recaptchaToken) {
+    //   setError(signInPageData.errors.recaptchaRequired);
+    //   return;
+    // }
 
     setIsLoading(true);
 
     try {
-      const isRecaptchaValid = await verifyRecaptcha(recaptchaToken);
-
-      if (!isRecaptchaValid) {
-        setError(signInPageData.errors.recaptchaFailed);
-        recaptchaRef.current?.reset();
-        setRecaptchaToken(null);
-        setIsLoading(false);
-        return;
-      }
+      // CAPTCHA DISABLED — verifyRecaptcha call removed
+      // const isRecaptchaValid = await verifyRecaptcha(recaptchaToken);
+      // if (!isRecaptchaValid) {
+      //   setError(signInPageData.errors.recaptchaFailed);
+      //   recaptchaRef.current?.reset();
+      //   setRecaptchaToken(null);
+      //   setIsLoading(false);
+      //   return;
+      // }
 
       const result = await signIn("credentials", {
         redirect: false,
@@ -164,31 +177,33 @@ export default function SignIn() {
 
       if (result?.error) {
         setError(signInPageData.errors.invalidCredentials);
-        recaptchaRef.current?.reset();
-        setRecaptchaToken(null);
+        // recaptchaRef.current?.reset();
+        // setRecaptchaToken(null);
       } else if (result?.ok && result?.url) {
         hasRedirected.current = true;
         await router.push(result.url);
       } else {
         setError(signInPageData.errors.unexpected);
-        recaptchaRef.current?.reset();
-        setRecaptchaToken(null);
+        // recaptchaRef.current?.reset();
+        // setRecaptchaToken(null);
       }
     } catch (err) {
       console.error("Sign in error:", err);
       setError(signInPageData.errors.unexpected);
-      recaptchaRef.current?.reset();
-      setRecaptchaToken(null);
+      // recaptchaRef.current?.reset();
+      // setRecaptchaToken(null);
     } finally {
       setIsLoading(false);
     }
-  }, [email, password, recaptchaToken, siteKey, verifyRecaptcha, router]);
+    // CAPTCHA DISABLED — dropped `recaptchaToken, siteKey, verifyRecaptcha` from deps
+  }, [email, password, router]);
 
   // Don't render anything if authenticated (prevents flash)
   if (status === "authenticated") {
     return null;
   }
 
+  /* CAPTCHA DISABLED — config error fallback preserved
   if (!siteKey) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -203,8 +218,10 @@ export default function SignIn() {
       </div>
     );
   }
+  */
 
-  const isSubmitDisabled = isLoading || !recaptchaToken;
+  // CAPTCHA DISABLED — dropped recaptchaToken from disabled condition
+  const isSubmitDisabled = isLoading; // was: isLoading || !recaptchaToken
 
   const buttonClasses =
     `group relative w-full py-3 rounded-2xl font-semibold flex items-center justify-center overflow-hidden ` +
@@ -355,6 +372,7 @@ export default function SignIn() {
               </div>
             </motion.div>
 
+            {/* CAPTCHA DISABLED — widget block preserved for revival
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -379,6 +397,7 @@ export default function SignIn() {
                 )}
               </div>
             </motion.div>
+            */}
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -414,6 +433,7 @@ export default function SignIn() {
             </motion.div>
           </form>
 
+          {/* CAPTCHA DISABLED — "Protected by reCAPTCHA …" footer preserved for revival
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -424,6 +444,7 @@ export default function SignIn() {
               {signInPageData.protectedBy}
             </p>
           </motion.div>
+          */}
         </motion.div>
       </motion.div>
     </div>

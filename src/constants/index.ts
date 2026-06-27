@@ -4,23 +4,26 @@ export const signInPageData = {
   passwordPlaceholder: "Password",
   signInButton: "Sign In",
   signingIn: "Signing in....",
-  protectedBy: "Protected by reCAPTCHA and subject to Privacy Policy",
+  // CAPTCHA DISABLED — uncomment to restore the "Protected by reCAPTCHA..." footer
+  // protectedBy: "Protected by reCAPTCHA and subject to Privacy Policy",
   welcomeBack: " Welcome back! Please sign in to continue",
   errors: {
-   recaptchaRequired: "Please complete the reCAPTCHA verification",
-    recaptchaLoad: "Failed to load reCAPTCHA. Please refresh the page",
-    recaptchaExpired: "reCAPTCHA has expired. Please verify again",
-    recaptchaConfig: "reCAPTCHA is not configured properly",
-    recaptchaFailed: "reCAPTCHA verification failed. Please try again",
+    // CAPTCHA DISABLED — error strings preserved for revival
+    // recaptchaRequired: "Please complete the reCAPTCHA verification",
+    // recaptchaLoad: "Failed to load reCAPTCHA. Please refresh the page",
+    // recaptchaExpired: "reCAPTCHA has expired. Please verify again",
+    // recaptchaConfig: "reCAPTCHA is not configured properly",
+    // recaptchaFailed: "reCAPTCHA verification failed. Please try again",
     invalidCredentials: "Invalid email or password",
     unexpected: "An unexpected error occurred. Please try again",
-    timeout: "Verification timeout. Please try again", // Add this line
+    // timeout: "Verification timeout. Please try again",
   },
-  configError: {
-    title: "Configuration Error",
-    description:
-      "reCAPTCHA site key is missing. Please check your environment variables.",
-  },
+  // CAPTCHA DISABLED — config-error fallback preserved for revival
+  // configError: {
+  //   title: "Configuration Error",
+  //   description:
+  //     "reCAPTCHA site key is missing. Please check your environment variables.",
+  // },
   inputLabel: {
     email: "Email address",
     password: "Password",

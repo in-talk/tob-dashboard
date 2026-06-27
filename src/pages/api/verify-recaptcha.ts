@@ -1,4 +1,28 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+// ───────────────────────────────────────────────────────────────────────
+// CAPTCHA DISABLED
+// Original Google reCAPTCHA server-side verifier preserved below as a
+// single block comment. Nothing in the app currently calls this route
+// (`src/pages/signin.tsx` no longer fetches `/api/verify-recaptcha`).
+// To re-enable: delete the line-comment markers on the import + handler,
+// remove the leading `/*` / trailing `*/`, and ensure
+// RECAPTCHA_SECRET_KEY + NEXT_PUBLIC_RECAPTCHA_SITE_KEY are set in env.
+// ───────────────────────────────────────────────────────────────────────
+
+import { NextApiRequest, NextApiResponse } from "next";
+
+export default async function handler(
+  _req: NextApiRequest,
+  res: NextApiResponse
+) {
+  // CAPTCHA DISABLED — return 410 Gone so anything still calling this
+  // route gets a clear signal rather than a silent success.
+  return res.status(410).json({
+    success: false,
+    message: "reCAPTCHA verification is disabled.",
+  });
+}
+
+/* CAPTCHA DISABLED — original implementation preserved for revival
 
 interface RecaptchaResponse {
   success: boolean;
@@ -15,9 +39,9 @@ export default async function handler(
 ) {
   // Only allow POST requests
   if (req.method !== 'POST') {
-    return res.status(405).json({ 
-      success: false, 
-      message: 'Method not allowed' 
+    return res.status(405).json({
+      success: false,
+      message: 'Method not allowed'
     });
   }
 
@@ -25,17 +49,17 @@ export default async function handler(
 
   // Validate token presence
   if (!token) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'reCAPTCHA token is required' 
+    return res.status(400).json({
+      success: false,
+      message: 'reCAPTCHA token is required'
     });
   }
 
   // Validate token format (basic check)
   if (typeof token !== 'string' || token.length < 20) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'Invalid reCAPTCHA token format' 
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid reCAPTCHA token format'
     });
   }
 
@@ -43,18 +67,18 @@ export default async function handler(
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
   if (!secretKey) {
     console.error('RECAPTCHA_SECRET_KEY is not configured');
-    return res.status(500).json({ 
-      success: false, 
-      message: 'reCAPTCHA is not properly configured' 
+    return res.status(500).json({
+      success: false,
+      message: 'reCAPTCHA is not properly configured'
     });
   }
 
   try {
     // Get client IP for additional verification
-    const clientIp = 
-      req.headers['x-forwarded-for'] || 
-      req.headers['x-real-ip'] || 
-      req.socket.remoteAddress || 
+    const clientIp =
+      req.headers['x-forwarded-for'] ||
+      req.headers['x-real-ip'] ||
+      req.socket.remoteAddress ||
       '';
 
     // Prepare request body
@@ -91,9 +115,9 @@ export default async function handler(
     }
 
     if (data.success) {
-      return res.status(200).json({ 
+      return res.status(200).json({
         success: true,
-        timestamp: data.challenge_ts 
+        timestamp: data.challenge_ts
       });
     } else {
       // Handle specific error codes
@@ -108,17 +132,19 @@ export default async function handler(
         message = 'reCAPTCHA token is missing';
       }
 
-      return res.status(400).json({ 
-        success: false, 
+      return res.status(400).json({
+        success: false,
         message,
-        errorCodes 
+        errorCodes
       });
     }
   } catch (error) {
     console.error('reCAPTCHA verification error:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Failed to verify reCAPTCHA. Please try again.' 
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to verify reCAPTCHA. Please try again.'
     });
   }
 }
+
+*/
