@@ -87,7 +87,7 @@ export default function UpdateDocument({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-sidebar">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto bg-white dark:bg-sidebar">
         <DialogDescription>{updateDocumentText.dialog.description}</DialogDescription>
         <DialogHeader>
           <DialogTitle>{updateDocumentText.dialog.title}</DialogTitle>
@@ -101,11 +101,14 @@ export default function UpdateDocument({
             unique_words: document.unique_words,
             file_name: document.file_name,
             check_on_all_turns: document.check_on_all_turns,
+            description: document.description,
+            samples: document.samples,
           }}
           onSubmit={onSubmit}
           submitButtonText={updateDocumentText.submitButton.update}
           isSubmitting={isSubmitting}
           errorMessage={errorMessage}
+          collectionType={collectionType}
         />
       </DialogContent>
     </Dialog>

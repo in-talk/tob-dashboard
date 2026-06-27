@@ -28,6 +28,9 @@ export default function BulkKeywordFinder() {
   const [turnNumber, setTurnNumber] = useState<number>(1);
   const [campaignId, setCampaignId] = useState<string>("10000");
   const [excludedLabels, setExcludedLabels] = useState<string>("POS,NEG");
+  const [searchMode, setSearchMode] = useState<"keyword" | "embedding">(
+    "keyword"
+  );
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<ProcessResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +117,7 @@ export default function BulkKeywordFinder() {
           turn: turnNumber,
           campaign_id: campaignId,
           excluded_labels: excludedLabelsArray,
+          search_mode: searchMode,
         }),
       });
 
@@ -237,6 +241,39 @@ export default function BulkKeywordFinder() {
               placeholder="POS,NEG"
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
+          </div>
+
+          {/* Search Mode */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Search Mode
+            </label>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name="bulk_search_mode"
+                  value="keyword"
+                  checked={searchMode === "keyword"}
+                  onChange={() => setSearchMode("keyword")}
+                />
+                <span>Keyword (MongoDB)</span>
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name="bulk_search_mode"
+                  value="embedding"
+                  checked={searchMode === "embedding"}
+                  onChange={() => setSearchMode("embedding")}
+                />
+                <span>Semantic (BGE-M3)</span>
+              </label>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Semantic uses label descriptions/samples; labels without
+              regenerated embeddings are skipped.
+            </p>
           </div>
 
           {/* Process Button */}

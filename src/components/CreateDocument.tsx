@@ -24,7 +24,7 @@ const CreateDocument = memo(({ collectionType }: CreateDocumentProps) => {
         <Button variant="default">{createDocumentData.triggerButton}</Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-sidebar">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto bg-white dark:bg-sidebar">
         <DialogHeader>
           <DialogTitle>{createDocumentData.dialog.title}</DialogTitle>
           <DialogDescription>
