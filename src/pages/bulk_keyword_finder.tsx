@@ -34,6 +34,14 @@ export default function BulkKeywordFinder() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<ProcessResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Live progress when we chunk a big file across multiple proxy calls.
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+
+  // Vercel hobby caps each serverless invocation at 300 s. At ~30-50 ms
+  // per transcript on CPU embedding mode, ~3000-5000 transcripts fit
+  // comfortably. Keyword mode is faster so we could send bigger chunks,
+  // but 1000 keeps the worst case (cold BGE + slow Mongo) safe.
+  const CHUNK_SIZE = 1000;
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
@@ -125,47 +133,71 @@ export default function BulkKeywordFinder() {
         .map((label) => label.trim())
         .filter((label) => label !== "");
 
-      // In your component's processTranscripts function:
-      const response = await fetch("/api/append-labels", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          transcripts,
-          turn: turnNumber,
-          campaign_id: campaignId,
-          excluded_labels: excludedLabelsArray,
-          search_mode: searchMode,
-        }),
-      });
-
+      // Split into chunks so no single request exceeds Vercel's 300 s
+      // limit. Aggregate results in order across all chunks.
+      const chunks: string[][] = [];
+      for (let i = 0; i < transcripts.length; i += CHUNK_SIZE) {
+        chunks.push(transcripts.slice(i, i + CHUNK_SIZE));
+      }
       console.log(
-        "[bulk_keyword_finder] /api/append-labels response status",
-        response.status
+        "[bulk_keyword_finder] splitting",
+        transcripts.length,
+        "into",
+        chunks.length,
+        "chunk(s) of up to",
+        CHUNK_SIZE
       );
+      setProgress({ done: 0, total: transcripts.length });
 
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => ({}));
-        console.error("[bulk_keyword_finder] error body:", errBody);
-        throw new Error(
-          (errBody as { error?: string; detail?: string }).error ||
-            (errBody as { detail?: string }).detail ||
-            `API error: ${response.statusText}`
+      const allResults: ProcessResult[] = [];
+      for (let ci = 0; ci < chunks.length; ci++) {
+        const chunk = chunks[ci];
+        console.log(
+          `[bulk_keyword_finder] chunk ${ci + 1}/${chunks.length} (${chunk.length} rows)`
         );
+
+        const response = await fetch("/api/append-labels", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            transcripts: chunk,
+            turn: turnNumber,
+            campaign_id: campaignId,
+            excluded_labels: excludedLabelsArray,
+            search_mode: searchMode,
+          }),
+        });
+
+        console.log(
+          `[bulk_keyword_finder] chunk ${ci + 1} status`,
+          response.status
+        );
+
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}));
+          console.error("[bulk_keyword_finder] error body:", errBody);
+          throw new Error(
+            (errBody as { error?: string; detail?: string }).error ||
+              (errBody as { detail?: string }).detail ||
+              `API error on chunk ${ci + 1}/${chunks.length}: ${response.statusText}`
+          );
+        }
+
+        const data: ApiResponse = await response.json();
+        allResults.push(...(data.results ?? []));
+        setProgress({ done: allResults.length, total: transcripts.length });
+        // Render incrementally so the table fills as chunks arrive.
+        setResults([...allResults]);
       }
 
-      const data: ApiResponse = await response.json();
-      console.log(
-        "[bulk_keyword_finder] got",
-        data.results?.length ?? 0,
-        "results"
-      );
-      setResults(data.results);
+      console.log("[bulk_keyword_finder] done — total results:", allResults.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsProcessing(false);
+      setProgress(null);
     }
   };
 
@@ -317,7 +349,11 @@ export default function BulkKeywordFinder() {
             disabled={!file || isProcessing}
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
-            {isProcessing ? "Processing..." : "Process Transcripts"}
+            {isProcessing
+              ? progress
+                ? `Processing ${progress.done} / ${progress.total}…`
+                : "Processing..."
+              : "Process Transcripts"}
           </button>
         </div>
       </div>

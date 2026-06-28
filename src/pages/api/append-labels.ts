@@ -1,12 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Agent } from "undici";
 
-// Bulk classification on the brain takes ~30-50 ms per transcript on CPU
-// (embedding mode). 500 transcripts ≈ 15-25 s; 5000 ≈ 2.5-4 min. Undici's
-// default headersTimeout is 5 min, which we were hitting on big files.
-// Bump it to 15 min so the proxy outlives the brain's bulk loop.
+// Vercel hobby plan caps serverless functions at 300 s. Keep the proxy
+// timeout at 290 s so undici gives up before Vercel kills us — that way
+// the user sees our error instead of Vercel's opaque 504.
+// For big files, chunk on the client (see bulk_keyword_finder.tsx).
 const BRAIN_TIMEOUT_MS = Number(
-  process.env.KEYWORD_API_TIMEOUT_MS ?? 15 * 60 * 1000,
+  process.env.KEYWORD_API_TIMEOUT_MS ?? 290 * 1000,
 );
 const longTimeoutAgent = new Agent({
   headersTimeout: BRAIN_TIMEOUT_MS,
@@ -14,14 +14,13 @@ const longTimeoutAgent = new Agent({
   connectTimeout: 30_000,
 });
 
-// Tell Next.js the API route itself shouldn't kill us first.
 export const config = {
   api: {
     responseLimit: false,
     bodyParser: { sizeLimit: "10mb" },
   },
-  // Vercel-only hint (no effect in self-hosted dev, harmless to set).
-  maxDuration: 900,
+  // Vercel hobby plan max. Bump to 900 on Pro, 3600 on Enterprise.
+  maxDuration: 300,
 };
 
 interface AppendLabelsRequest {
