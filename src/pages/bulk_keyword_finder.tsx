@@ -83,6 +83,19 @@ export default function BulkKeywordFinder() {
   };
 
   const processTranscripts = async () => {
+    // Temporary diagnostic — verify the button click reached the
+    // handler and the file made it into state. Watch the browser
+    // DevTools Console while you click Process Transcripts.
+    console.log("[bulk_keyword_finder] processTranscripts fired", {
+      hasFile: !!file,
+      fileName: file?.name,
+      fileSize: file?.size,
+      turnNumber,
+      campaignId,
+      excludedLabels,
+      searchMode,
+    });
+
     if (!file) {
       setError("Please upload a file first");
       return;
@@ -95,6 +108,12 @@ export default function BulkKeywordFinder() {
     try {
       // Read transcripts from Excel
       const transcripts = await readExcelFile(file);
+      console.log(
+        "[bulk_keyword_finder] readExcelFile parsed",
+        transcripts.length,
+        "transcripts. First 3:",
+        transcripts.slice(0, 3)
+      );
 
       if (transcripts.length === 0) {
         throw new Error("No transcripts found in the file");
@@ -121,11 +140,27 @@ export default function BulkKeywordFinder() {
         }),
       });
 
+      console.log(
+        "[bulk_keyword_finder] /api/append-labels response status",
+        response.status
+      );
+
       if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
+        const errBody = await response.json().catch(() => ({}));
+        console.error("[bulk_keyword_finder] error body:", errBody);
+        throw new Error(
+          (errBody as { error?: string; detail?: string }).error ||
+            (errBody as { detail?: string }).detail ||
+            `API error: ${response.statusText}`
+        );
       }
 
       const data: ApiResponse = await response.json();
+      console.log(
+        "[bulk_keyword_finder] got",
+        data.results?.length ?? 0,
+        "results"
+      );
       setResults(data.results);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
