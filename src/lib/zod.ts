@@ -19,12 +19,6 @@ export const labelsSchema = z.object({
   unique_words: z.array(z.string()).optional(),
   file_name: z.string(),
   check_on_all_turns: z.boolean().optional(),
-  // BGE-M3 semantic-classifier fields. Optional so legacy docs keep
-  // validating; the "Regenerate embeddings" button on the modal turns
-  // these into the actual description_embedding / sample_embeddings
-  // vectors stored on the same doc.
-  description: z.string().optional(),
-  samples: z.array(z.string()).optional(),
 });
 
 export type LabelsSchema = z.infer<typeof labelsSchema>;

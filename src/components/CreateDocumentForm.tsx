@@ -29,7 +29,6 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 
 import ClearAllKeywordsAlert from "./ClearAllKeywordsAlert";
-import LabelSemanticFields from "./LabelSemanticFields";
 import { LabelsSchema, labelsSchema } from "@/lib/zod";
 import { useKeywords } from "@/hooks/use-keywords";
 import { createDocumentFormData } from "@/constants";
@@ -190,14 +189,6 @@ const CreateDocumentForm = memo(
                 <FormLabel>{createDocumentFormData.form.checkOnAllTurns.label}</FormLabel>
               </FormItem>
             )}
-          />
-
-          {/* BGE-M3 semantic fields. No Regenerate button here — nothing
-              to regenerate against until the label is first saved. */}
-          <LabelSemanticFields
-            form={form}
-            collectionType={collectionType}
-            showRegenerate={false}
           />
 
           <FormLabel>{createDocumentFormData.form.uniqueKeywords.label}</FormLabel>

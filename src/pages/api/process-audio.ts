@@ -121,7 +121,7 @@ export default async function handler(
     const form = formidable({
       uploadDir: tempDir,
       keepExtensions: true,
-      maxFileSize: 100 * 1024 * 1024, // 100MB limit
+      maxFileSize: 600 * 1024 * 1024, // 600MB limit
     });
 
     // Parse form data

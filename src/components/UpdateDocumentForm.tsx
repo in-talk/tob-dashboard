@@ -18,7 +18,6 @@ import { LabelsSchema, labelsSchema } from "@/lib/zod";
 import { Checkbox } from "./ui/checkbox";
 import { Textarea } from "./ui/textarea";
 import { useRef, useState } from "react";
-import LabelSemanticFields from "./LabelSemanticFields";
 
 import { updateDocumentFormData } from "@/constants";
 
@@ -28,9 +27,6 @@ interface UpdateDocumentFormProps {
   submitButtonText: string;
   isSubmitting: boolean;
   errorMessage: string;
-  /** Campaign code (e.g. "MC", "CGM") used to resolve which Mongo
-   *  collection the Regenerate-Embeddings button hits. */
-  collectionType: string;
 }
 
 export default function UpdateDocumentForm({
@@ -39,7 +35,6 @@ export default function UpdateDocumentForm({
   submitButtonText,
   isSubmitting,
   errorMessage,
-  collectionType,
 }: UpdateDocumentFormProps) {
   const form = useForm<LabelsSchema>({
     resolver: zodResolver(labelsSchema),
@@ -159,17 +154,6 @@ export default function UpdateDocumentForm({
               <FormMessage />
             </FormItem>
           )}
-        />
-
-        {/* BGE-M3 semantic fields. Regenerate button enabled in edit
-            mode — the doc already exists, so embeddings can be (re)built
-            against the current description + samples in Mongo. NOTE: the
-            button hits the doc as-saved, so save any in-flight edits to
-            description / samples first. */}
-        <LabelSemanticFields
-          form={form}
-          collectionType={collectionType}
-          showRegenerate={true}
         />
 
         <Button disabled={isSubmitting} className="w-full relative" type="submit">

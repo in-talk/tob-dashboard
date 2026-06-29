@@ -32,11 +32,6 @@ export default function KeywordFinder() {
   const [excludeLabels, setExcludeLabels] = useState<string | undefined>(
     "POS,NEG"
   );
-  // "keyword" = legacy MongoDB find_best_match (default — production
-  // behavior); "embedding" = BGE-M3 semantic via classify_intent.
-  const [searchMode, setSearchMode] = useState<"keyword" | "embedding">(
-    "keyword"
-  );
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -89,7 +84,6 @@ export default function KeywordFinder() {
           turn,
           campaign_id: campaignId,
           exclude_labels: excludeLabels?.split(',').map(i => i.trim()) || [],
-          search_mode: searchMode,
         }),
         next: { revalidate: 0 },
       });
@@ -181,37 +175,6 @@ export default function KeywordFinder() {
               {keywordFinderPageData.findKeywordButton}
             </span>
           </Button>
-        </div>
-
-        {/* Search-mode toggle. Keyword = legacy MongoDB; Embedding =
-            BGE-M3 semantic. Useful for testing what the bot would have
-            seen under either engine. */}
-        <div className="flex flex-wrap items-center gap-3 mt-3 text-sm">
-          <span className="font-medium">Search mode:</span>
-          <label className="flex items-center gap-1 cursor-pointer">
-            <input
-              type="radio"
-              name="search_mode"
-              value="keyword"
-              checked={searchMode === "keyword"}
-              onChange={() => setSearchMode("keyword")}
-            />
-            <span>Keyword (MongoDB)</span>
-          </label>
-          <label className="flex items-center gap-1 cursor-pointer">
-            <input
-              type="radio"
-              name="search_mode"
-              value="embedding"
-              checked={searchMode === "embedding"}
-              onChange={() => setSearchMode("embedding")}
-            />
-            <span>Semantic (BGE-M3)</span>
-          </label>
-          <span className="text-muted-foreground text-xs">
-            Semantic uses label descriptions/samples; only works on labels
-            whose embeddings have been regenerated.
-          </span>
         </div>
       </form>
 

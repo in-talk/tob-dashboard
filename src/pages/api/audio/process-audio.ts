@@ -2,10 +2,25 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import formidable from "formidable";
 import fs from "fs";
 
+// Audio batches can run large — typical per-file is a few MB but a session
+// of 50–100 short clips totals hundreds of MB. Allow up to 1 GB total /
+// 200 MB per file by default; override via env without touching code.
+const MAX_FILE_BYTES = Number(
+  process.env.AUDIO_MAX_FILE_BYTES ?? 200 * 1024 * 1024,
+);
+const MAX_TOTAL_BYTES = Number(
+  process.env.AUDIO_MAX_TOTAL_BYTES ?? 1024 * 1024 * 1024,
+);
+
 export const config = {
   api: {
     bodyParser: false,
+    // Next.js's own response cap kicks in around 4 MB by default — but
+    // since we're streaming a binary zip back, opt out entirely.
+    responseLimit: false,
   },
+  // Vercel hobby = 300, Pro = 900, Enterprise = 3600. Stay safe on hobby.
+  maxDuration: 300,
 };
 
 const UPSTREAM = `${process.env.KEYWORD_API_URL}/process-audio`;
@@ -19,7 +34,11 @@ export default async function handler(
   }
 
   const form = formidable({
-    maxFileSize: 100 * 1024 * 1024, // 100 MB
+    maxFileSize:      MAX_FILE_BYTES,
+    maxTotalFileSize: MAX_TOTAL_BYTES,
+    // Don't keep files at all on disk if we can avoid it; formidable will
+    // still buffer to disk because we set bodyParser:false. Default temp
+    // location is fine (/tmp on Linux, %TEMP% on Windows).
   });
 
   const tempFilePaths: string[] = [];
