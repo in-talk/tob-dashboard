@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm ls:*)",
       "Bash(npm install:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(tasklist //FI \"IMAGENAME eq node.exe\")"
     ]
   }
 }

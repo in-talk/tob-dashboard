@@ -8,6 +8,7 @@ export interface CallRecord {
   call_id: string;
   caller_id: string;
   caller_count: number;
+  caller_count_all: number;
   call_start_time: string; // ISO date string
   call_end_time: string; // ISO date string
   call_duration: CallDuration;

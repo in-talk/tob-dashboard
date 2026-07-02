@@ -50,6 +50,10 @@ export const sideBarData = {
           title: "Add/View Models",
           url: "/forms/models",
         },
+        {
+          title: "Add/View Campaigns",
+          url: "/forms/campaigns",
+        },
 
         {
           title: "Assign Campaign to Agents",
