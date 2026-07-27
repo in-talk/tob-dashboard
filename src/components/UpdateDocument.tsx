@@ -99,6 +99,7 @@ export default function UpdateDocument({
             keywords: document.keywords,
             active_turns: document.active_turns,
             unique_words: document.unique_words,
+            unique_phrases: document.unique_phrases ?? [],
             file_name: document.file_name,
             check_on_all_turns: document.check_on_all_turns,
           }}

@@ -4,6 +4,7 @@ export type labels = {
     keywords: string[];
     active_turns: number[];
     unique_words: string[];
+    unique_phrases: string[];
     file_name: string;
     check_on_all_turns: boolean;
 }

@@ -39,6 +39,7 @@ const CreateDocument = memo(({ collectionType }: CreateDocumentProps) => {
             keywords: [],
             active_turns: [],
             unique_words: [],
+            unique_phrases: [],
             file_name: "",
             check_on_all_turns: false,
           }}

@@ -17,6 +17,7 @@ export const labelsSchema = z.object({
     })
     .optional(),
   unique_words: z.array(z.string()).optional(),
+  unique_phrases: z.array(z.string()).optional(),
   file_name: z.string(),
   check_on_all_turns: z.boolean().optional(),
 });

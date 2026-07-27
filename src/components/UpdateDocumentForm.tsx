@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { LabelsSchema, labelsSchema } from "@/lib/zod";
 import { Checkbox } from "./ui/checkbox";
 import { Textarea } from "./ui/textarea";
-import { useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { updateDocumentFormData } from "@/constants";
 
@@ -41,22 +41,63 @@ export default function UpdateDocumentForm({
     defaultValues,
   });
 
-  const [uniqueWords, setUniqueWords] = useState<string[]>(
-    defaultValues.unique_words ?? []
+  // Both fields use a raw-text buffer so we don't split/trim on every keystroke
+  // (that would strip trailing spaces the moment the user types them, making it
+  // impossible to type multi-word phrases). Split only at submit / chip render.
+  const [uniqueWordsText, setUniqueWordsText] = useState<string>(
+    (defaultValues.unique_words ?? []).join(", ")
+  );
+  const [uniquePhrasesText, setUniquePhrasesText] = useState<string>(
+    (defaultValues.unique_phrases ?? []).join(", ")
   );
 
-  const uniqueWordsRefs = useRef<HTMLTextAreaElement>(null);
+  const [uniqueWordsSearch, setUniqueWordsSearch] = useState<string>("");
+  const [uniquePhrasesSearch, setUniquePhrasesSearch] = useState<string>("");
+
+  const parseList = (buf: string): string[] =>
+    buf.split(/[\n,]+/).map((s) => s.trim()).filter((s) => s.length > 0);
+
+  const uniqueWordsList = useMemo(() => parseList(uniqueWordsText), [uniqueWordsText]);
+  const uniquePhrasesList = useMemo(
+    () => parseList(uniquePhrasesText),
+    [uniquePhrasesText]
+  );
+
+  const filteredUniqueWords = useMemo(() => {
+    const q = uniqueWordsSearch.trim().toLowerCase();
+    return q
+      ? uniqueWordsList.filter((w) => w.toLowerCase().includes(q))
+      : uniqueWordsList;
+  }, [uniqueWordsList, uniqueWordsSearch]);
+
+  const filteredUniquePhrases = useMemo(() => {
+    const q = uniquePhrasesSearch.trim().toLowerCase();
+    return q
+      ? uniquePhrasesList.filter((p) => p.toLowerCase().includes(q))
+      : uniquePhrasesList;
+  }, [uniquePhrasesList, uniquePhrasesSearch]);
+
+  const removeUniqueWord = (word: string) => {
+    setUniqueWordsText(uniqueWordsList.filter((w) => w !== word).join(", "));
+  };
+
+  const removeUniquePhrase = (phrase: string) => {
+    setUniquePhrasesText(
+      uniquePhrasesList.filter((p) => p !== phrase).join(", ")
+    );
+  };
 
   const handleFormSubmit = form.handleSubmit((data) => {
-    const input = uniqueWordsRefs.current?.value.trim();
-    if (input) {
-      const newWords = input.split(/[\n,]+/).map((word) => word.trim());
-      const updatedWords = Array.from(new Set([...uniqueWords, ...newWords]));
-      setUniqueWords(updatedWords);
-      form.setValue("unique_words", updatedWords);
-    }
+    const dedupedWords = Array.from(new Set(uniqueWordsList));
+    const dedupedPhrases = Array.from(new Set(uniquePhrasesList));
+    form.setValue("unique_words", dedupedWords);
+    form.setValue("unique_phrases", dedupedPhrases);
 
-    onSubmit({ ...data, unique_words: uniqueWords });
+    onSubmit({
+      ...data,
+      unique_words: dedupedWords,
+      unique_phrases: dedupedPhrases,
+    });
   });
 
   return (
@@ -118,21 +159,82 @@ export default function UpdateDocumentForm({
           )}
         />
 
-        <FormItem className="flex flex-col gap-3 items-start space-x-3 space-y-0 py-4">
+        <FormItem className="flex flex-col gap-2 items-start space-x-0 space-y-0 py-4">
           <FormLabel>{updateDocumentFormData.labels.uniqueKeywords}</FormLabel>
+          <Input
+            type="text"
+            placeholder="Search unique words..."
+            value={uniqueWordsSearch}
+            onChange={(e) => setUniqueWordsSearch(e.target.value)}
+            className="border dark:border-white"
+          />
           <FormControl>
             <Textarea
-              ref={uniqueWordsRefs}
-              value={uniqueWords.join(", ")}
-              onChange={(e) =>
-                setUniqueWords(
-                  e.target.value.split(/[\n,]+/).map((w) => w.trim())
-                )
-              }
+              value={uniqueWordsText}
+              onChange={(e) => setUniqueWordsText(e.target.value)}
               placeholder={updateDocumentFormData.placeholders.uniqueKeywords}
               className="!ml-0 border dark:border-white"
             />
           </FormControl>
+          {uniqueWordsList.length > 0 && (
+            <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto pt-1 w-full">
+              {filteredUniqueWords.map((w) => (
+                <Button
+                  key={w}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeUniqueWord(w)}
+                >
+                  {w} ✕
+                </Button>
+              ))}
+              {filteredUniqueWords.length === 0 && (
+                <span className="text-sm text-muted-foreground">
+                  No matches for &quot;{uniqueWordsSearch}&quot;
+                </span>
+              )}
+            </div>
+          )}
+        </FormItem>
+
+        <FormItem className="flex flex-col gap-2 items-start space-x-0 space-y-0 py-4">
+          <FormLabel>{updateDocumentFormData.labels.uniquePhrases}</FormLabel>
+          <Input
+            type="text"
+            placeholder="Search unique phrases..."
+            value={uniquePhrasesSearch}
+            onChange={(e) => setUniquePhrasesSearch(e.target.value)}
+            className="border dark:border-white"
+          />
+          <FormControl>
+            <Textarea
+              value={uniquePhrasesText}
+              onChange={(e) => setUniquePhrasesText(e.target.value)}
+              placeholder={updateDocumentFormData.placeholders.uniquePhrases}
+              className="!ml-0 border dark:border-white"
+            />
+          </FormControl>
+          {uniquePhrasesList.length > 0 && (
+            <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto pt-1 w-full">
+              {filteredUniquePhrases.map((p) => (
+                <Button
+                  key={p}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeUniquePhrase(p)}
+                >
+                  {p} ✕
+                </Button>
+              ))}
+              {filteredUniquePhrases.length === 0 && (
+                <span className="text-sm text-muted-foreground">
+                  No matches for &quot;{uniquePhrasesSearch}&quot;
+                </span>
+              )}
+            </div>
+          )}
         </FormItem>
 
         <FormField

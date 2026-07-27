@@ -137,11 +137,13 @@ export const updateDocumentFormData = {
     fileName: "File name",
     activeTurns: "Active Turns (comma-separated)",
     uniqueKeywords: "Unique Keywords",
+    uniquePhrases: "Unique Phrases",
     checkOnAllTurns: "Check on all turns",
   },
   placeholders: {
     activeTurns: "Enter numbers separated by commas, e.g., 1, 2, 3",
     uniqueKeywords: "Enter unique words separated by commas, e.g., foo,bar",
+    uniquePhrases: "Enter unique phrases one per line or comma-separated, e.g., blood sugar, not interested",
   },
   messages: {
     error: "An error occurred. Please try again.",
@@ -387,6 +389,10 @@ export const createDocumentFormData = {
     uniqueKeywords: {
       label: "Unique Keywords",
       placeholder: "Enter unique words (comma-separated or one per line)",
+    },
+    uniquePhrases: {
+      label: "Unique Phrases",
+      placeholder: "Enter unique phrases (comma-separated or one per line)",
     },
   },
   keywordsDialog: {
