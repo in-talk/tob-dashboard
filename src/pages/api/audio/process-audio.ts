@@ -74,7 +74,8 @@ export default async function handler(
       tempFilePaths.push(file.filepath);
       const buffer = fs.readFileSync(file.filepath);
       const blob = new Blob([buffer], { type: file.mimetype ?? "audio/wav" });
-      formData.append("files", blob, file.originalFilename ?? "audio");
+      const uppercasedName = (file.originalFilename ?? "audio").toUpperCase();
+      formData.append("files", blob, uppercasedName);
     }
 
     if (uploadedFiles.length === 0) {
