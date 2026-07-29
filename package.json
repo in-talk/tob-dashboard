@@ -43,6 +43,7 @@
     "framer-motion": "^12.23.12",
     "highcharts": "^12.3.0",
     "highcharts-react-official": "^3.2.2",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.473.0",
     "luxon": "^3.7.1",
     "mongodb": "^6.16.0",

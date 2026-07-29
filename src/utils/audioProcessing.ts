@@ -30,8 +30,14 @@ export const getStatusClasses = (type: ProcessingStatus['type']): string => {
 export const validateAudioFile = (file: File): string | null => {
   const maxSize = 100 * 1024 * 1024; // 100MB
   const allowedTypes = ['audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/mp3'];
+  const allowedExtensions = ['wav', 'mp3'];
 
-  if (!allowedTypes.includes(file.type)) {
+  const dot = file.name.lastIndexOf('.');
+  const ext = dot >= 0 ? file.name.slice(dot + 1).toLowerCase() : '';
+  const mimeOk = file.type ? allowedTypes.includes(file.type) : false;
+  const extOk = allowedExtensions.includes(ext);
+
+  if (!mimeOk && !extOk) {
     return 'Invalid file type. Please upload WAV or MP3 files only.';
   }
 

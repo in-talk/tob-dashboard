@@ -74,7 +74,12 @@ export default async function handler(
       tempFilePaths.push(file.filepath);
       const buffer = fs.readFileSync(file.filepath);
       const blob = new Blob([buffer], { type: file.mimetype ?? "audio/wav" });
-      const uppercasedName = (file.originalFilename ?? "audio").toUpperCase();
+      // Strip any directory segments the browser may have included
+      // (webkitdirectory sends filenames like "MyFolder/sub/file.wav") so
+      // the backend doesn't try to write into a non-existent subdir.
+      const rawName = file.originalFilename ?? "audio";
+      const baseName = rawName.split(/[\\/]/).pop() ?? rawName;
+      const uppercasedName = baseName.toUpperCase();
       formData.append("files", blob, uppercasedName);
     }
 

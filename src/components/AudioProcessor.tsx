@@ -1,7 +1,17 @@
 "use client";
 
 import React, { useState, useCallback, useRef } from "react";
-import { Upload, X, AlertCircle, CheckCircle, Volume2 } from "lucide-react";
+import {
+  Upload,
+  X,
+  AlertCircle,
+  CheckCircle,
+  Volume2,
+  Folder,
+  FileArchive,
+  File as FileIcon,
+} from "lucide-react";
+import JSZip from "jszip";
 import type { AudioFile, ProcessingStatus } from "../types/audio";
 import {
   generateUniqueId,
@@ -10,6 +20,25 @@ import {
   validateAudioFile,
 } from "../utils/audioProcessing";
 import { audioProcessorData } from "@/constants";
+
+type UploadMode = "files" | "folder" | "zip";
+
+const AUDIO_EXTENSIONS = new Set(["wav", "mp3"]);
+const MIME_BY_EXT: Record<string, string> = {
+  wav: "audio/wav",
+  mp3: "audio/mpeg",
+};
+
+const getExtension = (name: string): string => {
+  const i = name.lastIndexOf(".");
+  return i >= 0 ? name.slice(i + 1).toLowerCase() : "";
+};
+
+const isAudioFilename = (name: string): boolean =>
+  AUDIO_EXTENSIONS.has(getExtension(name));
+
+const stripZipExt = (name: string): string =>
+  name.replace(/\.zip$/i, "");
 
 const AudioProcessor: React.FC = () => {
   const [files, setFiles] = useState<AudioFile[]>([]);
@@ -20,40 +49,159 @@ const AudioProcessor: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [addBackground, setAddBackground] = useState(false);
   const [backgroundVolume, setBackgroundVolume] = useState(0.15);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadMode, setUploadMode] = useState<UploadMode>("files");
+  const [folderName, setFolderName] = useState<string>("");
+  const [isExtracting, setIsExtracting] = useState(false);
 
-  const handleFileUpload = useCallback(
-    (
-      e: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>
-    ) => {
-      e.preventDefault();
-      let uploadedFiles: FileList | null = null;
+  const filesInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
 
-      if ("dataTransfer" in e) {
-        uploadedFiles = e.dataTransfer.files;
-      } else if ("target" in e && e.target instanceof HTMLInputElement) {
-        uploadedFiles = e.target.files;
-      }
+  const resetSelection = useCallback(() => {
+    setFiles([]);
+    setFolderName("");
+    if (filesInputRef.current) filesInputRef.current.value = "";
+    if (folderInputRef.current) folderInputRef.current.value = "";
+    if (zipInputRef.current) zipInputRef.current.value = "";
+  }, []);
 
-      if (!uploadedFiles?.length) return;
+  const addAcceptedFiles = useCallback((accepted: File[]) => {
+    const newFiles: AudioFile[] = accepted.map((file) => {
+      const error = validateAudioFile(file);
+      return {
+        file,
+        id: generateUniqueId(),
+        status: error ? "error" : "pending",
+        error: error || undefined,
+      };
+    });
+    setFiles((prev) => [...prev, ...newFiles]);
+    setStatus({
+      message: audioProcessorData.status.added(newFiles.length),
+      type: "success",
+    });
+  }, []);
 
-      const newFiles: AudioFile[] = Array.from(uploadedFiles).map((file) => {
-        const error = validateAudioFile(file);
-        return {
-          file,
-          id: generateUniqueId(),
-          status: error ? "error" : "pending",
-          error: error || undefined,
-        };
-      });
-
-      setFiles((prev) => [...prev, ...newFiles]);
-      setStatus({
-        message: audioProcessorData.status.added(newFiles.length),
-        type: "success",
-      });
+  const handleFilesSelected = useCallback(
+    (fileList: FileList | null) => {
+      if (!fileList?.length) return;
+      addAcceptedFiles(Array.from(fileList));
     },
-    []
+    [addAcceptedFiles]
+  );
+
+  const handleFolderSelected = useCallback(
+    (fileList: FileList | null) => {
+      if (!fileList?.length) return;
+      const arr = Array.from(fileList);
+      // First segment of webkitRelativePath is the root folder name
+      const firstRel = (arr[0] as File & { webkitRelativePath?: string })
+        .webkitRelativePath;
+      const rootName = firstRel ? firstRel.split("/")[0] : "";
+      if (rootName) setFolderName(rootName);
+      // Rebuild as flat File objects so the browser sends only the base name
+      // in the multipart filename (Chrome otherwise sends webkitRelativePath,
+      // which makes the backend try to open a non-existent subfolder).
+      const flattened = arr
+        .filter((f) => isAudioFilename(f.name))
+        .map(
+          (f) => new File([f], f.name, { type: f.type, lastModified: f.lastModified })
+        );
+      if (flattened.length === 0) {
+        setStatus({
+          message: "No WAV or MP3 files found in the selected folder.",
+          type: "error",
+        });
+        return;
+      }
+      addAcceptedFiles(flattened);
+    },
+    [addAcceptedFiles]
+  );
+
+  const handleZipSelected = useCallback(
+    async (fileList: FileList | null) => {
+      if (!fileList?.length) return;
+      const zipFile = fileList[0];
+      if (getExtension(zipFile.name) !== "zip") {
+        setStatus({
+          message: "Please upload a .zip file.",
+          type: "error",
+        });
+        return;
+      }
+      setIsExtracting(true);
+      setStatus({
+        message: `Extracting ${zipFile.name}...`,
+        type: "processing",
+      });
+      try {
+        const zip = await JSZip.loadAsync(zipFile);
+        const extracted: File[] = [];
+        const entries = Object.values(zip.files).filter(
+          (e) => !e.dir && isAudioFilename(e.name)
+        );
+        for (const entry of entries) {
+          const blob = await entry.async("blob");
+          const base = entry.name.split("/").pop() || entry.name;
+          const ext = getExtension(base);
+          const mime = MIME_BY_EXT[ext] ?? "audio/wav";
+          extracted.push(new File([blob], base, { type: mime }));
+        }
+        if (extracted.length === 0) {
+          setStatus({
+            message: "No WAV or MP3 files found inside the zip.",
+            type: "error",
+          });
+          return;
+        }
+        setFolderName(stripZipExt(zipFile.name));
+        addAcceptedFiles(extracted);
+      } catch (err) {
+        console.error("Zip extraction failed:", err);
+        setStatus({
+          message: `Failed to read zip: ${
+            err instanceof Error ? err.message : "unknown error"
+          }`,
+          type: "error",
+        });
+      } finally {
+        setIsExtracting(false);
+      }
+    },
+    [addAcceptedFiles]
+  );
+
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (uploadMode === "files") handleFilesSelected(e.target.files);
+      else if (uploadMode === "folder") handleFolderSelected(e.target.files);
+      else if (uploadMode === "zip") handleZipSelected(e.target.files);
+    },
+    [uploadMode, handleFilesSelected, handleFolderSelected, handleZipSelected]
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const dropped = e.dataTransfer.files;
+      if (!dropped?.length) return;
+      if (uploadMode === "zip") {
+        handleZipSelected(dropped);
+      } else if (uploadMode === "folder") {
+        // Native drag-drop of folders via webkitdirectory input isn't reliable
+        // cross-browser; ask users to click when in folder mode.
+        setStatus({
+          message:
+            "Please click the box to choose a folder (drag-and-drop of folders isn't supported here).",
+          type: "error",
+        });
+      } else {
+        handleFilesSelected(dropped);
+      }
+    },
+    [uploadMode, handleFilesSelected, handleZipSelected]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -65,6 +213,22 @@ const AudioProcessor: React.FC = () => {
     setFiles((prev) => prev.filter((file) => file.id !== id));
   }, []);
 
+  const onModeChange = useCallback(
+    (mode: UploadMode) => {
+      if (mode === uploadMode) return;
+      setUploadMode(mode);
+      resetSelection();
+      setStatus({ message: "", type: "idle" });
+    },
+    [uploadMode, resetSelection]
+  );
+
+  const triggerPicker = useCallback(() => {
+    if (uploadMode === "files") filesInputRef.current?.click();
+    else if (uploadMode === "folder") folderInputRef.current?.click();
+    else if (uploadMode === "zip") zipInputRef.current?.click();
+  }, [uploadMode]);
+
   const processFiles = async () => {
     if (files.length === 0 || isProcessing) return;
 
@@ -75,12 +239,9 @@ const AudioProcessor: React.FC = () => {
     });
 
     const formData = new FormData();
-    
-    // Add background options
     formData.append("addBackground", addBackground.toString());
     formData.append("backgroundVolume", backgroundVolume.toString());
-    
-    // Add all files
+    if (folderName) formData.append("folder_name", folderName);
     files.forEach(({ file }) => {
       formData.append("files", file);
     });
@@ -92,15 +253,20 @@ const AudioProcessor: React.FC = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+        const errorData = await response
+          .json()
+          .catch(() => ({ detail: response.statusText }));
         throw new Error(errorData.detail || "Processing failed");
       }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
+      const downloadName = folderName
+        ? `${folderName}.zip`
+        : "processed_audio.zip";
       link.href = url;
-      link.setAttribute("download", "processed_audio.zip");
+      link.setAttribute("download", downloadName);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
@@ -110,7 +276,7 @@ const AudioProcessor: React.FC = () => {
         message: audioProcessorData.status.success,
         type: "success",
       });
-      setFiles([]);
+      resetSelection();
     } catch (error) {
       setStatus({
         message: audioProcessorData.status.error(
@@ -124,14 +290,34 @@ const AudioProcessor: React.FC = () => {
   };
 
   const handleReset = () => {
-    setFiles([]);
+    resetSelection();
     setStatus({ message: "", type: "idle" });
     setAddBackground(false);
     setBackgroundVolume(0.15);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
+
+  const modeButtonClass = (mode: UploadMode) =>
+    `flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border transition-colors ${
+      uploadMode === mode
+        ? "bg-blue-500 text-white border-blue-500"
+        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+    }`;
+
+  const dropzoneLabel = (() => {
+    if (uploadMode === "folder")
+      return "Click to select a folder of audio files";
+    if (uploadMode === "zip")
+      return "Drop a .zip file here or click to upload";
+    return audioProcessorData.upload.dropOrClick;
+  })();
+
+  const dropzoneSubtext = (() => {
+    if (uploadMode === "folder")
+      return "The folder name is used to name the downloaded archive.";
+    if (uploadMode === "zip")
+      return "Zip should contain WAV or MP3 files (any subfolder depth).";
+    return audioProcessorData.upload.supportedFormats;
+  })();
 
   return (
     <div className="max-w-3xl mx-auto p-6">
@@ -148,32 +334,83 @@ const AudioProcessor: React.FC = () => {
           )}
         </div>
 
+        {/* Upload mode selector */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className={modeButtonClass("files")}
+            onClick={() => onModeChange("files")}
+          >
+            <FileIcon size={16} />
+            Files
+          </button>
+          <button
+            type="button"
+            className={modeButtonClass("folder")}
+            onClick={() => onModeChange("folder")}
+          >
+            <Folder size={16} />
+            Folder
+          </button>
+          <button
+            type="button"
+            className={modeButtonClass("zip")}
+            onClick={() => onModeChange("zip")}
+          >
+            <FileArchive size={16} />
+            Zip
+          </button>
+        </div>
+
         <div
-          className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center"
-          onDrop={handleFileUpload}
+          className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer"
+          onDrop={handleDrop}
           onDragOver={handleDragOver}
+          onClick={triggerPicker}
         >
           <input
-            ref={fileInputRef}
+            ref={filesInputRef}
             type="file"
             multiple
             accept="audio/*"
-            onChange={handleFileUpload}
+            onChange={handleInputChange}
             className="hidden"
-            id="file-upload"
           />
-          <label
-            htmlFor="file-upload"
-            className="cursor-pointer flex flex-col items-center"
-          >
+          <input
+            ref={folderInputRef}
+            type="file"
+            // @ts-expect-error -- non-standard but widely supported directory picker attrs
+            webkitdirectory=""
+            directory=""
+            multiple
+            onChange={handleInputChange}
+            className="hidden"
+          />
+          <input
+            ref={zipInputRef}
+            type="file"
+            accept=".zip,application/zip,application/x-zip-compressed"
+            onChange={handleInputChange}
+            className="hidden"
+          />
+          <div className="flex flex-col items-center">
             <Upload className="w-12 h-12 text-gray-400 mb-4" />
-            <span className="text-gray-600">
-              {audioProcessorData.upload.dropOrClick}
-            </span>
+            <span className="text-gray-600">{dropzoneLabel}</span>
             <span className="text-gray-400 text-sm mt-2">
-              {audioProcessorData.upload.supportedFormats}
+              {dropzoneSubtext}
             </span>
-          </label>
+            {folderName && (
+              <span className="text-blue-600 text-sm mt-2">
+                Source: <span className="font-medium">{folderName}</span> —
+                download will be <span className="font-medium">{folderName}.zip</span>
+              </span>
+            )}
+            {isExtracting && (
+              <span className="text-blue-600 text-sm mt-2">
+                Reading zip contents...
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Background Audio Options */}
@@ -211,7 +448,9 @@ const AudioProcessor: React.FC = () => {
                   max="0.5"
                   step="0.01"
                   value={backgroundVolume}
-                  onChange={(e) => setBackgroundVolume(parseFloat(e.target.value))}
+                  onChange={(e) =>
+                    setBackgroundVolume(parseFloat(e.target.value))
+                  }
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                 />
                 <input
@@ -241,7 +480,7 @@ const AudioProcessor: React.FC = () => {
             <h2 className="text-lg font-semibold">
               {audioProcessorData.files.heading(files.length)}
             </h2>
-            <ul className="space-y-2">
+            <ul className="space-y-2 max-h-64 overflow-y-auto">
               {files.map(({ file, id, status: fileStatus, error }) => (
                 <li
                   key={id}
@@ -288,12 +527,14 @@ const AudioProcessor: React.FC = () => {
           onClick={processFiles}
           disabled={
             isProcessing ||
+            isExtracting ||
             files.length === 0 ||
             files.some((f) => f.status === "error")
           }
           className={`w-full py-3 px-4 rounded-md text-white font-medium transition-colors
             ${
               isProcessing ||
+              isExtracting ||
               files.length === 0 ||
               files.some((f) => f.status === "error")
                 ? "bg-gray-400 cursor-not-allowed"
