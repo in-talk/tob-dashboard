@@ -24,17 +24,6 @@ import { audioProcessorData } from "@/constants";
 type UploadMode = "files" | "folder" | "zip";
 
 const AUDIO_EXTENSIONS = new Set(["wav", "mp3"]);
-
-// Vercel serverless functions cap request bodies at ~4.5 MB regardless of
-// what formidable is configured to accept. 4 MB per batch leaves ~500 KB of
-// multipart overhead room; going bigger risks 413s again.
-const MAX_BATCH_BYTES = 7 * 1024 * 1024;
-
-// How many batches to have in flight at once. Higher = faster wall time, but
-// more concurrent load on the FastAPI ffmpeg workers and on Vercel's
-// serverless concurrency budget. 4 is a good default; drop to 2 if you see
-// the backend timing out under load, raise to 6 if it's clearly idle.
-const MAX_PARALLEL_BATCHES = 6;
 const MIME_BY_EXT: Record<string, string> = {
   wav: "audio/wav",
   mp3: "audio/mpeg",
@@ -240,36 +229,6 @@ const AudioProcessor: React.FC = () => {
     else if (uploadMode === "zip") zipInputRef.current?.click();
   }, [uploadMode]);
 
-  // Slice the pending files into batches whose total size stays under the
-  // Vercel/nginx body cap. Files bigger than the cap on their own get their
-  // own batch — the request will likely 413, but at least the rest succeed.
-  const chunkFilesBySize = useCallback((all: AudioFile[]): AudioFile[][] => {
-    const batches: AudioFile[][] = [];
-    let current: AudioFile[] = [];
-    let currentSize = 0;
-    for (const item of all) {
-      const size = item.file.size;
-      if (size >= MAX_BATCH_BYTES) {
-        if (current.length > 0) {
-          batches.push(current);
-          current = [];
-          currentSize = 0;
-        }
-        batches.push([item]);
-        continue;
-      }
-      if (currentSize + size > MAX_BATCH_BYTES && current.length > 0) {
-        batches.push(current);
-        current = [];
-        currentSize = 0;
-      }
-      current.push(item);
-      currentSize += size;
-    }
-    if (current.length > 0) batches.push(current);
-    return batches;
-  }, []);
-
   const processFiles = async () => {
     if (files.length === 0 || isProcessing) return;
 
@@ -279,88 +238,29 @@ const AudioProcessor: React.FC = () => {
       type: "processing",
     });
 
-    const batches = chunkFilesBySize(files);
-    const responseZips: Blob[] = [];
-    const failedBatches: number[] = [];
-    let completed = 0;
-
-    const runBatch = async (batchIndex: number): Promise<void> => {
-      const formData = new FormData();
-      formData.append("addBackground", addBackground.toString());
-      formData.append("backgroundVolume", backgroundVolume.toString());
-      if (folderName) formData.append("folder_name", folderName);
-      batches[batchIndex].forEach(({ file }) => {
-        formData.append("files", file);
-      });
-
-      try {
-        const response = await fetch("/api/audio/process-audio", {
-          method: "POST",
-          body: formData,
-        });
-        if (!response.ok) {
-          const errorData = await response
-            .json()
-            .catch(() => ({ detail: response.statusText }));
-          throw new Error(errorData.detail || `HTTP ${response.status}`);
-        }
-        responseZips.push(await response.blob());
-      } catch (err) {
-        console.error(`Batch ${batchIndex + 1} failed:`, err);
-        failedBatches.push(batchIndex + 1);
-      } finally {
-        completed += 1;
-        setStatus({
-          message: `Processed ${completed} of ${batches.length} batches (${MAX_PARALLEL_BATCHES} in parallel)...`,
-          type: "processing",
-        });
-      }
-    };
+    const formData = new FormData();
+    formData.append("addBackground", addBackground.toString());
+    formData.append("backgroundVolume", backgroundVolume.toString());
+    if (folderName) formData.append("folder_name", folderName);
+    files.forEach(({ file }) => {
+      formData.append("files", file);
+    });
 
     try {
-      // Bounded-parallelism worker pool: at most MAX_PARALLEL_BATCHES
-      // requests in flight; each worker pulls the next index and repeats.
-      let nextIndex = 0;
-      const worker = async (): Promise<void> => {
-        while (true) {
-          const i = nextIndex++;
-          if (i >= batches.length) return;
-          await runBatch(i);
-        }
-      };
-      const workers = Array.from(
-        { length: Math.min(MAX_PARALLEL_BATCHES, batches.length) },
-        () => worker()
-      );
-      await Promise.all(workers);
-
-      if (responseZips.length === 0) {
-        throw new Error(
-          `All ${batches.length} batches failed. Nothing to download.`
-        );
-      }
-
-      // Merge every returned zip into one final archive.
-      setStatus({
-        message: `Merging ${responseZips.length} zip(s)...`,
-        type: "processing",
+      const response = await fetch("/api/audio/process-audio", {
+        method: "POST",
+        body: formData,
       });
-      const mergedZip = new JSZip();
-      let mergedCount = 0;
-      for (const zipBlob of responseZips) {
-        const sub = await JSZip.loadAsync(zipBlob);
-        for (const entry of Object.values(sub.files)) {
-          if (entry.dir) continue;
-          const base = entry.name.split("/").pop() || entry.name;
-          // If two batches produce the same filename, suffix to avoid collision.
-          const name = mergedZip.file(base) ? `${mergedCount}_${base}` : base;
-          mergedZip.file(name, await entry.async("blob"));
-          mergedCount += 1;
-        }
+
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ detail: response.statusText }));
+        throw new Error(errorData.detail || "Processing failed");
       }
 
-      const finalBlob = await mergedZip.generateAsync({ type: "blob" });
-      const url = window.URL.createObjectURL(finalBlob);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       const downloadName = folderName
         ? `${folderName}.zip`
@@ -372,18 +272,11 @@ const AudioProcessor: React.FC = () => {
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      if (failedBatches.length > 0) {
-        setStatus({
-          message: `Downloaded ${mergedCount} files. ${failedBatches.length} batch(es) failed (${failedBatches.join(", ")}).`,
-          type: "error",
-        });
-      } else {
-        setStatus({
-          message: audioProcessorData.status.success,
-          type: "success",
-        });
-        resetSelection();
-      }
+      setStatus({
+        message: audioProcessorData.status.success,
+        type: "success",
+      });
+      resetSelection();
     } catch (error) {
       setStatus({
         message: audioProcessorData.status.error(
