@@ -87,8 +87,8 @@ export const sideBarData = {
           url: "/label_managment/?ACA",
         },
         {
-          title: `SOLAR - ${Campaign.SOLAR}`,
-          url: "/label_managment/?SOLAR",
+          title: `MP(Mortgage protection) - ${Campaign.MP}`,
+          url: "/label_managment/?MP",
         },
         {
           title: `FE (Final expense) - ${Campaign.FE}`,

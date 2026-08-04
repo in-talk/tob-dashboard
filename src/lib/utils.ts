@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 export enum Campaign {
   CGM = 10000,
   ACA = 20000,
-  SOLAR = 30000,
+  MP = 30000,
   FE = 40000,
   FETEST = 40001,
   FEV2 = 40002,

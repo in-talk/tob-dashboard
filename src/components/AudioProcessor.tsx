@@ -24,6 +24,13 @@ import { audioProcessorData } from "@/constants";
 type UploadMode = "files" | "folder" | "zip";
 
 const AUDIO_EXTENSIONS = new Set(["wav", "mp3"]);
+
+// Vercel serverless functions cap request bodies at ~4.5 MB regardless of
+// what formidable is configured to accept. Keep each batch comfortably below
+// that so a large upload can be sliced into many small requests instead of
+// one that gets 413'd. Nginx in front of the backend also stops being a
+// bottleneck at this size.
+const MAX_BATCH_BYTES = 3.5 * 1024 * 1024;
 const MIME_BY_EXT: Record<string, string> = {
   wav: "audio/wav",
   mp3: "audio/mpeg",
@@ -229,6 +236,36 @@ const AudioProcessor: React.FC = () => {
     else if (uploadMode === "zip") zipInputRef.current?.click();
   }, [uploadMode]);
 
+  // Slice the pending files into batches whose total size stays under the
+  // Vercel/nginx body cap. Files bigger than the cap on their own get their
+  // own batch — the request will likely 413, but at least the rest succeed.
+  const chunkFilesBySize = useCallback((all: AudioFile[]): AudioFile[][] => {
+    const batches: AudioFile[][] = [];
+    let current: AudioFile[] = [];
+    let currentSize = 0;
+    for (const item of all) {
+      const size = item.file.size;
+      if (size >= MAX_BATCH_BYTES) {
+        if (current.length > 0) {
+          batches.push(current);
+          current = [];
+          currentSize = 0;
+        }
+        batches.push([item]);
+        continue;
+      }
+      if (currentSize + size > MAX_BATCH_BYTES && current.length > 0) {
+        batches.push(current);
+        current = [];
+        currentSize = 0;
+      }
+      current.push(item);
+      currentSize += size;
+    }
+    if (current.length > 0) batches.push(current);
+    return batches;
+  }, []);
+
   const processFiles = async () => {
     if (files.length === 0 || isProcessing) return;
 
@@ -238,29 +275,72 @@ const AudioProcessor: React.FC = () => {
       type: "processing",
     });
 
-    const formData = new FormData();
-    formData.append("addBackground", addBackground.toString());
-    formData.append("backgroundVolume", backgroundVolume.toString());
-    if (folderName) formData.append("folder_name", folderName);
-    files.forEach(({ file }) => {
-      formData.append("files", file);
-    });
+    const batches = chunkFilesBySize(files);
+    const responseZips: Blob[] = [];
+    const failedBatches: number[] = [];
 
     try {
-      const response = await fetch("/api/audio/process-audio", {
-        method: "POST",
-        body: formData,
-      });
+      for (let i = 0; i < batches.length; i++) {
+        setStatus({
+          message: `Processing batch ${i + 1} of ${batches.length} (${batches[i].length} files)...`,
+          type: "processing",
+        });
 
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ detail: response.statusText }));
-        throw new Error(errorData.detail || "Processing failed");
+        const formData = new FormData();
+        formData.append("addBackground", addBackground.toString());
+        formData.append("backgroundVolume", backgroundVolume.toString());
+        if (folderName) formData.append("folder_name", folderName);
+        batches[i].forEach(({ file }) => {
+          formData.append("files", file);
+        });
+
+        try {
+          const response = await fetch("/api/audio/process-audio", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const errorData = await response
+              .json()
+              .catch(() => ({ detail: response.statusText }));
+            throw new Error(errorData.detail || `HTTP ${response.status}`);
+          }
+
+          responseZips.push(await response.blob());
+        } catch (err) {
+          console.error(`Batch ${i + 1} failed:`, err);
+          failedBatches.push(i + 1);
+        }
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      if (responseZips.length === 0) {
+        throw new Error(
+          `All ${batches.length} batches failed. Nothing to download.`
+        );
+      }
+
+      // Merge every returned zip into one final archive.
+      setStatus({
+        message: `Merging ${responseZips.length} zip(s)...`,
+        type: "processing",
+      });
+      const mergedZip = new JSZip();
+      let mergedCount = 0;
+      for (const zipBlob of responseZips) {
+        const sub = await JSZip.loadAsync(zipBlob);
+        for (const entry of Object.values(sub.files)) {
+          if (entry.dir) continue;
+          const base = entry.name.split("/").pop() || entry.name;
+          // If two batches produce the same filename, suffix to avoid collision.
+          const name = mergedZip.file(base) ? `${mergedCount}_${base}` : base;
+          mergedZip.file(name, await entry.async("blob"));
+          mergedCount += 1;
+        }
+      }
+
+      const finalBlob = await mergedZip.generateAsync({ type: "blob" });
+      const url = window.URL.createObjectURL(finalBlob);
       const link = document.createElement("a");
       const downloadName = folderName
         ? `${folderName}.zip`
@@ -272,11 +352,18 @@ const AudioProcessor: React.FC = () => {
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      setStatus({
-        message: audioProcessorData.status.success,
-        type: "success",
-      });
-      resetSelection();
+      if (failedBatches.length > 0) {
+        setStatus({
+          message: `Downloaded ${mergedCount} files. ${failedBatches.length} batch(es) failed (${failedBatches.join(", ")}).`,
+          type: "error",
+        });
+      } else {
+        setStatus({
+          message: audioProcessorData.status.success,
+          type: "success",
+        });
+        resetSelection();
+      }
     } catch (error) {
       setStatus({
         message: audioProcessorData.status.error(
