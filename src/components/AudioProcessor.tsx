@@ -26,11 +26,15 @@ type UploadMode = "files" | "folder" | "zip";
 const AUDIO_EXTENSIONS = new Set(["wav", "mp3"]);
 
 // Vercel serverless functions cap request bodies at ~4.5 MB regardless of
-// what formidable is configured to accept. Keep each batch comfortably below
-// that so a large upload can be sliced into many small requests instead of
-// one that gets 413'd. Nginx in front of the backend also stops being a
-// bottleneck at this size.
-const MAX_BATCH_BYTES = 3.5 * 1024 * 1024;
+// what formidable is configured to accept. 4 MB per batch leaves ~500 KB of
+// multipart overhead room; going bigger risks 413s again.
+const MAX_BATCH_BYTES = 7 * 1024 * 1024;
+
+// How many batches to have in flight at once. Higher = faster wall time, but
+// more concurrent load on the FastAPI ffmpeg workers and on Vercel's
+// serverless concurrency budget. 4 is a good default; drop to 2 if you see
+// the backend timing out under load, raise to 6 if it's clearly idle.
+const MAX_PARALLEL_BATCHES = 6;
 const MIME_BY_EXT: Record<string, string> = {
   wav: "audio/wav",
   mp3: "audio/mpeg",
@@ -278,41 +282,57 @@ const AudioProcessor: React.FC = () => {
     const batches = chunkFilesBySize(files);
     const responseZips: Blob[] = [];
     const failedBatches: number[] = [];
+    let completed = 0;
 
-    try {
-      for (let i = 0; i < batches.length; i++) {
+    const runBatch = async (batchIndex: number): Promise<void> => {
+      const formData = new FormData();
+      formData.append("addBackground", addBackground.toString());
+      formData.append("backgroundVolume", backgroundVolume.toString());
+      if (folderName) formData.append("folder_name", folderName);
+      batches[batchIndex].forEach(({ file }) => {
+        formData.append("files", file);
+      });
+
+      try {
+        const response = await fetch("/api/audio/process-audio", {
+          method: "POST",
+          body: formData,
+        });
+        if (!response.ok) {
+          const errorData = await response
+            .json()
+            .catch(() => ({ detail: response.statusText }));
+          throw new Error(errorData.detail || `HTTP ${response.status}`);
+        }
+        responseZips.push(await response.blob());
+      } catch (err) {
+        console.error(`Batch ${batchIndex + 1} failed:`, err);
+        failedBatches.push(batchIndex + 1);
+      } finally {
+        completed += 1;
         setStatus({
-          message: `Processing batch ${i + 1} of ${batches.length} (${batches[i].length} files)...`,
+          message: `Processed ${completed} of ${batches.length} batches (${MAX_PARALLEL_BATCHES} in parallel)...`,
           type: "processing",
         });
-
-        const formData = new FormData();
-        formData.append("addBackground", addBackground.toString());
-        formData.append("backgroundVolume", backgroundVolume.toString());
-        if (folderName) formData.append("folder_name", folderName);
-        batches[i].forEach(({ file }) => {
-          formData.append("files", file);
-        });
-
-        try {
-          const response = await fetch("/api/audio/process-audio", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (!response.ok) {
-            const errorData = await response
-              .json()
-              .catch(() => ({ detail: response.statusText }));
-            throw new Error(errorData.detail || `HTTP ${response.status}`);
-          }
-
-          responseZips.push(await response.blob());
-        } catch (err) {
-          console.error(`Batch ${i + 1} failed:`, err);
-          failedBatches.push(i + 1);
-        }
       }
+    };
+
+    try {
+      // Bounded-parallelism worker pool: at most MAX_PARALLEL_BATCHES
+      // requests in flight; each worker pulls the next index and repeats.
+      let nextIndex = 0;
+      const worker = async (): Promise<void> => {
+        while (true) {
+          const i = nextIndex++;
+          if (i >= batches.length) return;
+          await runBatch(i);
+        }
+      };
+      const workers = Array.from(
+        { length: Math.min(MAX_PARALLEL_BATCHES, batches.length) },
+        () => worker()
+      );
+      await Promise.all(workers);
 
       if (responseZips.length === 0) {
         throw new Error(
