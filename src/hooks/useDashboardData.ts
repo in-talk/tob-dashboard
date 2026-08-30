@@ -16,6 +16,7 @@ interface UseDashboardDataProps {
   serverSearchTerm?: string;
   searchType?: "call_id" | "caller_id";
   globalSearchTerm?: string;
+  clientWise?: boolean;
   fetchLast7Days?: boolean;
   showAllClients?: boolean;
 }
@@ -40,6 +41,7 @@ export function useDashboardData({
   serverSearchTerm,
   searchType = "caller_id",
   globalSearchTerm,
+  clientWise = true,
   fetchLast7Days = false,
   showAllClients = false,
 }: UseDashboardDataProps) {
@@ -75,7 +77,7 @@ export function useDashboardData({
           : null,
       call:
         selectedClientId && utcDateRange
-          ? `call-${selectedClientId}-${serverSearchTerm ? 'spec-' + serverSearchTerm + '-' + searchType : 'glob-' + (globalSearchTerm || 'none') + '-' + utcDateRange.from + '-' + utcDateRange.to}-${pagination.page}-${pagination.pageSize}`
+          ? `call-${clientWise ? selectedClientId : 'all'}-${serverSearchTerm ? 'spec-' + serverSearchTerm + '-' + searchType : 'glob-' + (globalSearchTerm || 'none') + '-' + utcDateRange.from + '-' + utcDateRange.to}-${pagination.page}-${pagination.pageSize}`
           : null,
       agent:
         selectedClientId && utcDateRange
@@ -86,7 +88,7 @@ export function useDashboardData({
           ? `all-clients-agent-${utcDateRange.from}-${utcDateRange.to}-${clients.map((c: Client) => c.client_id).join(',')}`
           : null,
     }),
-    [selectedClientId, utcDateRange, pagination, serverSearchTerm, searchType, globalSearchTerm, showAllClients, clients]
+    [selectedClientId, utcDateRange, pagination, serverSearchTerm, searchType, globalSearchTerm, clientWise, showAllClients, clients]
   );
 
   const chartDataQuery = useSWR(
@@ -105,7 +107,7 @@ export function useDashboardData({
     keys.call,
     () => {
       const payload: CallRecordsPayload = {
-        client_id: selectedClientId,
+        client_id: clientWise ? selectedClientId : null,
         page: pagination.page,
         num_of_records: pagination.pageSize,
       };

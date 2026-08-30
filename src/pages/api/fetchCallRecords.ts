@@ -22,9 +22,9 @@ export default async function handler(
     num_of_records = 10,
   } = req.body;
 
-  if (!client_id) {
-    return res.status(400).json({ error: "client_id is required" });
-  }
+  // if (!client_id) {
+  //   return res.status(400).json({ error: "client_id is required" });
+  // }
 
   try {
     const result = await db.query(

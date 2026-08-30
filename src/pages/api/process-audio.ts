@@ -49,7 +49,7 @@ const processAudioFile = async (
       // Modified piped command: handle bit depth in final output only
       const command = `sox "${inputPath}" -r 8000 -c 1 -p | sox -m - -v ${backgroundVolume} "${backgroundPath}" -p repeat 999 | sox -p -r 8000 -c 1 -b 16 "${outputPath}" trim 0 ${duration}`;
 
-      console.log("Executing piped command:", command);
+      // log removed: executing piped command
 
       const { stderr } = await execAsync(command);
       if (stderr) {
@@ -58,7 +58,7 @@ const processAudioFile = async (
     } else {
       // No background audio, just convert the main audio
       const command = `sox "${inputPath}" -r 8000 -c 1 -b 16 "${outputPath}"`;
-      console.log("Converting without background:", command);
+      // log removed: converting without background
 
       const { stderr } = await execAsync(command);
       if (stderr) {

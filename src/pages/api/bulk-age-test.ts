@@ -42,7 +42,7 @@ export default async function handler(
       });
     }
 
-    console.log("Age Classifier API URL", process.env.KEYWORD_API_URL);
+    // debug: Age Classifier API URL removed from logs
 
     const response = await fetch(
       `${process.env.KEYWORD_API_URL}/bulk-test-age-classifier`,

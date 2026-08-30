@@ -55,6 +55,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
     "caller_id"
   );
   const [globalSearchTerm, setGlobalSearchTerm] = useState("");
+  const [clientWise, setClientWise] = useState(true);
   const [showLast7Days, setShowLast7Days] = useState(false);
   const [exportingDisposition, setExportingDisposition] = useState<string | null>(null);
   const [isAgentReportExpanded, setIsAgentReportExpanded] = useState(true);
@@ -69,6 +70,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
     serverSearchTerm,
     searchType,
     globalSearchTerm,
+    clientWise,
     fetchLast7Days: showLast7Days,
     showAllClients: isAllClientsReportExpanded
   });
@@ -87,8 +89,7 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
   // Reset pagination when search term changes
   useEffect(() => {
     setPagination((prev) => ({ ...prev, page: 1 }));
-  }, [serverSearchTerm, searchType, globalSearchTerm, dateRange]);
-  console.log('changes=>', data.callRecords.length)
+  }, [serverSearchTerm, searchType, globalSearchTerm, clientWise, dateRange]);
   // Cache previous call records
   useEffect(() => {
     if (data.callRecords.length > 0) {
@@ -223,6 +224,8 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
           onSearchTypeChange={setSearchType}
           globalSearchTerm={globalSearchTerm}
           onGlobalSearchChange={setGlobalSearchTerm}
+          clientWise={clientWise}
+          onClientWiseChange={setClientWise}
         />
       </div>
 

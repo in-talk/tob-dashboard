@@ -103,7 +103,7 @@ async function handleDelete(
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid document ID" });
     }
-    console.log("collection", collection);
+    // logging removed
     const result = await collection.deleteOne({
       _id: new ObjectId(String(id)),
     });

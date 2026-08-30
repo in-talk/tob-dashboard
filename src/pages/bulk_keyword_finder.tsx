@@ -91,14 +91,7 @@ export default function BulkKeywordFinder() {
     // Temporary diagnostic — verify the button click reached the
     // handler and the file made it into state. Watch the browser
     // DevTools Console while you click Process Transcripts.
-    console.log("[bulk_keyword_finder] processTranscripts fired", {
-      hasFile: !!file,
-      fileName: file?.name,
-      fileSize: file?.size,
-      turnNumber,
-      campaignId,
-      excludedLabels,
-    });
+    // debug logs removed for processTranscripts
 
     if (!file) {
       setError("Please upload a file first");
@@ -112,12 +105,7 @@ export default function BulkKeywordFinder() {
     try {
       // Read transcripts from Excel
       const transcripts = await readExcelFile(file);
-      console.log(
-        "[bulk_keyword_finder] readExcelFile parsed",
-        transcripts.length,
-        "transcripts. First 3:",
-        transcripts.slice(0, 3)
-      );
+      // debug log removed: readExcelFile parsed
 
       if (transcripts.length === 0) {
         throw new Error("No transcripts found in the file");
@@ -135,22 +123,13 @@ export default function BulkKeywordFinder() {
       for (let i = 0; i < transcripts.length; i += CHUNK_SIZE) {
         chunks.push(transcripts.slice(i, i + CHUNK_SIZE));
       }
-      console.log(
-        "[bulk_keyword_finder] splitting",
-        transcripts.length,
-        "into",
-        chunks.length,
-        "chunk(s) of up to",
-        CHUNK_SIZE
-      );
+      // debug log removed: splitting into chunks
       setProgress({ done: 0, total: transcripts.length });
 
       const allResults: ProcessResult[] = [];
       for (let ci = 0; ci < chunks.length; ci++) {
         const chunk = chunks[ci];
-        console.log(
-          `[bulk_keyword_finder] chunk ${ci + 1}/${chunks.length} (${chunk.length} rows)`
-        );
+        // debug log removed: chunk progress
 
         const response = await fetch("/api/append-labels", {
           method: "POST",
@@ -165,10 +144,7 @@ export default function BulkKeywordFinder() {
           }),
         });
 
-        console.log(
-          `[bulk_keyword_finder] chunk ${ci + 1} status`,
-          response.status
-        );
+        // debug log removed: chunk status
 
         if (!response.ok) {
           const errBody = await response.json().catch(() => ({}));
@@ -187,7 +163,7 @@ export default function BulkKeywordFinder() {
         setResults([...allResults]);
       }
 
-      console.log("[bulk_keyword_finder] done — total results:", allResults.length);
+      // debug log removed: processing complete
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

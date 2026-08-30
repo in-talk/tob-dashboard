@@ -27,7 +27,7 @@ export default async function handler(
             [clientIdInt]
         );
 
-        console.log("DB Result rows count:", result.rows.length);
+        // removed debug log for DB result count
 
         // Robust extraction: handle both single-row JSON array and multi-row results
         let data = [];

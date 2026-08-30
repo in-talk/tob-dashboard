@@ -64,14 +64,7 @@ export default async function handler(
     }
   }
 
-  console.log(
-    "fetchDispositionGraphData==>",
-    main_interval,
-    small_interval,
-    client_id,
-    formatDateForDB(from_date),
-    formatDateForDB(to_date)
-  );
+  // removed debug logging for fetchDispositionGraphData
 
   if (!client_id) {
     return res.status(400).json({ error: "client_id is required" });

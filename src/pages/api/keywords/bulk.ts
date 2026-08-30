@@ -48,8 +48,7 @@ export default async function handleBulkKeywords(
       ? [...new Set(keywords.map(k => k.trim()).filter(k => k))]
       : [];
 
-    console.log(`[${new Date().toISOString()}] Bulk ${operation} operation for document ${id}`);
-    console.log(`[${new Date().toISOString()}] Keywords count: ${sanitizedKeywords.length}`);
+    // logs removed: bulk operation and keywords count
 
     const client = await clientPromise;
     const db = client.db();
@@ -107,7 +106,7 @@ export default async function handleBulkKeywords(
       return res.status(404).json({ message: "Document not found", id });
     }
 
-    console.log(`[${new Date().toISOString()}] Bulk ${operation} completed. Total keywords: ${result.keywords?.length || 0}`);
+    // log removed: bulk operation completed
 
     return res.status(200).json({
       message: `Bulk ${operation} completed successfully`,

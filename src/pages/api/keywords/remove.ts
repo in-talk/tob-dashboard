@@ -50,7 +50,7 @@ export default async function handleRemoveKeyword(
       return res.status(400).json({ message: "Valid keyword required" });
     }
 
-    console.log(`[${new Date().toISOString()}] Removing keyword from document ${id}`);
+    // log removed: removing keyword
 
     const client = await clientPromise;
     const db = client.db();
@@ -70,7 +70,7 @@ export default async function handleRemoveKeyword(
       return res.status(404).json({ message: "Document not found", id });
     }
 
-    console.log(`[${new Date().toISOString()}] Keyword removed. Remaining: ${result.keywords.length}`);
+    // log removed: keyword removed
 
     return res.status(200).json({
       message: "Keyword removed successfully",

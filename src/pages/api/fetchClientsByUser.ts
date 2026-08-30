@@ -32,8 +32,6 @@ export default async function handler(
       [userId]
     );
 
-    console.log("Fetched clients for user_id:", userId, result.rows);
-
     res.status(200).json({
       clients: result.rows,
     });

@@ -24,7 +24,7 @@ export default async function handler(
   }
 
   try {
-    console.log("Keyword API URL", process.env.KEYWORD_API_URL);
+    // Keyword API URL logging removed
     const response = await fetch(
       `${process.env.KEYWORD_API_URL}/testkeyword`, // HTTP URL (server-side only)
       {

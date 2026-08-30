@@ -41,7 +41,6 @@ export const generateAudioUrl = async (
 
     // Use the promise-based version
     const url = await s3Client.getSignedUrlPromise("getObject", params);
-    console.log("✅ Generated signed URL for:", audioPath);
     return url;
   } catch (err) {
     console.error("❌ Error generating signed URL:", err);
@@ -118,7 +117,6 @@ export const generateAudioUrlRobust = async (
     }
 
     const url = await s3Client.getSignedUrlPromise("getObject", params);
-    console.log("✅ Generated signed URL for:", key);
     return url;
   } catch (err) {
     console.error("❌ Error generating signed URL for", err);

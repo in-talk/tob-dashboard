@@ -42,7 +42,7 @@ export default async function handleAddKeyword(
 
     const sanitizedKeyword = keyword.trim();
 
-    console.log(`[${new Date().toISOString()}] Adding keyword to document ${id}`);
+    // log removed: adding keyword
 
     const client = await clientPromise;
     const db = client.db();
@@ -62,7 +62,7 @@ export default async function handleAddKeyword(
       return res.status(404).json({ message: "Document not found", id });
     }
 
-    console.log(`[${new Date().toISOString()}] Keyword added. Total: ${result.keywords.length}`);
+    // log removed: keyword added
 
     return res.status(200).json({
       message: "Keyword added successfully",

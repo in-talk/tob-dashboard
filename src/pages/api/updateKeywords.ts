@@ -75,9 +75,7 @@ export default async function handleUpdateKeywords(
     // Sanitize keywords (trim whitespace, remove duplicates)
     const sanitizedKeywords = [...new Set(keywords.map(k => k.trim()))];
 
-    console.log("keywords=>", sanitizedKeywords)
-
-    console.log(`Updating keywords for document ${id} in collection ${labels}`);
+    // logs removed: keywords preview and update start
 
     // Connect to database
     const client = await clientPromise;
@@ -107,7 +105,7 @@ export default async function handleUpdateKeywords(
       });
     }
 
-    console.log(`Keywords updated successfully for document ${id}`);
+    // log removed: keywords updated successfully
 
     return res.status(200).json({
       message: "Keywords updated successfully",

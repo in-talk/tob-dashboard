@@ -10,6 +10,7 @@ import { Column, ColumnFilterElementTemplateOptions } from "primereact/column";
 import { FilterMatchMode, FilterOperator } from "primereact/api";
 import { InputText } from "primereact/inputtext";
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
+import { Checkbox } from "primereact/checkbox";
 import { Paginator } from "primereact/paginator";
 import {
   Search,
@@ -95,6 +96,8 @@ interface CallDataTableProps {
   onSearchTypeChange?: (type: "call_id" | "caller_id") => void;
   globalSearchTerm?: string;
   onGlobalSearchChange?: (term: string) => void;
+  clientWise?: boolean;
+  onClientWiseChange?: (value: boolean) => void;
 }
 
 const CallDataTable: React.FC<CallDataTableProps> = ({
@@ -110,6 +113,8 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   onSearchTypeChange,
   globalSearchTerm,
   onGlobalSearchChange,
+  clientWise = true,
+  onClientWiseChange,
 }) => {
   const [data, setData] = useState<CallRecord[]>(callRecords);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -376,6 +381,19 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center w-full sm:w-auto">
           {onServerSearchChange && onSearchTypeChange && role === "admin" && (
             <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center sm:mr-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  inputId="clientWise"
+                  checked={clientWise}
+                  onChange={(e) => onClientWiseChange?.(!!e.checked)}
+                />
+                <label
+                  htmlFor="clientWise"
+                  className="text-sm text-gray-700 dark:text-gray-200 cursor-pointer whitespace-nowrap"
+                >
+                  Client Wise
+                </label>
+              </div>
               <Dropdown
                 value={searchType}
                 options={searchTypeOptions}
@@ -436,7 +454,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
       </div>
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onServerSearchChange, onSearchTypeChange, role, searchType, localServerSearchTerm, handleServerSearch, serverSearchTerm, handleClearServerSearch, localGlobalSearchTerm, isLoading, exportData]
+    [onServerSearchChange, onSearchTypeChange, role, searchType, localServerSearchTerm, handleServerSearch, serverSearchTerm, handleClearServerSearch, localGlobalSearchTerm, isLoading, exportData, clientWise, onClientWiseChange]
   );
 
   const emptyMessage = useMemo(
