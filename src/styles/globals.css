@@ -178,3 +178,129 @@ body {
     min-width: 0 !important;
   }
 }
+
+/* ===== PrimeReact light-mode overrides =====
+   The site imports lara-dark-indigo unconditionally (_app.tsx + globals.css),
+   so every PrimeReact DataTable stays dark even in light mode. These rules,
+   scoped to html:not(.dark), flip the dark defaults to light-mode tokens.
+   Dark mode is untouched — the imported theme handles it. */
+
+html:not(.dark) .p-datatable,
+html:not(.dark) .p-datatable-wrapper,
+html:not(.dark) .p-datatable-scrollable-wrapper,
+html:not(.dark) .p-datatable-scrollable-view,
+html:not(.dark) .p-datatable-scrollable-body,
+html:not(.dark) .p-datatable-scrollable-header,
+html:not(.dark) .p-datatable-scrollable-footer {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+html:not(.dark) .p-datatable .p-datatable-header,
+html:not(.dark) .p-datatable .p-datatable-footer {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+html:not(.dark) .p-datatable .p-datatable-thead > tr > th {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+html:not(.dark) .p-datatable .p-datatable-tbody > tr {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+html:not(.dark) .p-datatable .p-datatable-tbody > tr > td {
+  background: transparent !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+html:not(.dark) .p-datatable .p-datatable-tbody > tr:nth-child(even) {
+  background: hsl(var(--muted) / 0.4) !important;
+}
+
+html:not(.dark) .p-datatable .p-datatable-tbody > tr:hover,
+html:not(.dark) .p-datatable .p-datatable-tbody > tr:not(.p-highlight):hover {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+html:not(.dark) .p-datatable .p-datatable-tbody > tr.p-highlight,
+html:not(.dark) .p-datatable .p-datatable-tbody > tr.p-highlight > td {
+  background: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+}
+
+html:not(.dark) .p-datatable .p-datatable-emptymessage,
+html:not(.dark) .p-datatable .p-datatable-emptymessage > td {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Sort icons + column titles inside headers */
+html:not(.dark) .p-datatable .p-sortable-column .p-sortable-column-icon,
+html:not(.dark) .p-datatable .p-sortable-column .p-column-title,
+html:not(.dark) .p-datatable .p-column-header-content {
+  color: hsl(var(--foreground)) !important;
+}
+
+html:not(.dark) .p-datatable .p-sortable-column:not(.p-highlight):hover {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Checkboxes inside the table */
+html:not(.dark) .p-checkbox .p-checkbox-box {
+  background: hsl(var(--background)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+html:not(.dark) .p-checkbox .p-checkbox-box.p-highlight {
+  background: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+}
+
+html:not(.dark) .p-checkbox .p-checkbox-box .p-checkbox-icon {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+/* Paginator */
+html:not(.dark) .p-paginator {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+html:not(.dark) .p-paginator .p-paginator-page,
+html:not(.dark) .p-paginator .p-paginator-first,
+html:not(.dark) .p-paginator .p-paginator-prev,
+html:not(.dark) .p-paginator .p-paginator-next,
+html:not(.dark) .p-paginator .p-paginator-last {
+  background: transparent !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+html:not(.dark) .p-paginator .p-paginator-page.p-highlight {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  border-color: hsl(var(--primary)) !important;
+}
+
+html:not(.dark) .p-paginator .p-paginator-page:not(.p-highlight):hover,
+html:not(.dark) .p-paginator .p-paginator-first:hover,
+html:not(.dark) .p-paginator .p-paginator-prev:hover,
+html:not(.dark) .p-paginator .p-paginator-next:hover,
+html:not(.dark) .p-paginator .p-paginator-last:hover {
+  background: hsl(var(--muted)) !important;
+}
+
+/* Row-expand toggler and radio, if used */
+html:not(.dark) .p-row-toggler {
+  color: hsl(var(--foreground)) !important;
+}
