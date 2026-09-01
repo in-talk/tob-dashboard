@@ -6,7 +6,10 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useSWR, { mutate } from "swr";
 import { Edit, Plus, Search, Trash2 } from "lucide-react";
-import { DataTable } from "primereact/datatable";
+import {
+  DataTable,
+  type DataTableSelectionMultipleChangeEvent,
+} from "primereact/datatable";
 import { Column } from "primereact/column";
 
 import { PositiveNegativePattern } from "@/types/ageMechanism";
@@ -48,9 +51,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import CustomLoader from "@/components/ui/CustomLoader";
+import BulkDeleteButton from "@/components/age-mechanism/BulkDeleteButton";
+import BulkAddDialog, {
+  type ParsedLine,
+} from "@/components/age-mechanism/BulkAddDialog";
+import { bulkCreate, bulkDelete } from "@/components/age-mechanism/bulkOps";
 
 // All calls go through the Next.js proxy route — never directly to the external API
 const API_ROUTE = "/api/age-classifier/positive-negative-patterns";
+
+const VALID_LABELS = ["YES", "NO"] as const;
 
 const patternSchema = z.object({
   text: z.string().min(1, "Text is required"),
@@ -71,6 +81,7 @@ export default function PositiveNegativePatterns() {
   const [editingItem, setEditingItem] = useState<PositiveNegativePattern | null>(null);
   const [search, setSearch] = useState("");
   const [labelFilter, setLabelFilter] = useState<string>("all");
+  const [selected, setSelected] = useState<PositiveNegativePattern[]>([]);
 
   const filteredData = useMemo(() => {
     if (!data) return [];
@@ -150,6 +161,50 @@ export default function PositiveNegativePatterns() {
       console.error(err);
       toast({ variant: "destructive", description: "Failed to delete" });
     }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = selected.map((item) => item.id);
+    const { ok, failed } = await bulkDelete(API_ROUTE, ids);
+    mutate(API_ROUTE);
+    setSelected([]);
+    toast({
+      variant: failed ? "destructive" : "success",
+      description: failed
+        ? `Deleted ${ok}, failed ${failed}`
+        : `Deleted ${ok} pattern${ok === 1 ? "" : "s"}`,
+    });
+  };
+
+  const parsePatternLine = (line: string): ParsedLine<PatternFormValues> => {
+    const parts = line.split("|").map((p) => p.trim());
+    if (parts.length < 2) {
+      return { ok: false, error: "expected: text | label" };
+    }
+    const [text, rawLabel] = parts;
+    if (!text) return { ok: false, error: "text is required" };
+    const label = rawLabel.toUpperCase();
+    if (!VALID_LABELS.includes(label as PatternFormValues["label"])) {
+      return {
+        ok: false,
+        error: `label must be YES or NO (got "${rawLabel}")`,
+      };
+    }
+    return {
+      ok: true,
+      value: { text, label: label as PatternFormValues["label"], active: true },
+    };
+  };
+
+  const handleBulkAdd = async (items: PatternFormValues[]) => {
+    const { ok, failed } = await bulkCreate(API_ROUTE, items);
+    mutate(API_ROUTE);
+    toast({
+      variant: failed ? "destructive" : "success",
+      description: failed
+        ? `Added ${ok}, failed ${failed}`
+        : `Added ${ok} pattern${ok === 1 ? "" : "s"}`,
+    });
   };
 
   const handleToggleActive = async (item: PositiveNegativePattern) => {
@@ -298,6 +353,26 @@ export default function PositiveNegativePatterns() {
               className="pl-9 w-full sm:w-[250px]"
             />
           </div>
+          {selected.length > 0 && (
+            <BulkDeleteButton
+              count={selected.length}
+              itemNoun="patterns"
+              onConfirm={handleBulkDelete}
+            />
+          )}
+          <BulkAddDialog
+            itemNoun="Patterns"
+            placeholder={"yeah | YES\nnope | NO"}
+            formatHint={
+              <>
+                One entry per line as{" "}
+                <span className="font-mono">text | label</span>. Label must be
+                YES or NO.
+              </>
+            }
+            parseLine={parsePatternLine}
+            onSubmit={handleBulkAdd}
+          />
           <Button
             onClick={openCreate}
             className="bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)] shrink-0"
@@ -317,7 +392,18 @@ export default function PositiveNegativePatterns() {
           pt={ptConfig}
           size="normal"
           removableSort
+          dataKey="id"
+          selectionMode="checkbox"
+          selection={selected}
+          onSelectionChange={(
+            e: DataTableSelectionMultipleChangeEvent<PositiveNegativePattern[]>
+          ) => setSelected(e.value)}
         >
+          <Column
+            selectionMode="multiple"
+            headerStyle={{ width: "3rem" }}
+            style={{ background: "transparent" }}
+          />
           <Column
             field="text"
             header="Text Pattern"

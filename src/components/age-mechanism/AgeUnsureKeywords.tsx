@@ -6,7 +6,10 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useSWR, { mutate } from "swr";
 import { Edit, Plus, Search, Trash2 } from "lucide-react";
-import { DataTable } from "primereact/datatable";
+import {
+  DataTable,
+  type DataTableSelectionMultipleChangeEvent,
+} from "primereact/datatable";
 import { Column } from "primereact/column";
 
 import { AgeUnsureKeyword } from "@/types/ageMechanism";
@@ -48,8 +51,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import CustomLoader from "@/components/ui/CustomLoader";
+import BulkDeleteButton from "@/components/age-mechanism/BulkDeleteButton";
+import BulkAddDialog, {
+  type ParsedLine,
+} from "@/components/age-mechanism/BulkAddDialog";
+import { bulkCreate, bulkDelete } from "@/components/age-mechanism/bulkOps";
 
 const API_ROUTE = "/api/age-classifier/age-unsure-label-keywords";
+
+const VALID_LABELS = ["DNC", "AH", "NI", "IDL"] as const;
 
 const LABEL_COLORS: Record<string, { variant: "default" | "destructive" | "secondary"; className?: string }> = {
   DNC: { variant: "destructive" },
@@ -76,6 +86,7 @@ export default function AgeUnsureKeywords() {
   const [editingItem, setEditingItem] = useState<AgeUnsureKeyword | null>(null);
   const [search, setSearch] = useState("");
   const [labelFilter, setLabelFilter] = useState<string>("all");
+  const [selected, setSelected] = useState<AgeUnsureKeyword[]>([]);
 
   const filteredData = useMemo(() => {
     if (!data) return [];
@@ -155,6 +166,50 @@ export default function AgeUnsureKeywords() {
       console.error(err);
       toast({ variant: "destructive", description: "Failed to delete" });
     }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = selected.map((item) => item.id);
+    const { ok, failed } = await bulkDelete(API_ROUTE, ids);
+    mutate(API_ROUTE);
+    setSelected([]);
+    toast({
+      variant: failed ? "destructive" : "success",
+      description: failed
+        ? `Deleted ${ok}, failed ${failed}`
+        : `Deleted ${ok} keyword${ok === 1 ? "" : "s"}`,
+    });
+  };
+
+  const parseKeywordLine = (line: string): ParsedLine<KeywordFormValues> => {
+    const parts = line.split("|").map((p) => p.trim());
+    if (parts.length < 2) {
+      return { ok: false, error: "expected: keyword | label" };
+    }
+    const [keyword, rawLabel] = parts;
+    if (!keyword) return { ok: false, error: "keyword is required" };
+    const label = rawLabel.toUpperCase();
+    if (!VALID_LABELS.includes(label as KeywordFormValues["label"])) {
+      return {
+        ok: false,
+        error: `label must be DNC, AH, NI or IDL (got "${rawLabel}")`,
+      };
+    }
+    return {
+      ok: true,
+      value: { keyword, label: label as KeywordFormValues["label"], active: true },
+    };
+  };
+
+  const handleBulkAdd = async (items: KeywordFormValues[]) => {
+    const { ok, failed } = await bulkCreate(API_ROUTE, items);
+    mutate(API_ROUTE);
+    toast({
+      variant: failed ? "destructive" : "success",
+      description: failed
+        ? `Added ${ok}, failed ${failed}`
+        : `Added ${ok} keyword${ok === 1 ? "" : "s"}`,
+    });
   };
 
   const handleToggleActive = async (item: AgeUnsureKeyword) => {
@@ -304,6 +359,26 @@ export default function AgeUnsureKeywords() {
               className="pl-9 w-full sm:w-[250px]"
             />
           </div>
+          {selected.length > 0 && (
+            <BulkDeleteButton
+              count={selected.length}
+              itemNoun="keywords"
+              onConfirm={handleBulkDelete}
+            />
+          )}
+          <BulkAddDialog
+            itemNoun="Keywords"
+            placeholder={"stop calling | DNC\nalready have insurance | AH"}
+            formatHint={
+              <>
+                One entry per line as{" "}
+                <span className="font-mono">keyword | label</span>. Label must be
+                DNC, AH, NI or IDL.
+              </>
+            }
+            parseLine={parseKeywordLine}
+            onSubmit={handleBulkAdd}
+          />
           <Button
             onClick={openCreate}
             className="bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)] shrink-0"
@@ -323,7 +398,18 @@ export default function AgeUnsureKeywords() {
           pt={ptConfig}
           size="normal"
           removableSort
+          dataKey="id"
+          selectionMode="checkbox"
+          selection={selected}
+          onSelectionChange={(
+            e: DataTableSelectionMultipleChangeEvent<AgeUnsureKeyword[]>
+          ) => setSelected(e.value)}
         >
+          <Column
+            selectionMode="multiple"
+            headerStyle={{ width: "3rem" }}
+            style={{ background: "transparent" }}
+          />
           <Column
             field="keyword"
             header="Keyword"

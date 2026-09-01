@@ -6,7 +6,10 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useSWR, { mutate } from "swr";
 import { Edit, Plus, Search, Trash2 } from "lucide-react";
-import { DataTable } from "primereact/datatable";
+import {
+  DataTable,
+  type DataTableSelectionMultipleChangeEvent,
+} from "primereact/datatable";
 import { Column } from "primereact/column";
 
 import { TypoCorrection } from "@/types/ageMechanism";
@@ -48,6 +51,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import CustomLoader from "@/components/ui/CustomLoader";
+import BulkDeleteButton from "@/components/age-mechanism/BulkDeleteButton";
+import BulkAddDialog, {
+  type ParsedLine,
+} from "@/components/age-mechanism/BulkAddDialog";
+import { bulkCreate, bulkDelete } from "@/components/age-mechanism/bulkOps";
 
 const API_ROUTE = "/api/age-classifier/typo-corrections";
 
@@ -67,6 +75,7 @@ export default function TypoCorrections() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TypoCorrection | null>(null);
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<TypoCorrection[]>([]);
 
   const filteredData = useMemo(() => {
     if (!data) return [];
@@ -142,6 +151,41 @@ export default function TypoCorrections() {
       console.error(err);
       toast({ variant: "destructive", description: "Failed to delete" });
     }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = selected.map((item) => item.id);
+    const { ok, failed } = await bulkDelete(API_ROUTE, ids);
+    mutate(API_ROUTE);
+    setSelected([]);
+    toast({
+      variant: failed ? "destructive" : "success",
+      description: failed
+        ? `Deleted ${ok}, failed ${failed}`
+        : `Deleted ${ok} typo correction${ok === 1 ? "" : "s"}`,
+    });
+  };
+
+  const parseTypoLine = (line: string): ParsedLine<TypoFormValues> => {
+    const parts = line.split("|").map((p) => p.trim());
+    if (parts.length < 2) {
+      return { ok: false, error: "expected: pattern | correction" };
+    }
+    const [pattern, correction] = parts;
+    if (!pattern) return { ok: false, error: "pattern is required" };
+    if (!correction) return { ok: false, error: "correction is required" };
+    return { ok: true, value: { pattern, correction, active: true } };
+  };
+
+  const handleBulkAdd = async (items: TypoFormValues[]) => {
+    const { ok, failed } = await bulkCreate(API_ROUTE, items);
+    mutate(API_ROUTE);
+    toast({
+      variant: failed ? "destructive" : "success",
+      description: failed
+        ? `Added ${ok}, failed ${failed}`
+        : `Added ${ok} typo correction${ok === 1 ? "" : "s"}`,
+    });
   };
 
   const handleToggleActive = async (item: TypoCorrection) => {
@@ -270,6 +314,25 @@ export default function TypoCorrections() {
               className="pl-9 w-full sm:w-[250px]"
             />
           </div>
+          {selected.length > 0 && (
+            <BulkDeleteButton
+              count={selected.length}
+              itemNoun="typo corrections"
+              onConfirm={handleBulkDelete}
+            />
+          )}
+          <BulkAddDialog
+            itemNoun="Typo Corrections"
+            placeholder={"nein | nine\nfour to | forty"}
+            formatHint={
+              <>
+                One entry per line as{" "}
+                <span className="font-mono">pattern | correction</span>.
+              </>
+            }
+            parseLine={parseTypoLine}
+            onSubmit={handleBulkAdd}
+          />
           <Button
             onClick={openCreate}
             className="bg-gradient-to-br from-blue-600 to-purple-600 text-white hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(102,126,234,0.4)] shrink-0"
@@ -289,7 +352,18 @@ export default function TypoCorrections() {
           pt={ptConfig}
           size="normal"
           removableSort
+          dataKey="id"
+          selectionMode="checkbox"
+          selection={selected}
+          onSelectionChange={(
+            e: DataTableSelectionMultipleChangeEvent<TypoCorrection[]>
+          ) => setSelected(e.value)}
         >
+          <Column
+            selectionMode="multiple"
+            headerStyle={{ width: "3rem" }}
+            style={{ background: "transparent" }}
+          />
           <Column
             field="pattern"
             header="Pattern"
