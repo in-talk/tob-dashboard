@@ -59,17 +59,18 @@ import { bulkCreate, bulkDelete } from "@/components/age-mechanism/bulkOps";
 
 const API_ROUTE = "/api/age-classifier/age-unsure-label-keywords";
 
-const VALID_LABELS = ["DNC", "AH", "NI", "IDL"] as const;
+const VALID_LABELS = ["DNC", "AH", "NI", "IDL", "CGM-NQ1"] as const;
 
 const LABEL_COLORS: Record<string, { variant: "default" | "destructive" | "secondary"; className?: string }> = {
   DNC: { variant: "destructive" },
   AH: { variant: "default" },
   NI: { variant: "secondary" },
+  "CGM-NQ1": { variant: "secondary" },
 };
 
 const keywordSchema = z.object({
   keyword: z.string().min(1, "Keyword is required"),
-  label: z.enum(["DNC", "AH", "NI", "IDL"], {
+  label: z.enum(["DNC", "AH", "NI", "IDL", "CGM-NQ1"], {
     required_error: "Label is required",
   }),
   active: z.boolean(),
@@ -192,7 +193,7 @@ export default function AgeUnsureKeywords() {
     if (!VALID_LABELS.includes(label as KeywordFormValues["label"])) {
       return {
         ok: false,
-        error: `label must be DNC, AH, NI or IDL (got "${rawLabel}")`,
+        error: `label must be DNC, AH, NI, IDL or CGM-NQ1 (got "${rawLabel}")`,
       };
     }
     return {
@@ -348,6 +349,7 @@ export default function AgeUnsureKeywords() {
               <SelectItem value="AH">AH</SelectItem>
               <SelectItem value="NI">NI</SelectItem>
               <SelectItem value="IDL">IDL</SelectItem>
+              <SelectItem value="CGM-NQ1">CGM-NQ1</SelectItem>
             </SelectContent>
           </Select>
           <div className="relative flex-1 sm:flex-initial">
@@ -373,7 +375,7 @@ export default function AgeUnsureKeywords() {
               <>
                 One entry per line as{" "}
                 <span className="font-mono">keyword | label</span>. Label must be
-                DNC, AH, NI or IDL.
+                DNC, AH, NI, IDL or CGM-NQ1.
               </>
             }
             parseLine={parseKeywordLine}
@@ -482,6 +484,7 @@ export default function AgeUnsureKeywords() {
                           <SelectItem value="AH">AH (Already Have)</SelectItem>
                           <SelectItem value="NI">NI (Not Interested)</SelectItem>
                           <SelectItem value="IDL">IDL (In Decision Loop)</SelectItem>
+                          <SelectItem value="CGM-NQ1">CGM-NQ1 (CGM not qualified Q1)</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>

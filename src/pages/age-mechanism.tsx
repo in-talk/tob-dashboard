@@ -168,7 +168,7 @@ export default function AgeMechanism() {
             <TabLabel label="Non-Age Patterns" tabKey="non-age-patterns" />
           </TabsTrigger>
           <TabsTrigger value="age-unsure-keywords">
-            <TabLabel label="Unsure Keywords" tabKey="age-unsure-keywords" />
+            <TabLabel label="File Base DB" tabKey="age-unsure-keywords" />
           </TabsTrigger>
           <TabsTrigger value="pos-neg-patterns">
             <TabLabel label="Pos/Neg Patterns" tabKey="pos-neg-patterns" />

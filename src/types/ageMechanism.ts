@@ -23,7 +23,7 @@ export type NonAgePattern = {
 export type AgeUnsureKeyword = {
   id: string;
   keyword: string;
-  label: "DNC" | "AH" | "NI";
+  label: "DNC" | "AH" | "NI" | "IDL" | "CGM-NQ1";
   active: boolean;
 };
 
