@@ -27,4 +27,9 @@ export type Client = {
   vicidial_address_folder: string;
   vicidial_transfer_address_folder: string;
   age_limit: string;
+  /**
+   * Optional per-client Mongo label collection name. Empty/null -> ai-voice-bot
+   * uses the default `labels_<campaign_code>`.
+   */
+  label_table_name: string | null;
 };

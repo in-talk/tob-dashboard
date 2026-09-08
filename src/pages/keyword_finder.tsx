@@ -143,7 +143,16 @@ export default function KeywordFinder() {
 
           <div className="w-40 min-w-[8rem]">
             <Select
-              value={campaignId}
+              // Only feed the Select a value it actually has an item for.
+              // A free-typed code (from the text box) is not one of the
+              // items, and passing it to Radix Select fights the text input —
+              // so pass undefined there and let the text box own the value.
+              value={
+                campaignId &&
+                campaigns.some((c) => `${c.campaign_code}` === campaignId)
+                  ? campaignId
+                  : undefined
+              }
               onValueChange={(value) => setCampaignId(value)}
             >
               <SelectTrigger className="py-7 w-full">
@@ -164,6 +173,17 @@ export default function KeywordFinder() {
                 </SelectGroup>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Manual campaign-code entry — bound to the same state as the
+              dropdown, so either the dropdown or a typed code can be used. */}
+          <div className="w-28 min-w-[6rem]">
+            <Input
+              value={campaignId ?? ""}
+              onChange={(e) => setCampaignId(e.target.value || undefined)}
+              placeholder="Code"
+              className="text-center py-7 w-full"
+            />
           </div>
 
           <Button

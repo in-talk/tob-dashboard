@@ -62,6 +62,9 @@ const createClientSchema = z.object({
   vicidial_transfer_address_folder: z.string().default("vicidial"),
   vicidial_address_folder: z.string().default("vicidial"),
   age_limit: z.string().default("40-80"),
+  // Optional per-client label collection name. Empty/null -> ai-voice-bot uses
+  // the default `labels_<campaign_code>`.
+  label_table_name: z.string().nullish(),
 });
 
 export type CreateClientValues = z.infer<typeof createClientSchema>;
@@ -279,6 +282,27 @@ export default function CreateUpdateClient({
                               typeof field.value === "number"
                               ? field.value
                               : ""
+                          }
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="label_table_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Label Table Name (optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          className="!mt-0"
+                          placeholder="e.g. labels_client_x (blank = default labels_<campaign>)"
+                          {...field}
+                          value={
+                            typeof field.value === "string" ? field.value : ""
                           }
                           onChange={(e) => field.onChange(e.target.value)}
                         />

@@ -83,8 +83,8 @@ export const sideBarData = {
           url: "/label_managment/?CGM",
         },
         {
-          title: `CGM OLD - ${Campaign.CGM_OLD}`,
-          url: "/label_managment/?CGM_OLD",
+          title: `CGM Pills - ${Campaign.CGM_PILLS}`,
+          url: "/label_managment/?CGM_PILLS",
         },
         {
           title: `ACA - ${Campaign.ACA}`,

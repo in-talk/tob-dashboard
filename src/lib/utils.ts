@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 export enum Campaign {
   CGM = 10000,
-  CGM_OLD = 10001,
+  CGM_PILLS = 10001,
   ACA = 20000,
   MP = 30000,
   FE = 40000,
