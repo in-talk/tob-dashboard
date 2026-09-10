@@ -32,4 +32,8 @@ export type Client = {
    * uses the default `labels_<campaign_code>`.
    */
   label_table_name: string | null;
+  /** Transfer via DID over a named peer/trunk instead of the Vicidial flow. */
+  transfer_using_did: boolean;
+  did_number: string | null;
+  peer_trunk_identifier: string | null;
 };

@@ -65,6 +65,11 @@ const createClientSchema = z.object({
   // Optional per-client label collection name. Empty/null -> ai-voice-bot uses
   // the default `labels_<campaign_code>`.
   label_table_name: z.string().nullish(),
+  // DID-based transfer: when enabled, node-agi transfers via the DID number
+  // over the named peer/trunk instead of the Vicidial flow.
+  transfer_using_did: z.boolean().default(false),
+  did_number: z.string().nullish(),
+  peer_trunk_identifier: z.string().nullish(),
 });
 
 export type CreateClientValues = z.infer<typeof createClientSchema>;
@@ -299,7 +304,67 @@ export default function CreateUpdateClient({
                       <FormControl>
                         <Input
                           className="!mt-0"
-                          placeholder="e.g. labels_client_x (blank = default labels_<campaign>)"
+                          placeholder="e.g. labels_{number} confirm from dev team (blank = default labels_<campaign>)"
+                          {...field}
+                          value={
+                            typeof field.value === "string" ? field.value : ""
+                          }
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="transfer_using_did"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(val) =>
+                            field.onChange(Boolean(val))
+                          }
+                        />
+                      </FormControl>
+                      <FormLabel className="!mt-0">Transfer using DID</FormLabel>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="did_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>DID Number</FormLabel>
+                      <FormControl>
+                        <Input
+                          className="!mt-0"
+                          placeholder="e.g. 18005551234"
+                          {...field}
+                          value={
+                            typeof field.value === "string" ? field.value : ""
+                          }
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="peer_trunk_identifier"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Peer / Trunk Identifier Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          className="!mt-0"
+                          placeholder="e.g. my_sip_trunk"
                           {...field}
                           value={
                             typeof field.value === "string" ? field.value : ""
