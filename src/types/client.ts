@@ -36,4 +36,6 @@ export type Client = {
   transfer_using_did: boolean;
   did_number: string | null;
   peer_trunk_identifier: string | null;
+  /** Aggressive transfer: fast-track callers toward XFER instead of answering. */
+  force_xfer: boolean;
 };

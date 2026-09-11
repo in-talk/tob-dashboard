@@ -49,6 +49,7 @@ async function getClients(req: NextApiRequest, res: NextApiResponse) {
     c.transfer_using_did,
     c.did_number,
     c.peer_trunk_identifier,
+    c.force_xfer,
     c.vicidial_api_user,
     c.vicidial_api_password,
     c.transfer_group_name,
@@ -109,6 +110,7 @@ async function createClient(req: NextApiRequest, res: NextApiResponse) {
       transfer_using_did,
       did_number,
       peer_trunk_identifier,
+      force_xfer,
     } = req.body;
 
     if (!name || !user_id || !campaign_id) {
@@ -123,13 +125,13 @@ async function createClient(req: NextApiRequest, res: NextApiResponse) {
         vicidial_address, vicidial_api_user, vicidial_api_password, transfer_group_name,
         vicidial_transfer_address, vicidial_transfer_api_user, vicidial_transfer_api_pass,
         vicidial_transfer_user, name, description, updated_by, age_limit, vicidial_transfer_address_folder, vicidial_address_folder,
-        label_table_name, transfer_using_did, did_number, peer_trunk_identifier
+        label_table_name, transfer_using_did, did_number, peer_trunk_identifier, force_xfer
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8,
         $9, $10, $11, $12,
         $13, $14, $15, $16,
         $17, $18, $19, $20, $21,
-        $22, $23, $24, $25
+        $22, $23, $24, $25, $26
       ) RETURNING client_id`,
       [
         user_id,
@@ -157,6 +159,7 @@ async function createClient(req: NextApiRequest, res: NextApiResponse) {
         transfer_using_did ?? false,
         did_number || null,
         peer_trunk_identifier || null,
+        force_xfer ?? false,
       ]
     );
 
@@ -206,6 +209,7 @@ async function updateClient(req: NextApiRequest, res: NextApiResponse) {
       transfer_using_did,
       did_number,
       peer_trunk_identifier,
+      force_xfer,
     } = req.body;
 
     if (!client_id) {
@@ -239,8 +243,9 @@ async function updateClient(req: NextApiRequest, res: NextApiResponse) {
     label_table_name = $22,
     transfer_using_did = $23,
     did_number = $24,
-    peer_trunk_identifier = $25
-  WHERE client_id = $26
+    peer_trunk_identifier = $25,
+    force_xfer = $26
+  WHERE client_id = $27
   RETURNING *`,
       [
         user_id,
@@ -268,6 +273,7 @@ async function updateClient(req: NextApiRequest, res: NextApiResponse) {
         transfer_using_did ?? false,
         did_number || null,
         peer_trunk_identifier || null,
+        force_xfer ?? false,
         client_id,
       ]
     );

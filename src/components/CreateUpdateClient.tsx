@@ -70,6 +70,9 @@ const createClientSchema = z.object({
   transfer_using_did: z.boolean().default(false),
   did_number: z.string().nullish(),
   peer_trunk_identifier: z.string().nullish(),
+  // Aggressive transfer: skip the "answer questions" rebuttals and fast-track
+  // callers toward XFER (from turn 2) unless they clearly decline.
+  force_xfer: z.boolean().default(false),
 });
 
 export type CreateClientValues = z.infer<typeof createClientSchema>;
@@ -330,6 +333,26 @@ export default function CreateUpdateClient({
                         />
                       </FormControl>
                       <FormLabel className="!mt-0">Transfer using DID</FormLabel>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="force_xfer"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(val) =>
+                            field.onChange(Boolean(val))
+                          }
+                        />
+                      </FormControl>
+                      <FormLabel className="!mt-0">
+                        Force Transfer (aggressive XFER)
+                      </FormLabel>
                       <FormMessage />
                     </FormItem>
                   )}
