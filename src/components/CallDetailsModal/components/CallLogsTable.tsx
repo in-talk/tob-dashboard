@@ -56,9 +56,7 @@ function CallLogsTable({ callLogs }: CallLogsTable) {
                   <TableCell>{row.emoji}</TableCell>
                   <TableCell className="max-w-[300px]">{row.action}</TableCell>
                   <TableCell>{row.status}</TableCell>
-                  <TableCell>
-                    {new Date(row.timestamp).toLocaleString()}
-                  </TableCell>
+                  <TableCell>{row.timestamp}</TableCell>
                   <TableCell>{row.timeFromStart}</TableCell>
                   <TableCell>
                     {row.additionalData &&

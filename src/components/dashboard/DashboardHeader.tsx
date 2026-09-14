@@ -2,6 +2,7 @@
 import AutoRefresh from "@/components/ui/autoRefresh";
 import ClientSelector from "@/components/ui/clientSelector";
 import NewDateFilter from "@/components/NewDateFilter";
+import NotificationBell from "@/components/dashboard/NotificationBell";
 
 // components/dashboard/DashboardHeader.tsx
 interface DashboardHeaderProps {
@@ -57,12 +58,15 @@ export default function DashboardHeader({
         />
       )}
 
-      <NewDateFilter
-        onDateChange={onDateChange}
-        autoRefresh={autoRefresh}
-        initialRange={dateRange}
-        disabled={isLoading}
-      />
+      <div className="flex items-center gap-2">
+        <NewDateFilter
+          onDateChange={onDateChange}
+          autoRefresh={autoRefresh}
+          initialRange={dateRange}
+          disabled={isLoading}
+        />
+        <NotificationBell />
+      </div>
     </div>
   );
 }

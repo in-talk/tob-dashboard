@@ -1,5 +1,6 @@
 // components/dashboard/DashboardContent.tsx
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import { CallRecord } from "@/types/callRecord";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -34,6 +35,7 @@ interface DashboardContentProps {
 }
 
 export default function DashboardContent({ userId }: DashboardContentProps) {
+  const router = useRouter();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const { data: session } = useSession();
 
@@ -103,6 +105,18 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
       setSelectedClientId(data.clients[0].client_id);
     }
   }, [data.clients, selectedClientId]);
+
+  // Deep link from the notification bell: `/?call_id=123` seeds a call_id
+  // search so the table lands on exactly that call (the get_client_data
+  // procedure ignores the date range when a call_id is set).
+  useEffect(() => {
+    if (!router.isReady) return;
+    const cid = router.query.call_id;
+    if (typeof cid === "string" && cid) {
+      setSearchType("call_id");
+      setServerSearchTerm(cid);
+    }
+  }, [router.isReady, router.query.call_id]);
 
   const getTimeAgo = useCallback(() => {
     if (!lastUpdated) return "Never";
