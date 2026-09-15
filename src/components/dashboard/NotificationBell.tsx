@@ -1,5 +1,6 @@
 import useSWR from "swr";
 import { useRouter } from "next/router";
+import { useSession } from "next-auth/react";
 import { Bell, CheckCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fetcher } from "@/utils/fetcher";
@@ -18,8 +19,13 @@ const POLL_MS = 45000;
 
 export default function NotificationBell() {
   const router = useRouter();
+  const { data: session } = useSession();
+  // Error notifications are an admin-only feature. Non-admins never fetch and
+  // the bell is not rendered at all (see the early return below).
+  const isAdmin = session?.user?.role === "admin";
+
   const { data, mutate } = useSWR<NotificationsResponse>(
-    "/api/notifications?limit=50",
+    isAdmin ? "/api/notifications?limit=50" : null,
     fetcher,
     { refreshInterval: POLL_MS, revalidateOnFocus: true }
   );
@@ -64,6 +70,9 @@ export default function NotificationBell() {
     if (!n.is_read) markRead({ id: n.id });
     if (n.call_id != null) router.push(`/?call_id=${n.call_id}`);
   }
+
+  // Hide the bell entirely for non-admins.
+  if (!isAdmin) return null;
 
   return (
     <Popover>

@@ -19,6 +19,10 @@ export default async function handler(
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+  // Admin-only feature.
+  if (session?.user?.role !== "admin") {
+    return res.status(403).json({ error: "Forbidden" });
+  }
 
   const { id, all } = req.body ?? {};
   if (!all && (id === undefined || id === null)) {
