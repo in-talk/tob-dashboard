@@ -27,36 +27,17 @@ export default async function handler(
   const limit = Math.min(Number(req.query.limit) || 50, 200);
 
   try {
-    const [list, count] = await Promise.all([
-      db.query(
-        `SELECT n.id, n.type, n.call_id, n.client_id, n.title, n.body,
-                n.severity, n.created_at,
-                (r.notification_id IS NOT NULL) AS is_read
-         FROM notifications n
-         LEFT JOIN notification_reads r
-                ON r.notification_id = n.id AND r.user_id = $1
-         ORDER BY n.created_at DESC
-         LIMIT $2`,
-        [userId, limit]
-      ),
-      db.query(
-        `SELECT COUNT(*)::int AS unread
-         FROM notifications n
-         LEFT JOIN notification_reads r
-                ON r.notification_id = n.id AND r.user_id = $1
-         WHERE r.notification_id IS NULL`,
-        [userId]
-      ),
+    const result = await db.query(`SELECT get_notifications($1, $2::int) AS data`, [
+      userId,
+      limit,
     ]);
-
-    res.status(200).json({
-      notifications: list.rows,
-      unread: count.rows[0]?.unread ?? 0,
-    });
+    const data = result.rows[0]?.data ?? { notifications: [], unread: 0 };
+    res.status(200).json(data);
   } catch (error) {
-    // Tables not created yet (cron hasn't run) — behave as "no notifications"
-    // instead of 500ing the bell.
-    if ((error as { code?: string }).code === "42P01") {
+    // Function/tables not created yet — behave as "no notifications" instead
+    // of 500ing the bell. 42P01 = undefined table, 42883 = undefined function.
+    const code = (error as { code?: string }).code;
+    if (code === "42P01" || code === "42883") {
       return res.status(200).json({ notifications: [], unread: 0 });
     }
     console.error("Error fetching notifications:", error);

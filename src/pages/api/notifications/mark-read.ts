@@ -30,29 +30,16 @@ export default async function handler(
   }
 
   try {
-    if (all) {
-      // Insert a read row for every notification this user hasn't read yet.
-      await db.query(
-        `INSERT INTO notification_reads (notification_id, user_id)
-         SELECT n.id, $1
-         FROM notifications n
-         LEFT JOIN notification_reads r
-                ON r.notification_id = n.id AND r.user_id = $1
-         WHERE r.notification_id IS NULL`,
-        [userId]
-      );
-    } else {
-      await db.query(
-        `INSERT INTO notification_reads (notification_id, user_id)
-         VALUES ($1, $2)
-         ON CONFLICT (notification_id, user_id) DO NOTHING`,
-        [id, userId]
-      );
-    }
+    await db.query(`SELECT mark_notifications_read($1, $2::bigint, $3::boolean)`, [
+      userId,
+      all ? null : id,
+      Boolean(all),
+    ]);
     res.status(200).json({ ok: true });
   } catch (error) {
-    // Tables not created yet — nothing to mark.
-    if ((error as { code?: string }).code === "42P01") {
+    // Function/tables not created yet — nothing to mark.
+    const code = (error as { code?: string }).code;
+    if (code === "42P01" || code === "42883") {
       return res.status(200).json({ ok: true });
     }
     console.error("Error marking notification read:", error);
