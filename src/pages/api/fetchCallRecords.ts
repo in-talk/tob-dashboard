@@ -20,6 +20,7 @@ export default async function handler(
     search_term = null,
     page = 1,
     num_of_records = 10,
+    user_id = null,
   } = req.body;
 
   // if (!client_id) {
@@ -28,7 +29,7 @@ export default async function handler(
 
   try {
     const result = await db.query(
-      `SELECT * FROM get_client_data_paginated($1, $2, $3, $4, $5, $6, $7, $8);`,
+      `SELECT * FROM get_client_data_paginated($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
       [
         client_id,
         from_date ? formatDateForDB(from_date) : null,
@@ -38,6 +39,7 @@ export default async function handler(
         search_term,
         page,
         num_of_records,
+        user_id,
       ]
     );
     res.status(200).json({

@@ -14,7 +14,7 @@ interface UseDashboardDataProps {
   dateRange: { from: Date; to: Date };
   pagination: { page: number; pageSize: number };
   serverSearchTerm?: string;
-  searchType?: "call_id" | "caller_id";
+  searchType?: "call_id" | "caller_id" | "user_id";
   globalSearchTerm?: string;
   clientWise?: boolean;
   fetchLast7Days?: boolean;
@@ -31,6 +31,7 @@ interface CallRecordsPayload {
   search_term?: string | null;
   call_id?: string | null;
   caller_id?: string | null;
+  user_id?: string | null;
 }
 
 export function useDashboardData({
@@ -117,11 +118,14 @@ export function useDashboardData({
         payload.from_date = null;
         payload.to_date = null;
         payload.search_term = null;
+        payload.call_id = null;
+        payload.caller_id = null;
+        payload.user_id = null;
         if (searchType === "call_id") {
           payload.call_id = serverSearchTerm;
-          payload.caller_id = null;
+        } else if (searchType === "user_id") {
+          payload.user_id = serverSearchTerm;
         } else {
-          payload.call_id = null;
           payload.caller_id = serverSearchTerm;
         }
       }
@@ -131,6 +135,7 @@ export function useDashboardData({
         payload.to_date = utcDateRange.to;
         payload.call_id = null;
         payload.caller_id = null;
+        payload.user_id = null;
         payload.search_term = globalSearchTerm || null;
       }
 

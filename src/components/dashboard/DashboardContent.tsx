@@ -53,9 +53,9 @@ export default function DashboardContent({ userId }: DashboardContentProps) {
   );
   const [pagination, setPagination] = useState({ page: 1, pageSize: 10 });
   const [serverSearchTerm, setServerSearchTerm] = useState("");
-  const [searchType, setSearchType] = useState<"call_id" | "caller_id">(
-    "caller_id"
-  );
+  const [searchType, setSearchType] = useState<
+    "call_id" | "caller_id" | "user_id"
+  >("caller_id");
   const [globalSearchTerm, setGlobalSearchTerm] = useState("");
   const [clientWise, setClientWise] = useState(true);
   const [showLast7Days, setShowLast7Days] = useState(false);

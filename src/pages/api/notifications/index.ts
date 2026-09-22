@@ -27,7 +27,7 @@ export default async function handler(
   const limit = Math.min(Number(req.query.limit) || 50, 200);
 
   try {
-    const result = await db.query(`SELECT get_notifications($1, $2::int) AS data`, [
+    const result = await db.query(`SELECT * from get_notifications($1, $2::int) AS data`, [
       userId,
       limit,
     ]);

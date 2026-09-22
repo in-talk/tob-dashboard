@@ -1,6 +1,8 @@
 -- FUNCTION: public.get_client_data_paginated(bigint, timestamp with time zone, timestamp with time zone, text, integer, text, integer, integer)
 
--- DROP FUNCTION IF EXISTS public.get_client_data_paginated(bigint, timestamp with time zone, timestamp with time zone, text, integer, text, integer, integer);
+-- Drop the previous 8-arg signature first: adding p_user_id (9th) would
+-- otherwise create a SECOND overload and make existing 8-arg calls ambiguous.
+DROP FUNCTION IF EXISTS public.get_client_data_paginated(bigint, timestamp with time zone, timestamp with time zone, text, integer, text, integer, integer);
 
 CREATE OR REPLACE FUNCTION public.get_client_data_paginated(
 	p_client_id bigint,
@@ -10,7 +12,8 @@ CREATE OR REPLACE FUNCTION public.get_client_data_paginated(
 	p_call_id integer DEFAULT NULL::integer,
 	p_search_term text DEFAULT NULL::text,
 	p_page_number integer DEFAULT 1,
-	p_page_size integer DEFAULT 10)
+	p_page_size integer DEFAULT 10,
+	p_user_id text DEFAULT NULL::text)
     RETURNS jsonb
     LANGUAGE 'plpgsql'
     COST 100
@@ -40,15 +43,17 @@ BEGIN
       AND t.agent IS NOT NULL
       -- If specific search is active, ignore dates. Otherwise, respect them.
       AND (
-          (p_caller_id IS NOT NULL OR p_call_id IS NOT NULL)
+          (p_caller_id IS NOT NULL OR p_call_id IS NOT NULL OR p_user_id IS NOT NULL)
           OR (t.created_at >= p_start_date AND t.created_at < p_end_date)
       )
       -- Specific filters
       AND (p_caller_id IS NULL OR t.caller_id = p_caller_id)
       AND (p_call_id IS NULL OR t.call_id = p_call_id)
+      AND (p_user_id IS NULL OR t.user_id = p_user_id)
       -- Global search filter
       AND (p_search_term IS NULL OR (
           t.caller_id ILIKE v_search OR
+          t.user_id ILIKE v_search OR
           t.call_id::text ILIKE v_search OR
           t.disposition ILIKE v_search OR
           t.label ILIKE v_search OR
@@ -63,11 +68,12 @@ BEGIN
           AND t.disposition IS NOT NULL
           AND t.agent IS NOT NULL
           AND (
-              (p_caller_id IS NOT NULL OR p_call_id IS NOT NULL)
+              (p_caller_id IS NOT NULL OR p_call_id IS NOT NULL OR p_user_id IS NOT NULL)
               OR (t.created_at >= p_start_date AND t.created_at < p_end_date)
           )
           AND (p_caller_id IS NULL OR t.caller_id = p_caller_id)
           AND (p_call_id IS NULL OR t.call_id = p_call_id)
+      AND (p_user_id IS NULL OR t.user_id = p_user_id)
           AND (p_search_term IS NULL OR (
               t.caller_id ILIKE v_search OR
               t.call_id::text ILIKE v_search OR
@@ -102,6 +108,7 @@ BEGIN
         jsonb_build_object(
             'call_id', p.call_id,
             'caller_id', p.caller_id,
+            'user_id', p.user_id,
             'caller_count', COALESCE(cc.caller_count, 1),
             'caller_count_all', COALESCE(cca.caller_count_all, 1),
             'call_start_time', p.call_start_time,
@@ -144,5 +151,5 @@ BEGIN
 END;
 $BODY$;
 
-ALTER FUNCTION public.get_client_data_paginated(bigint, timestamp with time zone, timestamp with time zone, text, integer, text, integer, integer)
+ALTER FUNCTION public.get_client_data_paginated(bigint, timestamp with time zone, timestamp with time zone, text, integer, text, integer, integer, text)
     OWNER TO bilal_super_user;

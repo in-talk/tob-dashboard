@@ -92,8 +92,8 @@ interface CallDataTableProps {
   totalRecords?: number;
   serverSearchTerm?: string;
   onServerSearchChange?: (term: string) => void;
-  searchType?: "call_id" | "caller_id";
-  onSearchTypeChange?: (type: "call_id" | "caller_id") => void;
+  searchType?: "call_id" | "caller_id" | "user_id";
+  onSearchTypeChange?: (type: "call_id" | "caller_id" | "user_id") => void;
   globalSearchTerm?: string;
   onGlobalSearchChange?: (term: string) => void;
   clientWise?: boolean;
@@ -373,6 +373,7 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   const searchTypeOptions = [
     { label: "Caller ID", value: "caller_id" },
     { label: "Call ID", value: "call_id" },
+    { label: "User ID", value: "user_id" },
   ];
 
   const header = useMemo(
@@ -405,7 +406,13 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
                 <InputText
                   value={localServerSearchTerm}
                   onChange={(e) => setLocalServerSearchTerm(e.target.value)}
-                  placeholder={`Search ${searchType === "call_id" ? "Call ID" : "Caller ID"}`}
+                  placeholder={`Search ${
+                    searchType === "call_id"
+                      ? "Call ID"
+                      : searchType === "user_id"
+                      ? "User ID"
+                      : "Caller ID"
+                  }`}
                   className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white w-full sm:w-64"
                 />
               </div>
