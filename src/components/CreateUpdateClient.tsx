@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/Select";
 import CustomLoader from "./ui/CustomLoader";
 import { toast } from "@/hooks/use-toast";
+import { parseIpList } from "@/lib/network/ip";
+import { PROVIDERS, PROVIDER_LABELS } from "@/lib/network/types";
 
 const createClientSchema = z.object({
   user_id: z.number({ invalid_type_error: "User is required" }),
@@ -73,6 +75,21 @@ const createClientSchema = z.object({
   // Aggressive transfer: skip the "answer questions" rebuttals and fast-track
   // callers toward XFER (from turn 2) unless they clearly decline.
   force_xfer: z.boolean().default(false),
+  // Create-only: comma-separated IPs inserted into client_ips once the
+  // client exists. Parsed/validated identically on the server.
+  ips: z
+    .string()
+    .nullish()
+    .superRefine((value, ctx) => {
+      const { invalid } = parseIpList(value);
+      if (invalid.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid IP address(es): ${invalid.join(", ")}`,
+        });
+      }
+    }),
+  ips_provider: z.enum(PROVIDERS).nullish(),
 });
 
 export type CreateClientValues = z.infer<typeof createClientSchema>;
@@ -154,7 +171,13 @@ export default function CreateUpdateClient({
   }, [watchedCampaignId, form]);
 
   const onSubmit = async (data: CreateClientValues) => {
-    const payload = { ...data, metadata: {}, client_id };
+    const { ips, ips_provider, ...clientData } = data;
+    const payload = {
+      ...clientData,
+      metadata: {},
+      client_id,
+      ...(mode === "create" ? { ips, ips_provider } : {}),
+    };
 
     const res = await fetch(`/api/clients/`, {
       method: mode === "update" ? "PUT" : "POST",
@@ -196,6 +219,7 @@ export default function CreateUpdateClient({
     mutate("/api/clients");
 
     if (mode === "create") {
+      mutate("/api/network/client-ips");
       form.reset();
     }
     setDialogOpen(false);
@@ -710,6 +734,65 @@ export default function CreateUpdateClient({
                 ))}
               </div>
             </div>
+
+            {mode === "create" && (
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-6">
+                <FormField
+                  control={form.control}
+                  name="ips"
+                  render={({ field }) => {
+                    const { valid } = parseIpList(field.value);
+                    return (
+                      <FormItem>
+                        <FormLabel>IPs (optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            className="!mt-0 font-mono"
+                            placeholder="e.g. 34.1.2.3, 34.1.2.4"
+                            {...field}
+                            value={field.value ?? ""}
+                          />
+                        </FormControl>
+                        {valid.length > 0 && !form.formState.errors.ips && (
+                          <p className="text-xs text-muted-foreground">
+                            {valid.length} IP(s) will be added to Client IPs
+                          </p>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+                <FormField
+                  control={form.control}
+                  name="ips_provider"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>IP provider</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={(val) => field.onChange(val === "none" ? null : val)}
+                          value={field.value ?? "none"}
+                        >
+                          <SelectTrigger className="w-full !mt-0">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Not set</SelectItem>
+                            {PROVIDERS.map((p) => (
+                              <SelectItem key={p} value={p}>
+                                {PROVIDER_LABELS[p]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             <div className="flex justify-center">
               <Button type="submit" disabled={form.formState.isSubmitting}>

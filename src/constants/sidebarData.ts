@@ -7,6 +7,7 @@ import {
   Blocks,
   FormInputIcon,
   FileText,
+  Network,
 } from "lucide-react";
 import { Campaign } from "@/lib/utils";
 
@@ -71,6 +72,19 @@ export const sideBarData = {
           title: "Add REC/Honeypot Numbers",
           url: "/forms/HPNumbers",
         },
+      ],
+    },
+    {
+      name: "Network",
+      url: "/network",
+      icon: Network,
+      items: [
+        { title: "Kamailio Servers", url: "/network/kamailio" },
+        { title: "Client IPs", url: "/network/client-ips" },
+        { title: "Kamailio ↔ Client IPs", url: "/network/kamailio-client-ips" },
+        { title: "Asterisk Machines", url: "/network/asterisk" },
+        { title: "Kamailio ↔ Asterisk", url: "/network/kamailio-asterisk" },
+        { title: "GCP Firewall Rules", url: "/network/firewall-rules" },
       ],
     },
     {

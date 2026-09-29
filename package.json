@@ -41,6 +41,7 @@
     "date-fns": "^3.6.0",
     "formidable": "^3.5.2",
     "framer-motion": "^12.23.12",
+    "google-auth-library": "^8.9.0",
     "highcharts": "^12.3.0",
     "highcharts-react-official": "^3.2.2",
     "jszip": "^3.10.1",

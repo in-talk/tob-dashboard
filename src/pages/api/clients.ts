@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import db from "@/lib/db"; // adjust to your db connection
 import { Client } from "@/types/client";
+import { parseIpList } from "@/lib/network/ip";
+import { insertClientIps, parseProvider, ValidationError } from "@/lib/network/server";
 
 export default async function handler(
   req: NextApiRequest,
@@ -111,6 +113,8 @@ async function createClient(req: NextApiRequest, res: NextApiResponse) {
       did_number,
       peer_trunk_identifier,
       force_xfer,
+      ips,
+      ips_provider,
     } = req.body;
 
     if (!name || !user_id || !campaign_id) {
@@ -119,56 +123,88 @@ async function createClient(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    const insertResult = await db.query(
-      `INSERT INTO clients (
-        user_id, campaign_id, model, is_active, metadata, number_of_lines, version,
-        vicidial_address, vicidial_api_user, vicidial_api_password, transfer_group_name,
-        vicidial_transfer_address, vicidial_transfer_api_user, vicidial_transfer_api_pass,
-        vicidial_transfer_user, name, description, updated_by, age_limit, vicidial_transfer_address_folder, vicidial_address_folder,
-        label_table_name, transfer_using_did, did_number, peer_trunk_identifier, force_xfer
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8,
-        $9, $10, $11, $12,
-        $13, $14, $15, $16,
-        $17, $18, $19, $20, $21,
-        $22, $23, $24, $25, $26
-      ) RETURNING client_id`,
-      [
-        user_id,
-        campaign_id,
-        model,
-        is_active,
-        metadata,
-        number_of_lines,
-        version,
-        vicidial_address,
-        vicidial_api_user,
-        vicidial_api_password,
-        transfer_group_name,
-        vicidial_transfer_address,
-        vicidial_transfer_api_user,
-        vicidial_transfer_api_pass,
-        vicidial_transfer_user,
-        name,
-        description,
-        updated_by,
-        age_limit,
-        vicidial_transfer_address_folder,
-        vicidial_address_folder,
-        label_table_name || null,
-        transfer_using_did ?? false,
-        did_number || null,
-        peer_trunk_identifier || null,
-        force_xfer ?? false,
-      ]
-    );
+    // Optional comma-separated IPs: validate everything up front so a bad IP
+    // never leaves a half-created client behind.
+    const { valid: clientIps, invalid: invalidIps } = parseIpList(typeof ips === "string" ? ips : "");
+    if (invalidIps.length) {
+      return res.status(400).json({
+        ok: false,
+        error: `Invalid IP address(es): ${invalidIps.join(", ")}`,
+      });
+    }
+    let ipProvider;
+    try {
+      ipProvider = parseProvider(ips_provider, false);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return res.status(400).json({ ok: false, error: error.message });
+      }
+      throw error;
+    }
 
-    const newClientId = insertResult.rows[0].client_id;
+    const { newClientId, addedIps } = await db.withTransaction(async (tx) => {
+      const insertResult = await tx.query(
+        `INSERT INTO clients (
+          user_id, campaign_id, model, is_active, metadata, number_of_lines, version,
+          vicidial_address, vicidial_api_user, vicidial_api_password, transfer_group_name,
+          vicidial_transfer_address, vicidial_transfer_api_user, vicidial_transfer_api_pass,
+          vicidial_transfer_user, name, description, updated_by, age_limit, vicidial_transfer_address_folder, vicidial_address_folder,
+          label_table_name, transfer_using_did, did_number, peer_trunk_identifier, force_xfer
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8,
+          $9, $10, $11, $12,
+          $13, $14, $15, $16,
+          $17, $18, $19, $20, $21,
+          $22, $23, $24, $25, $26
+        ) RETURNING client_id`,
+        [
+          user_id,
+          campaign_id,
+          model,
+          is_active,
+          metadata,
+          number_of_lines,
+          version,
+          vicidial_address,
+          vicidial_api_user,
+          vicidial_api_password,
+          transfer_group_name,
+          vicidial_transfer_address,
+          vicidial_transfer_api_user,
+          vicidial_transfer_api_pass,
+          vicidial_transfer_user,
+          name,
+          description,
+          updated_by,
+          age_limit,
+          vicidial_transfer_address_folder,
+          vicidial_address_folder,
+          label_table_name || null,
+          transfer_using_did ?? false,
+          did_number || null,
+          peer_trunk_identifier || null,
+          force_xfer ?? false,
+        ]
+      );
+
+      const newClientId = insertResult.rows[0].client_id;
+      const { inserted } = await insertClientIps(
+        tx,
+        String(newClientId),
+        clientIps,
+        ipProvider,
+        updated_by || "system"
+      );
+      return { newClientId, addedIps: inserted };
+    });
 
     return res.status(201).json({
       ok: true,
-      message: "Client created successfully",
+      message: addedIps.length
+        ? `Client created successfully with ${addedIps.length} IP(s)`
+        : "Client created successfully",
       clientId: newClientId,
+      ips: addedIps,
     });
   } catch (error: unknown) {
     console.error("Error creating client:", error);

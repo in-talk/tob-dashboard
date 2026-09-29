@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool, PoolClient } from "pg";
 
 const pool = new Pool({
   connectionString: process.env.POSTGRESDATABASE_URL,
@@ -14,6 +14,24 @@ export async function query(text: string, params: any[] = []) {
   return res;
 }
 
+/** Run `fn` inside BEGIN/COMMIT on a single connection; rolls back on throw. */
+export async function withTransaction<T>(
+  fn: (client: PoolClient) => Promise<T>
+): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await fn(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function getUser(email: string) {
   const result = await query("SELECT * FROM users WHERE email = $1", [
     email.toLowerCase(),
@@ -26,5 +44,5 @@ export async function getUserById(id: string) {
   return result.rows[0];
 }
 
-const db = { query, getUser, getUserById };
+const db = { query, withTransaction, getUser, getUserById };
 export default db;
