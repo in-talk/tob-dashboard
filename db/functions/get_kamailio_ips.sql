@@ -4,9 +4,11 @@
 -- client IPs it accepts, e.g.
 --   SELECT get_kamailio_ips('10.0.0.1');
 --   => {"kamailio_ip": "10.0.0.1",
---       "asterisk_ips": ["10.1.0.1", "10.1.0.2"],
+--       "asterisk_ips": ["35.1.0.1", "35.1.0.2"],
+--       "asterisk_private_ips": ["10.1.0.1", "10.1.0.2"],
 --       "client_ips":   ["34.1.2.3", "34.1.2.4"]}
--- Unknown Kamailio IP => both arrays empty.
+-- asterisk_ips are public IPs; asterisk_private_ips skips machines with no
+-- private IP set. Unknown Kamailio IP => all arrays empty.
 
 CREATE OR REPLACE FUNCTION public.get_kamailio_ips(p_kamailio_ip inet)
     RETURNS jsonb
@@ -21,6 +23,13 @@ AS $BODY$
             JOIN kamailio_asterisk_map m ON m.kamailio_id = k.id
             JOIN asterisk_machines a     ON a.id = m.asterisk_id
             WHERE k.ip = p_kamailio_ip
+        ), '[]'::jsonb),
+        'asterisk_private_ips', COALESCE((
+            SELECT jsonb_agg(host(a.private_ip) ORDER BY a.private_ip)
+            FROM kamailio_config k
+            JOIN kamailio_asterisk_map m ON m.kamailio_id = k.id
+            JOIN asterisk_machines a     ON a.id = m.asterisk_id
+            WHERE k.ip = p_kamailio_ip AND a.private_ip IS NOT NULL
         ), '[]'::jsonb),
         -- DISTINCT: the same IP can be registered under more than one client.
         'client_ips', COALESCE((

@@ -54,7 +54,14 @@ export default function KamailioAsteriskPage() {
   );
   const asteriskFilterOptions: SelectOption[] = useMemo(
     () =>
-      (asterisks ?? []).map((a) => ({ value: a.id, label: a.ip, description: PROVIDER_LABELS[a.provider] })),
+      (asterisks ?? []).map((a) => ({
+        value: a.id,
+        label: a.ip,
+        // Private IP is searchable via the description.
+        description: [a.private_ip && `private ${a.private_ip}`, PROVIDER_LABELS[a.provider]]
+          .filter(Boolean)
+          .join(" · "),
+      })),
     [asterisks]
   );
   // In the form, Asterisk machines already mapped to the chosen Kamailio are disabled.
@@ -115,7 +122,14 @@ export default function KamailioAsteriskPage() {
       key: "asterisk",
       header: "Asterisk",
       sortValue: (r) => ipSortValue(r.asterisk_ip),
-      render: (r) => <span className="font-mono text-sm">{r.asterisk_ip}</span>,
+      render: (r) => (
+        <div>
+          <div className="font-mono text-sm">{r.asterisk_ip}</div>
+          <div className="font-mono text-xs text-muted-foreground">
+            {r.asterisk_private_ip ? `private ${r.asterisk_private_ip}` : "no private IP"}
+          </div>
+        </div>
+      ),
     },
     {
       key: "asterisk_provider",
@@ -153,7 +167,9 @@ export default function KamailioAsteriskPage() {
         rows={filtered}
         columns={columns}
         getRowId={(r) => r.id}
-        searchText={(r) => `${r.kamailio_ip} ${r.asterisk_ip} ${r.updated_by ?? ""}`}
+        searchText={(r) =>
+          `${r.kamailio_ip} ${r.asterisk_ip} ${r.asterisk_private_ip ?? ""} ${r.updated_by ?? ""}`
+        }
         searchPlaceholder="Search IPs…"
         isLoading={isLoading}
         error={error}

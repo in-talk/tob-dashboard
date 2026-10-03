@@ -11,7 +11,7 @@ import { Field, FormDrawer } from "./FormDrawer";
 import { ProviderBadge, ProviderSelect, RowActions, auditColumns, ipSortValue } from "./shared";
 import { useCrudResource } from "./useCrudResource";
 
-type IpServer = Audit & { ip: string; provider: Provider };
+type IpServer = Audit & { ip: string; private_ip?: string | null; provider: Provider };
 
 type Props = {
   endpoint: string;
@@ -22,17 +22,26 @@ type Props = {
   /** Extra read-only column, e.g. mapping counts. */
   extraColumns?: DataGridColumn<IpServer>[];
   deleteWarning: string;
+  /** Also capture an optional private (VPC-internal) IP, unique per provider. */
+  withPrivateIp?: boolean;
 };
 
-type FormState = { ip: string; provider: Provider | null };
+type FormState = { ip: string; private_ip: string; provider: Provider | null };
 type FormErrors = Partial<Record<keyof FormState, string>>;
 
 /**
  * CRUD screen for an "IP + provider" entity (Kamailio servers, Asterisk
  * machines). Both tables share the same shape and rules: unique host IP,
- * required provider.
+ * required provider; Asterisk additionally has a private IP (withPrivateIp).
  */
-export function IpServerManager({ endpoint, noun, dependents, extraColumns = [], deleteWarning }: Props) {
+export function IpServerManager({
+  endpoint,
+  noun,
+  dependents,
+  extraColumns = [],
+  deleteWarning,
+  withPrivateIp = false,
+}: Props) {
   const { rows, isLoading, error, create, update, remove } = useCrudResource<IpServer>(
     endpoint,
     dependents
@@ -40,7 +49,7 @@ export function IpServerManager({ endpoint, noun, dependents, extraColumns = [],
   const [providerFilter, setProviderFilter] = useState<Provider | null>(null);
   const [editing, setEditing] = useState<IpServer | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [form, setForm] = useState<FormState>({ ip: "", provider: null });
+  const [form, setForm] = useState<FormState>({ ip: "", private_ip: "", provider: null });
   const [errors, setErrors] = useState<FormErrors>({});
 
   const filtered = useMemo(
@@ -50,7 +59,11 @@ export function IpServerManager({ endpoint, noun, dependents, extraColumns = [],
 
   const openDrawer = (row: IpServer | null) => {
     setEditing(row);
-    setForm(row ? { ip: row.ip, provider: row.provider } : { ip: "", provider: null });
+    setForm(
+      row
+        ? { ip: row.ip, private_ip: row.private_ip ?? "", provider: row.provider }
+        : { ip: "", private_ip: "", provider: null }
+    );
     setErrors({});
     setDrawerOpen(true);
   };
@@ -58,18 +71,35 @@ export function IpServerManager({ endpoint, noun, dependents, extraColumns = [],
   const validate = (): boolean => {
     const next: FormErrors = {};
     const ip = normalizeIp(form.ip);
-    if (!ip) next.ip = "IP address is required";
+    const ipLabel = withPrivateIp ? "Public IP" : "IP address";
+    if (!ip) next.ip = `${ipLabel} is required`;
     else if (!isValidIp(ip)) next.ip = "Enter a valid IPv4 or IPv6 address";
     else if (rows.some((r) => r.ip === ip && r.id !== editing?.id))
-      next.ip = `A ${noun} with this IP already exists`;
+      next.ip = `A ${noun} with this ${withPrivateIp ? "public IP" : "IP"} already exists`;
     if (!form.provider) next.provider = "Provider is required";
+
+    const privateIp = normalizeIp(form.private_ip);
+    if (withPrivateIp && privateIp) {
+      if (!isValidIp(privateIp)) next.private_ip = "Enter a valid IPv4 or IPv6 address";
+      else if (
+        rows.some(
+          (r) =>
+            r.private_ip === privateIp && r.provider === form.provider && r.id !== editing?.id
+        )
+      )
+        next.private_ip = `Another ${noun} on this provider already has this private IP`;
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
   const onSubmit = async () => {
     if (!validate()) return false;
-    const body = { ip: normalizeIp(form.ip), provider: form.provider };
+    const body = {
+      ip: normalizeIp(form.ip),
+      provider: form.provider,
+      ...(withPrivateIp ? { private_ip: normalizeIp(form.private_ip) || null } : {}),
+    };
     return editing ? update({ id: editing.id, ...body }) : create(body);
   };
 
@@ -77,10 +107,25 @@ export function IpServerManager({ endpoint, noun, dependents, extraColumns = [],
     { key: "id", header: "ID", sortValue: (r) => Number(r.id), className: "w-16 text-muted-foreground" },
     {
       key: "ip",
-      header: "IP address",
+      header: withPrivateIp ? "Public IP" : "IP address",
       sortValue: (r) => ipSortValue(r.ip),
       render: (r) => <span className="font-mono text-sm">{r.ip}</span>,
     },
+    ...(withPrivateIp
+      ? [
+          {
+            key: "private_ip",
+            header: "Private IP",
+            sortValue: (r: IpServer) => (r.private_ip ? ipSortValue(r.private_ip) : null),
+            render: (r: IpServer) =>
+              r.private_ip ? (
+                <span className="font-mono text-sm">{r.private_ip}</span>
+              ) : (
+                <span className="text-xs italic text-muted-foreground">Not set</span>
+              ),
+          },
+        ]
+      : []),
     {
       key: "provider",
       header: "Provider",
@@ -110,7 +155,7 @@ export function IpServerManager({ endpoint, noun, dependents, extraColumns = [],
         rows={filtered}
         columns={columns}
         getRowId={(r) => r.id}
-        searchText={(r) => `${r.ip} ${r.provider} ${r.updated_by ?? ""}`}
+        searchText={(r) => `${r.ip} ${r.private_ip ?? ""} ${r.provider} ${r.updated_by ?? ""}`}
         searchPlaceholder="Search IP or user…"
         isLoading={isLoading}
         error={error}
@@ -136,12 +181,24 @@ export function IpServerManager({ endpoint, noun, dependents, extraColumns = [],
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         title={editing ? `Edit ${noun}` : `Add ${noun}`}
-        description={editing ? `Editing #${editing.id}` : "IP addresses must be unique."}
+        description={
+          editing
+            ? `Editing #${editing.id}`
+            : withPrivateIp
+              ? "Public IPs must be unique; private IPs must be unique per provider."
+              : "IP addresses must be unique."
+        }
         submitLabel={editing ? "Save changes" : `Add ${noun}`}
         onSubmit={onSubmit}
         audit={editing ?? undefined}
       >
-        <Field label="IP address" htmlFor="ip" required error={errors.ip} hint="e.g. 10.128.0.12">
+        <Field
+          label={withPrivateIp ? "Public IP" : "IP address"}
+          htmlFor="ip"
+          required
+          error={errors.ip}
+          hint={withPrivateIp ? "External address, e.g. 34.123.45.67" : "e.g. 10.128.0.12"}
+        >
           <Input
             id="ip"
             value={form.ip}
@@ -152,6 +209,23 @@ export function IpServerManager({ endpoint, noun, dependents, extraColumns = [],
             autoFocus
           />
         </Field>
+        {withPrivateIp && (
+          <Field
+            label="Private IP"
+            htmlFor="private_ip"
+            error={errors.private_ip}
+            hint="Internal VPC address, e.g. 10.128.0.12. Optional."
+          >
+            <Input
+              id="private_ip"
+              value={form.private_ip}
+              onChange={(e) => setForm((f) => ({ ...f, private_ip: e.target.value }))}
+              placeholder="10.0.0.0"
+              className={errors.private_ip ? "border-red-500 font-mono" : "font-mono"}
+              autoComplete="off"
+            />
+          </Field>
+        )}
         <Field label="Provider" htmlFor="provider" required error={errors.provider}>
           <ProviderSelect
             id="provider"

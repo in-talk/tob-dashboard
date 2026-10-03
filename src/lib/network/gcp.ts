@@ -4,9 +4,10 @@
 //   1. GCP_FIREWALL_SA_KEY — service-account key JSON (raw or base64)
 //   2. Application Default Credentials (GOOGLE_APPLICATION_CREDENTIALS, or the
 //      VM/Cloud Run metadata server when the dashboard runs on GCP)
-// The account needs compute.firewalls.get, compute.firewalls.update and
-// compute.globalOperations.get on each project (roles/compute.securityAdmin
-// or a custom role with just those).
+// The account needs, on each project: compute.firewalls.get,
+// compute.firewalls.update, compute.networks.updatePolicy (required by GCP for
+// any firewall-rule change) and compute.globalOperations.get. Grant them via a
+// custom role rather than roles/compute.securityAdmin.
 
 import { GoogleAuth } from "google-auth-library";
 
@@ -19,6 +20,7 @@ export type GcpFirewall = {
   direction: "INGRESS" | "EGRESS";
   disabled?: boolean;
   sourceRanges?: string[];
+  destinationRanges?: string[];
   sourceTags?: string[];
   sourceServiceAccounts?: string[];
 };
@@ -78,9 +80,20 @@ export function getFirewall(project: string, rule: string): Promise<GcpFirewall>
   return request<GcpFirewall>("GET", firewallUrl(project, rule));
 }
 
-/** Replace a rule's sourceRanges and wait for the operation to finish. */
-export async function setFirewallSourceRanges(project: string, rule: string, sourceRanges: string[]) {
-  let op = await request<Operation>("PATCH", firewallUrl(project, rule), { sourceRanges });
+/** The rule's IP list: sources for INGRESS rules, destinations for EGRESS. */
+export const rangeField = (direction: GcpFirewall["direction"]) =>
+  direction === "EGRESS" ? "destinationRanges" : "sourceRanges";
+
+/** Replace a rule's IP list and wait for the operation to finish. */
+export async function setFirewallRanges(
+  project: string,
+  rule: string,
+  direction: GcpFirewall["direction"],
+  ranges: string[]
+) {
+  let op = await request<Operation>("PATCH", firewallUrl(project, rule), {
+    [rangeField(direction)]: ranges,
+  });
   // operations.wait returns when DONE or after ~2 minutes; retry a few times.
   for (let i = 0; op.status !== "DONE" && i < 3; i++) {
     op = await request<Operation>(

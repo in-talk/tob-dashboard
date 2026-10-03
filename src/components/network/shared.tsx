@@ -206,7 +206,6 @@ export const NETWORK_PAGES = [
   { title: "Kamailio ↔ Client IPs", url: "/network/kamailio-client-ips" },
   { title: "Asterisk", url: "/network/asterisk" },
   { title: "Kamailio ↔ Asterisk", url: "/network/kamailio-asterisk" },
-  { title: "GCP Firewall", url: "/network/firewall-rules" },
 ];
 
 export function NetworkPage({

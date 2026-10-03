@@ -84,7 +84,6 @@ export const sideBarData = {
         { title: "Kamailio ↔ Client IPs", url: "/network/kamailio-client-ips" },
         { title: "Asterisk Machines", url: "/network/asterisk" },
         { title: "Kamailio ↔ Asterisk", url: "/network/kamailio-asterisk" },
-        { title: "GCP Firewall Rules", url: "/network/firewall-rules" },
       ],
     },
     {

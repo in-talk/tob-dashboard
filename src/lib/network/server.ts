@@ -45,6 +45,14 @@ export function parseIp(value: unknown, label = "IP address"): string {
   return normalizeIp(value);
 }
 
+/** Like parseIp, but blank → null. */
+export function parseOptionalIp(value: unknown, label = "IP address"): string | null {
+  if (value === undefined || value === null || (typeof value === "string" && !value.trim())) {
+    return null;
+  }
+  return parseIp(value, label);
+}
+
 export function parseProvider(value: unknown, required: boolean): Provider | null {
   if (value === undefined || value === null || value === "") {
     if (required) throw new ValidationError("Provider is required");

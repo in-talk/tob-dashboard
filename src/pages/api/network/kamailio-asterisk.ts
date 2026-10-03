@@ -4,7 +4,8 @@ export default crudHandler({
   table: "kamailio_asterisk_map",
   listSql: `
     SELECT m.id, m.kamailio_id, host(k.ip) AS kamailio_ip,
-           m.asterisk_id, host(a.ip) AS asterisk_ip, a.provider AS asterisk_provider,
+           m.asterisk_id, host(a.ip) AS asterisk_ip, host(a.private_ip) AS asterisk_private_ip,
+           a.provider AS asterisk_provider,
            m.created_at, m.updated_at, m.updated_by
     FROM kamailio_asterisk_map m
     JOIN kamailio_config k   ON k.id = m.kamailio_id

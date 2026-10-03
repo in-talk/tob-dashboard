@@ -1,28 +1,55 @@
-// Server-only: diff and push client IPs to GCP firewall rules.
+// Server-only: keep GCP firewall rules' source ranges equal to client_ips.
+//
+// Configuration (.env):
+//   GCP_FIREWALL_PROJECT      default project for rules listed without one
+//   GCP_FIREWALL_RULES        comma-separated rule names; "other-project/rule"
+//                             targets a different project
+//   GCP_FIREWALL_KEEP_RANGES  optional IPs/CIDRs that aren't client IPs but
+//                             must stay in every rule (office, VPN, monitoring)
+//
+// Every rule ends up containing exactly: all client IPs + KEEP_RANGES — as
+// source ranges for INGRESS rules, destination ranges for EGRESS rules.
 
 import db from "@/lib/db";
-import { GcpError, getFirewall, setFirewallSourceRanges } from "./gcp";
-import { FirewallScope, FirewallSyncPlan } from "./types";
+import { getFirewall, rangeField, setFirewallRanges } from "./gcp";
+import { parseCidrList } from "./ip";
+import { ValidationError } from "./server";
+import { FirewallSyncPlan } from "./types";
 
-type RuleRow = {
-  id: string;
-  project_id: string;
-  rule_name: string;
-  scope: FirewallScope;
-  client_id: string | null;
-  client_name: string | null;
-  kamailio_id: string | null;
-  kamailio_ip: string | null;
-  static_ranges: string[];
-};
+type RuleRef = { key: string; project_id: string; rule_name: string };
 
-const RULE_SQL = `
-  SELECT r.id, r.project_id, r.rule_name, r.scope, r.client_id, c.name AS client_name,
-         r.kamailio_id, host(k.ip) AS kamailio_ip,
-         ARRAY(SELECT text(s) FROM unnest(r.static_ranges) s) AS static_ranges
-  FROM gcp_firewall_rules r
-  LEFT JOIN clients c         ON c.client_id = r.client_id
-  LEFT JOIN kamailio_config k ON k.id = r.kamailio_id`;
+const RULE_RE = /^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$/;
+const PROJECT_RE = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
+
+/** Parse GCP_FIREWALL_RULES; throws a ValidationError naming any bad entry. */
+export function configuredRules(): RuleRef[] {
+  const defaultProject = process.env.GCP_FIREWALL_PROJECT?.trim() ?? "";
+  const rules: RuleRef[] = [];
+  for (const entry of (process.env.GCP_FIREWALL_RULES ?? "").split(",")) {
+    const raw = entry.trim();
+    if (!raw) continue;
+    const [project_id, rule_name] = raw.includes("/") ? raw.split("/", 2) : [defaultProject, raw];
+    if (!PROJECT_RE.test(project_id)) {
+      throw new ValidationError(
+        `GCP_FIREWALL_RULES entry "${raw}" has no valid project — set GCP_FIREWALL_PROJECT or write it as project/rule`
+      );
+    }
+    if (!RULE_RE.test(rule_name)) {
+      throw new ValidationError(`GCP_FIREWALL_RULES entry "${raw}" is not a valid firewall rule name`);
+    }
+    const key = `${project_id}/${rule_name}`;
+    if (!rules.some((r) => r.key === key)) rules.push({ key, project_id, rule_name });
+  }
+  return rules;
+}
+
+function keepRanges(): string[] {
+  const { valid, invalid } = parseCidrList(process.env.GCP_FIREWALL_KEEP_RANGES);
+  if (invalid.length) {
+    throw new ValidationError(`GCP_FIREWALL_KEEP_RANGES has invalid range(s): ${invalid.join(", ")}`);
+  }
+  return valid;
+}
 
 /** Canonical, sorted, de-duplicated form so GCP and DB values compare equal
  *  ("1.2.3.4/32" == "1.2.3.4", IPv6 spelling differences, host bits). */
@@ -39,60 +66,34 @@ async function canonical(ranges: string[]): Promise<string[]> {
   return result.rows.map((row) => row.r as string);
 }
 
-/** The ranges a rule *should* contain according to the database. */
-async function desiredRanges(rule: RuleRow): Promise<string[]> {
-  const where =
-    rule.scope === "client"
-      ? { sql: "WHERE ci.client_id = $1", params: [rule.client_id] }
-      : rule.scope === "kamailio"
-        ? {
-            sql: "JOIN kamailio_client_ip_map m ON m.client_ip_id = ci.id WHERE m.kamailio_id = $1",
-            params: [rule.kamailio_id],
-          }
-        : { sql: "", params: [] };
-  const result = await db.query(
-    `SELECT DISTINCT host(ci.ip) AS ip FROM client_ips ci ${where.sql}`,
-    where.params
-  );
-  return canonical([...result.rows.map((r) => r.ip as string), ...rule.static_ranges]);
+/** What every rule should contain: all client IPs + the keep-list. */
+async function desiredRanges(): Promise<string[]> {
+  const result = await db.query("SELECT DISTINCT host(ip) AS ip FROM client_ips");
+  return canonical([...result.rows.map((r) => r.ip as string), ...keepRanges()]);
 }
 
-function scopeLabel(rule: RuleRow): string {
-  if (rule.scope === "client") return `Client: ${rule.client_name ?? rule.client_id}`;
-  if (rule.scope === "kamailio") return `Kamailio: ${rule.kamailio_ip ?? rule.kamailio_id}`;
-  return "All client IPs";
-}
-
-async function planRule(rule: RuleRow): Promise<FirewallSyncPlan> {
-  const base = {
-    id: rule.id,
-    project_id: rule.project_id,
-    rule_name: rule.rule_name,
-    scope_label: scopeLabel(rule),
-  };
+async function planRule(rule: RuleRef, desired: string[]): Promise<FirewallSyncPlan> {
   try {
-    const [desired, firewall] = await Promise.all([
-      desiredRanges(rule),
-      getFirewall(rule.project_id, rule.rule_name),
-    ]);
-    const current = await canonical(firewall.sourceRanges ?? []);
+    const firewall = await getFirewall(rule.project_id, rule.rule_name);
+    const current = await canonical(firewall[rangeField(firewall.direction)] ?? []);
     const currentSet = new Set(current);
     const desiredSet = new Set(desired);
 
+    // GCP treats an empty range list as 0.0.0.0/0: an ingress rule with no
+    // source (and no source tags/service accounts) applies to every source,
+    // an egress rule with no destination to every destination.
     let blocked: string | undefined;
-    if (firewall.direction !== "INGRESS") {
-      blocked = "Only INGRESS rules can be synced";
-    } else if (
-      desired.length === 0 &&
-      !firewall.sourceTags?.length &&
-      !firewall.sourceServiceAccounts?.length
-    ) {
-      // GCP treats an ingress rule with no source at all as 0.0.0.0/0.
-      blocked = "No IPs to whitelist — syncing would leave the rule open to every source";
+    if (desired.length === 0) {
+      if (firewall.direction === "EGRESS") {
+        blocked = "No client IPs — syncing would make the rule apply to every destination";
+      } else if (!firewall.sourceTags?.length && !firewall.sourceServiceAccounts?.length) {
+        blocked = "No client IPs — syncing would make the rule apply to every source";
+      }
     }
 
     return {
-      ...base,
+      ...rule,
+      direction: firewall.direction,
       network: firewall.network.split("/").pop() ?? firewall.network,
       disabled: !!firewall.disabled,
       desired,
@@ -103,7 +104,7 @@ async function planRule(rule: RuleRow): Promise<FirewallSyncPlan> {
     };
   } catch (error) {
     return {
-      ...base,
+      ...rule,
       desired: [],
       to_add: [],
       to_remove: [],
@@ -113,55 +114,35 @@ async function planRule(rule: RuleRow): Promise<FirewallSyncPlan> {
   }
 }
 
-async function loadRules(ruleIds?: string[]): Promise<RuleRow[]> {
-  const result = ruleIds?.length
-    ? await db.query(`${RULE_SQL} WHERE r.id = ANY($1::bigint[]) ORDER BY r.project_id, r.rule_name`, [ruleIds])
-    : await db.query(`${RULE_SQL} ORDER BY r.project_id, r.rule_name`);
-  return result.rows;
-}
-
-/** Read-only: what would change in GCP for each rule. */
-export async function previewFirewallSync(ruleIds?: string[]): Promise<FirewallSyncPlan[]> {
-  const rules = await loadRules(ruleIds);
-  return Promise.all(rules.map(planRule));
+/** Read-only: what would change in GCP for each configured rule. */
+export async function previewFirewallSync(): Promise<FirewallSyncPlan[]> {
+  const rules = configuredRules();
+  if (!rules.length) return [];
+  const desired = await desiredRanges();
+  return Promise.all(rules.map((rule) => planRule(rule, desired)));
 }
 
 /**
  * Re-plan against live GCP state (never trusts a stale preview) and push each
  * rule that has changes. Rules are independent: one failure doesn't stop the
- * others. Outcome is recorded on the rule row.
+ * others.
  */
-export async function applyFirewallSync(actor: string, ruleIds?: string[]): Promise<FirewallSyncPlan[]> {
-  const plans = await previewFirewallSync(ruleIds);
-
+export async function applyFirewallSync(): Promise<FirewallSyncPlan[]> {
+  const plans = await previewFirewallSync();
   return Promise.all(
     plans.map(async (plan) => {
-      let status: "ok" | "error" = "ok";
-      let message: string;
-
       if (plan.error || plan.blocked) {
-        status = "error";
-        message = (plan.error ?? plan.blocked)!;
-      } else if (!plan.to_add.length && !plan.to_remove.length) {
-        message = "Already in sync";
-      } else {
-        try {
-          await setFirewallSourceRanges(plan.project_id, plan.rule_name, plan.desired);
-          message = `+${plan.to_add.length} / -${plan.to_remove.length}`;
-        } catch (error) {
-          status = "error";
-          message = error instanceof GcpError || error instanceof Error ? error.message : "Sync failed";
-        }
+        return { ...plan, applied: false, error: plan.error ?? plan.blocked };
       }
-
-      await db.query(
-        `UPDATE gcp_firewall_rules
-         SET last_synced_at = now(), last_synced_by = $2,
-             last_sync_status = $3, last_sync_message = $4
-         WHERE id = $1`,
-        [plan.id, actor, status, message]
-      );
-      return { ...plan, applied: status === "ok", result: message, error: status === "error" ? message : undefined };
+      if (!plan.to_add.length && !plan.to_remove.length) {
+        return { ...plan, applied: true, result: "Already in sync" };
+      }
+      try {
+        await setFirewallRanges(plan.project_id, plan.rule_name, plan.direction!, plan.desired);
+        return { ...plan, applied: true, result: `+${plan.to_add.length} / −${plan.to_remove.length}` };
+      } catch (error) {
+        return { ...plan, applied: false, error: error instanceof Error ? error.message : "Sync failed" };
+      }
     })
   );
 }

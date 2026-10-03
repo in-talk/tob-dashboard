@@ -1,24 +1,24 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applyFirewallSync, previewFirewallSync } from "@/lib/network/firewall";
-import { parseId, requireAdmin, sendError } from "@/lib/network/server";
+import { requireAdmin, sendError } from "@/lib/network/server";
 
-// GET  ?rule_id=…  → preview (read-only diff against live GCP rules)
-// POST { rule_ids } → apply; re-reads GCP first, so a stale preview can't be pushed
+// GET  → preview (read-only diff of every GCP_FIREWALL_RULES rule vs client_ips)
+// POST → apply; re-reads GCP first, so a stale preview can't be pushed
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const actor = await requireAdmin(req, res);
   if (!actor) return;
 
   try {
     if (req.method === "GET") {
-      const ruleId = parseId(req.query.rule_id, "rule_id", false);
-      const rules = await previewFirewallSync(ruleId ? [ruleId] : undefined);
-      return res.status(200).json({ ok: true, rules });
+      return res.status(200).json({ ok: true, rules: await previewFirewallSync() });
     }
     if (req.method === "POST") {
-      const ids: unknown[] = Array.isArray(req.body?.rule_ids) ? req.body.rule_ids : [];
-      const ruleIds = ids.map((id) => parseId(id, "rule_id")!);
-      const rules = await applyFirewallSync(actor, ruleIds.length ? ruleIds : undefined);
+      const rules = await applyFirewallSync();
       const failed = rules.filter((r) => r.error).length;
+      console.info(
+        `[firewall-sync] by ${actor}:`,
+        rules.map((r) => `${r.key} ${r.error ? `ERROR ${r.error}` : r.result}`).join("; ")
+      );
       return res.status(200).json({
         ok: true,
         rules,

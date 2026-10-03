@@ -25,6 +25,7 @@ export default function AsteriskPage() {
       <IpServerManager
         endpoint="/api/network/asterisk"
         noun="Asterisk machine"
+        withPrivateIp
         dependents={["/api/network/kamailio-asterisk"]}
         deleteWarning="Any Kamailio mappings to this machine will also be removed. This cannot be undone."
         extraColumns={[

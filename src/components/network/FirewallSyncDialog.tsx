@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { mutate } from "swr";
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
 import {
   Dialog,
@@ -19,8 +17,6 @@ import { FirewallSyncPlan } from "@/lib/network/types";
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Limit to one registered rule; omit for all rules. */
-  ruleId?: string;
   onSynced?: () => void;
 };
 
@@ -31,7 +27,7 @@ const syncable = (p: FirewallSyncPlan) => !p.error && !p.blocked && hasChanges(p
  * Two-step sync: opening the dialog fetches a read-only diff from GCP; the
  * Apply button pushes it (the server re-reads GCP before writing).
  */
-export function FirewallSyncDialog({ open, onOpenChange, ruleId, onSynced }: Props) {
+export function FirewallSyncDialog({ open, onOpenChange, onSynced }: Props) {
   const [plans, setPlans] = useState<FirewallSyncPlan[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -43,7 +39,7 @@ export function FirewallSyncDialog({ open, onOpenChange, ruleId, onSynced }: Pro
     setError(null);
     setApplied(false);
     try {
-      const res = await fetch(`/api/network/firewall-sync${ruleId ? `?rule_id=${ruleId}` : ""}`);
+      const res = await fetch("/api/network/firewall-sync");
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || `Request failed (${res.status})`);
       setPlans(data.rules);
@@ -53,7 +49,7 @@ export function FirewallSyncDialog({ open, onOpenChange, ruleId, onSynced }: Pro
     } finally {
       setLoading(false);
     }
-  }, [ruleId]);
+  }, []);
 
   useEffect(() => {
     if (open) loadPreview();
@@ -70,7 +66,6 @@ export function FirewallSyncDialog({ open, onOpenChange, ruleId, onSynced }: Pro
       const res = await fetch("/api/network/firewall-sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rule_ids: pending.map((p) => p.id) }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || `Request failed (${res.status})`);
@@ -78,7 +73,6 @@ export function FirewallSyncDialog({ open, onOpenChange, ruleId, onSynced }: Pro
       setApplied(true);
       const failed = (data.rules as FirewallSyncPlan[]).some((r) => r.error);
       toast({ variant: failed ? "destructive" : "success", description: data.message });
-      mutate("/api/network/firewall-rules");
       onSynced?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sync failed");
@@ -95,7 +89,7 @@ export function FirewallSyncDialog({ open, onOpenChange, ruleId, onSynced }: Pro
           <DialogDescription>
             {applied
               ? "Result of the sync."
-              : "Preview of changes to each registered firewall rule's source IP ranges. Nothing changes until you apply."}
+              : "Every configured firewall rule is set to exactly the IPs in Client IPs (source IPs for ingress rules, destination IPs for egress). Nothing changes until you apply."}
           </DialogDescription>
         </DialogHeader>
 
@@ -112,16 +106,15 @@ export function FirewallSyncDialog({ open, onOpenChange, ruleId, onSynced }: Pro
           </div>
         ) : plans && plans.length === 0 ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
-            No firewall rules registered yet.{" "}
-            <Link href="/network/firewall-rules" className="text-primary underline">
-              Register a rule
-            </Link>{" "}
-            to start syncing.
+            No firewall rules configured. Set{" "}
+            <code className="rounded bg-muted px-1">GCP_FIREWALL_RULES</code> (and{" "}
+            <code className="rounded bg-muted px-1">GCP_FIREWALL_PROJECT</code>) in the server&apos;s
+            .env and restart the dashboard.
           </div>
         ) : (
           <div className="space-y-3">
             {plans?.map((p) => (
-              <RulePlanCard key={p.id} plan={p} applied={applied} />
+              <RulePlanCard key={p.key} plan={p} applied={applied} />
             ))}
           </div>
         )}
@@ -178,7 +171,9 @@ function RulePlanCard({ plan, applied }: { plan: FirewallSyncPlan; applied: bool
           <div className="font-mono text-sm font-medium">{plan.rule_name}</div>
           <div className="text-xs text-muted-foreground">
             {plan.project_id}
-            {plan.network && ` · ${plan.network}`} · {plan.scope_label}
+            {plan.network && ` · ${plan.network}`}
+            {plan.direction &&
+              ` · ${plan.direction === "EGRESS" ? "egress (destination IPs)" : "ingress (source IPs)"}`}
             {plan.disabled && " · rule is disabled in GCP"}
           </div>
         </div>

@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
-import { Bell, CheckCheck, Download } from "lucide-react";
+import { Bell, CheckCheck, ChevronDown, Download, Filter as FilterIcon, X } from "lucide-react";
 import { format, formatDistanceToNow, subDays, startOfDay } from "date-fns";
 import { fetcher } from "@/utils/fetcher";
 import {
@@ -36,6 +36,115 @@ import type { AppNotification, NotificationsResponse } from "@/types/notificatio
 // (works on Vercel's serverless runtime).
 const POLL_MS = 45000;
 
+// Persistent filter — survives SWR polls, popover close/open, and page reload.
+// Bumped the version suffix if the shape ever changes to invalidate old blobs.
+const FILTER_STORAGE_KEY = "tob-notif-filter-v1";
+
+type NotificationFilter = {
+  severity: string; // "all" | "error" | "warning" | "info" | <any custom>
+  type: string; // "all" | <concrete type>
+  unreadOnly: boolean;
+  text: string;
+};
+
+const DEFAULT_FILTER: NotificationFilter = {
+  severity: "all",
+  type: "all",
+  unreadOnly: false,
+  text: "",
+};
+
+function useNotificationFilter(): [
+  NotificationFilter,
+  (patch: Partial<NotificationFilter>) => void,
+  () => void
+] {
+  const [filter, setFilter] = useState<NotificationFilter>(DEFAULT_FILTER);
+
+  // Lazy init from localStorage once we're on the client. Done in an effect
+  // (not useState initializer) because SSR runs this component too and
+  // `localStorage` isn't available there — doing it here keeps the server
+  // and first client render consistent, no hydration mismatch.
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(FILTER_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Partial<NotificationFilter>;
+        setFilter({ ...DEFAULT_FILTER, ...parsed });
+      }
+    } catch {
+      /* corrupt JSON, blocked storage — just stay on defaults */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filter));
+    } catch {
+      /* storage quota / disabled — the in-memory state still works */
+    }
+  }, [filter]);
+
+  const patch = (p: Partial<NotificationFilter>) =>
+    setFilter((prev) => ({ ...prev, ...p }));
+  const clear = () => setFilter(DEFAULT_FILTER);
+
+  return [filter, patch, clear];
+}
+
+function isFilterActive(f: NotificationFilter): boolean {
+  return (
+    f.severity !== "all" ||
+    f.type !== "all" ||
+    f.unreadOnly ||
+    f.text.trim() !== ""
+  );
+}
+
+// Count how many fields are set — used for the badge next to the filter icon.
+function activeFilterCount(f: NotificationFilter): number {
+  let n = 0;
+  if (f.severity !== "all") n++;
+  if (f.type !== "all") n++;
+  if (f.unreadOnly) n++;
+  if (f.text.trim() !== "") n++;
+  return n;
+}
+
+function normalizeSeverity(raw: string | undefined): string {
+  const s = (raw ?? "").toLowerCase().trim();
+  if (s.startsWith("err")) return "error";
+  if (s.startsWith("warn")) return "warning";
+  if (s.startsWith("info")) return "info";
+  return s;
+}
+
+function matchesFilter(n: AppNotification, f: NotificationFilter): boolean {
+  if (f.severity !== "all" && normalizeSeverity(n.severity) !== f.severity) {
+    return false;
+  }
+  if (f.type !== "all" && n.type !== f.type) {
+    return false;
+  }
+  if (f.unreadOnly && n.is_read) {
+    return false;
+  }
+  const q = f.text.trim().toLowerCase();
+  if (q) {
+    const hay = [
+      n.title,
+      n.body ?? "",
+      n.type,
+      n.call_id ?? "",
+      n.client_id ?? "",
+    ]
+      .join(" ")
+      .toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+}
+
 export default function NotificationBell() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -51,6 +160,24 @@ export default function NotificationBell() {
 
   const notifications = data?.notifications ?? [];
   const unread = data?.unread ?? 0;
+
+  const [filter, patchFilter, clearFilter] = useNotificationFilter();
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  // Distinct types in the current fetched set — populates the type dropdown.
+  const availableTypes = useMemo(
+    () =>
+      Array.from(new Set(notifications.map((n) => n.type).filter(Boolean))).sort(),
+    [notifications]
+  );
+
+  const filterActive = isFilterActive(filter);
+  const activeCount = activeFilterCount(filter);
+
+  const visibleNotifications = useMemo(
+    () => (filterActive ? notifications.filter((n) => matchesFilter(n, filter)) : notifications),
+    [notifications, filter, filterActive]
+  );
 
   async function markRead(payload: { id?: number; all?: boolean }) {
     // Optimistic update so the badge/dot react immediately.
@@ -114,6 +241,27 @@ export default function NotificationBell() {
         <div className="flex items-center justify-between px-4 py-2 border-b gap-2">
           <span className="font-semibold text-sm">Notifications</span>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setFilterOpen((v) => !v)}
+              className={`text-xs inline-flex items-center gap-1 transition-colors ${
+                filterActive
+                  ? "text-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              title="Filter notifications"
+              aria-expanded={filterOpen}
+            >
+              <FilterIcon className="h-3.5 w-3.5" />
+              Filter
+              {activeCount > 0 && (
+                <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">
+                  {activeCount}
+                </span>
+              )}
+              <ChevronDown
+                className={`h-3 w-3 transition-transform ${filterOpen ? "rotate-180" : ""}`}
+              />
+            </button>
             <ExportNotificationsButton />
             {unread > 0 && (
               <button
@@ -125,14 +273,46 @@ export default function NotificationBell() {
             )}
           </div>
         </div>
+
+        {filterOpen && (
+          <NotificationFilterPanel
+            filter={filter}
+            onChange={patchFilter}
+            onClear={clearFilter}
+            availableTypes={availableTypes}
+          />
+        )}
+
+        {filterActive && (
+          <FilterChipBar
+            filter={filter}
+            onPatch={patchFilter}
+            onClear={clearFilter}
+            visibleCount={visibleNotifications.length}
+            totalCount={notifications.length}
+          />
+        )}
+
         <ScrollArea className="max-h-[360px]">
-          {notifications.length === 0 ? (
+          {visibleNotifications.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No notifications
+              {notifications.length === 0 ? (
+                "No notifications"
+              ) : (
+                <div className="space-y-2">
+                  <div>No notifications match this filter.</div>
+                  <button
+                    onClick={clearFilter}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Clear filter
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <ul className="divide-y">
-              {notifications.map((n) => (
+              {visibleNotifications.map((n) => (
                 <li key={n.id}>
                   <button
                     onClick={() => openNotification(n)}
@@ -169,6 +349,175 @@ export default function NotificationBell() {
         </ScrollArea>
       </PopoverContent>
     </Popover>
+  );
+}
+
+// Inline filter panel that slides in between the header and the list. Uses
+// native controls so it never has to deal with popover-in-popover layering.
+function NotificationFilterPanel({
+  filter,
+  onChange,
+  onClear,
+  availableTypes,
+}: {
+  filter: NotificationFilter;
+  onChange: (patch: Partial<NotificationFilter>) => void;
+  onClear: () => void;
+  availableTypes: string[];
+}) {
+  return (
+    <div className="border-b bg-muted/30 px-4 py-3 space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+            Severity
+          </label>
+          <Select
+            value={filter.severity}
+            onValueChange={(v) => onChange({ severity: v })}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="error">Error</SelectItem>
+              <SelectItem value="warning">Warning</SelectItem>
+              <SelectItem value="info">Info</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+            Type
+          </label>
+          <Select
+            value={filter.type}
+            onValueChange={(v) => onChange({ type: v })}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              {availableTypes.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+          Search
+        </label>
+        <Input
+          value={filter.text}
+          onChange={(e) => onChange({ text: e.target.value })}
+          placeholder="Search title, body, call id…"
+          className="h-8 text-xs"
+        />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <label className="text-xs text-muted-foreground inline-flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={filter.unreadOnly}
+            onChange={(e) => onChange({ unreadOnly: e.target.checked })}
+            className="rounded border-muted-foreground/40 accent-primary"
+          />
+          Unread only
+        </label>
+        <button
+          onClick={onClear}
+          className="text-xs text-muted-foreground hover:text-foreground"
+          disabled={!isFilterActive(filter)}
+        >
+          Reset
+        </button>
+      </div>
+
+      <p className="text-[10px] text-muted-foreground leading-snug">
+        Filter is saved locally — it stays applied until you clear it, even after
+        refresh.
+      </p>
+    </div>
+  );
+}
+
+// Compact chip row that stays visible while a filter is applied, so operators
+// never forget they're looking at a subset.
+function FilterChipBar({
+  filter,
+  onPatch,
+  onClear,
+  visibleCount,
+  totalCount,
+}: {
+  filter: NotificationFilter;
+  onPatch: (patch: Partial<NotificationFilter>) => void;
+  onClear: () => void;
+  visibleCount: number;
+  totalCount: number;
+}) {
+  const chips: { key: keyof NotificationFilter; label: string; clear: Partial<NotificationFilter> }[] =
+    [];
+  if (filter.severity !== "all") {
+    chips.push({
+      key: "severity",
+      label: `severity: ${filter.severity}`,
+      clear: { severity: "all" },
+    });
+  }
+  if (filter.type !== "all") {
+    chips.push({
+      key: "type",
+      label: `type: ${filter.type}`,
+      clear: { type: "all" },
+    });
+  }
+  if (filter.unreadOnly) {
+    chips.push({
+      key: "unreadOnly",
+      label: "unread only",
+      clear: { unreadOnly: false },
+    });
+  }
+  if (filter.text.trim() !== "") {
+    chips.push({
+      key: "text",
+      label: `“${filter.text.trim()}”`,
+      clear: { text: "" },
+    });
+  }
+
+  return (
+    <div className="px-4 py-2 border-b bg-background flex flex-wrap items-center gap-1.5">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1">
+        Showing {visibleCount}/{totalCount}
+      </span>
+      {chips.map((c) => (
+        <button
+          key={c.key}
+          onClick={() => onPatch(c.clear)}
+          className="group inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 pl-2 pr-1 py-0.5 text-[11px] text-foreground hover:bg-primary/20 transition-colors"
+          title={`Clear ${String(c.key)} filter`}
+        >
+          <span className="truncate max-w-[140px]">{c.label}</span>
+          <X className="h-3 w-3 opacity-60 group-hover:opacity-100" />
+        </button>
+      ))}
+      <button
+        onClick={onClear}
+        className="ml-auto text-[11px] text-muted-foreground hover:text-foreground"
+      >
+        Clear all
+      </button>
+    </div>
   );
 }
 

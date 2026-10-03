@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import useSWR from "swr";
 import { GetServerSideProps } from "next";
-import { Plus, ShieldCheck, Sparkles, X } from "lucide-react";
+import { Plus, Sparkles, X } from "lucide-react";
 import { withAuth } from "@/utils/auth";
 import { fetcher } from "@/utils/fetcher";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ import {
   ipSortValue,
 } from "@/components/network/shared";
 import { useCrudResource } from "@/components/network/useCrudResource";
-import { FirewallSyncDialog } from "@/components/network/FirewallSyncDialog";
 import { isValidIp, normalizeIp } from "@/lib/network/ip";
 import {
   ClientIp,
@@ -63,7 +62,6 @@ export default function KamailioClientIpsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [syncOpen, setSyncOpen] = useState(false);
 
   const kamailioOptions: SelectOption[] = useMemo(
     () =>
@@ -264,16 +262,10 @@ export default function KamailioClientIpsPage() {
           </>
         }
         actions={
-          <>
-            <Button variant="outline" onClick={() => setSyncOpen(true)}>
-              <ShieldCheck className="mr-1.5 h-4 w-4" />
-              Sync GCP firewall
-            </Button>
-            <Button onClick={() => openDrawer(null)}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              Add mapping
-            </Button>
-          </>
+          <Button onClick={() => openDrawer(null)}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Add mapping
+          </Button>
         }
       />
 
@@ -380,8 +372,6 @@ export default function KamailioClientIpsPage() {
           </Field>
         )}
       </FormDrawer>
-
-      <FirewallSyncDialog open={syncOpen} onOpenChange={setSyncOpen} />
     </NetworkPage>
   );
 }
