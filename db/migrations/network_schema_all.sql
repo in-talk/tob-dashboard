@@ -1,5 +1,5 @@
 -- Kamailio / Client IP / Asterisk network schema — single executable script.
--- Generated from db/migrations/001-008. Idempotent: safe to re-run.
+-- Generated from db/migrations/001-009. Idempotent: safe to re-run.
 -- Run with: psql "$POSTGRESDATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/network_schema_all.sql
 
 BEGIN;
@@ -183,5 +183,13 @@ $$;
 -- Private ranges can overlap between clouds, so uniqueness is per provider.
 CREATE UNIQUE INDEX IF NOT EXISTS asterisk_machines_private_ip_key
     ON asterisk_machines (provider, private_ip) WHERE private_ip IS NOT NULL;
+
+-- 009: Asterisk machines get an optional human-readable name (e.g. "asterisk-agi-2").
+-- Nullable so existing rows stay valid; unique (case-insensitive) when set.
+
+ALTER TABLE asterisk_machines ADD COLUMN IF NOT EXISTS name TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS asterisk_machines_name_key
+    ON asterisk_machines (lower(name)) WHERE name IS NOT NULL;
 
 COMMIT;

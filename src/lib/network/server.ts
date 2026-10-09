@@ -74,6 +74,16 @@ export function parseId(value: unknown, label: string, required = true): string 
   return s;
 }
 
+/** Optional free-text name: trimmed, blank → null, max `max` chars. */
+export function parseOptionalName(value: unknown, label = "Name", max = 100): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "string") throw new ValidationError(`${label} must be text`);
+  const name = value.trim();
+  if (!name) return null;
+  if (name.length > max) throw new ValidationError(`${label} must be at most ${max} characters`);
+  return name;
+}
+
 // ---------------------------------------------------------------------------
 // Errors
 // ---------------------------------------------------------------------------

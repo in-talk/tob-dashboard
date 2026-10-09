@@ -1,7 +1,9 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
+import { DateTime } from "luxon";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import db from "@/lib/db";
+import { DEFAULT_TIMEZONE } from "@/utils/timezone";
 
 // Admin-only CSV export of notifications inside a date/time window.
 //
@@ -80,6 +82,16 @@ export default async function handler(
     HARD_MAX
   );
 
+  // Timezone the caller wants the human-readable created_at column rendered
+  // in. Fall back to the product default so a CSV opened by anyone looks the
+  // same by default. Validated via Luxon so a bogus zone can't crash the
+  // formatter later.
+  const rawTz = String(req.query.tz ?? "").trim();
+  const tzCandidate = rawTz || DEFAULT_TIMEZONE;
+  const timezone = DateTime.now().setZone(tzCandidate).isValid
+    ? tzCandidate
+    : DEFAULT_TIMEZONE;
+
   try {
     const params: unknown[] = [from.toISOString(), to.toISOString()];
     let where = "created_at BETWEEN $1 AND $2";
@@ -97,6 +109,18 @@ export default async function handler(
     `;
     const result = await db.query(sql, params);
 
+    // Augment each row with a human-readable timestamp in the caller's zone.
+    // `created_at` stays UTC-ISO so downstream pipelines keep an unambiguous
+    // reference; `created_at_local` is what a human reads in Excel.
+    const rows = result.rows.map((r) => ({
+      ...r,
+      created_at_local: r.created_at
+        ? DateTime.fromJSDate(new Date(r.created_at as string))
+            .setZone(timezone)
+            .toFormat("yyyy-LL-dd HH:mm:ss ZZZZ")
+        : "",
+    }));
+
     const header = [
       "id",
       "type",
@@ -106,8 +130,9 @@ export default async function handler(
       "title",
       "body",
       "created_at",
+      "created_at_local",
     ];
-    const csv = toCsv(header, result.rows);
+    const csv = toCsv(header, rows);
 
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const fileFrom = from.toISOString().slice(0, 10);
@@ -131,7 +156,7 @@ export default async function handler(
         `attachment; filename="notifications_empty.csv"`
       );
       return res.status(200).send(
-        "id,type,severity,call_id,client_id,title,body,created_at\n"
+        "id,type,severity,call_id,client_id,title,body,created_at,created_at_local\n"
       );
     }
     console.error("Error exporting notifications:", error);

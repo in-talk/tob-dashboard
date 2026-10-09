@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scrollArea";
 import { toast } from "@/hooks/use-toast";
+import { useTimezone } from "@/context/TimezoneContext";
 import type { AppNotification, NotificationsResponse } from "@/types/notifications";
 
 // Bell polls every 45s — near-real-time without any persistent connection
@@ -542,46 +543,68 @@ const QUICK_PRESETS: { label: string; days: number }[] = [
 ];
 
 function ExportNotificationsButton() {
+  const { timezone, localInputToUtcIso, now } = useTimezone();
   const [open, setOpen] = useState(false);
   const [severity, setSeverity] = useState<string>("all");
   const [busy, setBusy] = useState(false);
 
+  // Build defaults in the SELECTED timezone, not the browser's — so a
+  // user viewing US Eastern sees "last 7 days" relative to NY time.
   const defaults = useMemo(() => {
-    const now = new Date();
+    const n = now();
     return {
-      from: format(startOfDay(subDays(now, 7)), DT_INPUT_FMT),
-      to: format(now, DT_INPUT_FMT),
+      from: format(startOfDay(subDays(n, 7)), DT_INPUT_FMT),
+      to: format(n, DT_INPUT_FMT),
     };
-  }, []);
+    // `now` is stable per-timezone from the ctx; recompute when zone changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timezone]);
+
   const [fromStr, setFromStr] = useState<string>(defaults.from);
   const [toStr, setToStr] = useState<string>(defaults.to);
 
-  // datetime-local values are naive local time — turn them into real Dates
-  // for the API request. new Date("YYYY-MM-DDTHH:mm") is parsed as local.
-  const from = useMemo(() => (fromStr ? new Date(fromStr) : null), [fromStr]);
-  const to = useMemo(() => (toStr ? new Date(toStr) : null), [toStr]);
+  // When the user flips timezones mid-session, reset the inputs to the new
+  // zone's "last 7 days" so they don't accidentally request a shifted range.
+  useEffect(() => {
+    setFromStr(defaults.from);
+    setToStr(defaults.to);
+  }, [defaults.from, defaults.to]);
+
+  // Interpret the naive datetime-local strings as the SELECTED tz, then
+  // convert to UTC ISO for the request. Preview text uses the same path so
+  // "from → to" matches what the server will see.
+  const fromIso = useMemo(
+    () => (fromStr ? localInputToUtcIso(fromStr) : ""),
+    [fromStr, localInputToUtcIso]
+  );
+  const toIso = useMemo(
+    () => (toStr ? localInputToUtcIso(toStr) : ""),
+    [toStr, localInputToUtcIso]
+  );
+  const fromDate = fromIso ? new Date(fromIso) : null;
+  const toDate = toIso ? new Date(toIso) : null;
 
   const rangeInvalid =
-    !from ||
-    !to ||
-    Number.isNaN(from.getTime()) ||
-    Number.isNaN(to.getTime()) ||
-    from > to;
+    !fromDate ||
+    !toDate ||
+    Number.isNaN(fromDate.getTime()) ||
+    Number.isNaN(toDate.getTime()) ||
+    fromDate > toDate;
 
   const applyPreset = (days: number) => {
-    const now = new Date();
-    const start = subDays(now, days);
-    setFromStr(format(start, DT_INPUT_FMT));
-    setToStr(format(now, DT_INPUT_FMT));
+    const n = now();
+    setFromStr(format(subDays(n, days), DT_INPUT_FMT));
+    setToStr(format(n, DT_INPUT_FMT));
   };
 
   const handleDownload = async () => {
-    if (rangeInvalid || !from || !to) return;
+    if (rangeInvalid || !fromIso || !toIso) return;
     setBusy(true);
     try {
       const params = new URLSearchParams({
-        from: from.toISOString(),
-        to: to.toISOString(),
+        from: fromIso,
+        to: toIso,
+        tz: timezone,
       });
       if (severity !== "all") params.set("severity", severity);
       const res = await fetch(`/api/notifications/export?${params.toString()}`);
@@ -594,9 +617,7 @@ function ExportNotificationsButton() {
       const match = cd.match(/filename="?([^"]+)"?/i);
       const filename =
         match?.[1] ??
-        `notifications_${from.toISOString().slice(0, 10)}_to_${to
-          .toISOString()
-          .slice(0, 10)}.csv`;
+        `notifications_${fromIso.slice(0, 10)}_to_${toIso.slice(0, 10)}.csv`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -702,7 +723,7 @@ function ExportNotificationsButton() {
             </p>
           ) : (
             <p className="text-xs text-muted-foreground">
-              {from!.toLocaleString()} → {to!.toLocaleString()}
+              {fromStr.replace("T", " ")} → {toStr.replace("T", " ")} ({timezone})
             </p>
           )}
         </div>

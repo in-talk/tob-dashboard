@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Download, Search } from "lucide-react";
 
 import { parseNestedJSON } from "@/utils/parseMetaData";
+import { useTimezone } from "@/context/TimezoneContext";
 import { CallLog } from "@/types/callDetails";
 
 import {
@@ -68,13 +69,40 @@ function csvCell(value: unknown): string {
   return s;
 }
 
-function toCsv(rows: CallLog[]): string {
+// `timestamp` arrives as a stringified ISO when the backend sends UTC, but
+// older logs sometimes already carry a pre-formatted local string. Try the
+// zone-aware formatter; if the value doesn't parse, fall back to the raw
+// text so we never show "Invalid Date".
+function safeFormat(
+  raw: string,
+  formatter: (input: string) => string
+): string {
+  if (!raw) return "";
+  // Looks ISO-ish: starts with YYYY-MM-DD.
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    const d = new Date(raw);
+    if (!Number.isNaN(d.getTime())) {
+      try {
+        return formatter(raw);
+      } catch {
+        /* fall through */
+      }
+    }
+  }
+  return raw;
+}
+
+function toCsv(
+  rows: CallLog[],
+  formatForExport: (input: string) => string,
+  timezone: string
+): string {
   const header = [
     "turn",
     "emoji",
     "action",
     "status",
-    "timestamp",
+    `timestamp (${timezone})`,
     "timeFromStart",
     "additionalData",
   ];
@@ -90,7 +118,7 @@ function toCsv(rows: CallLog[]): string {
         r.emoji,
         r.action,
         r.status,
-        r.timestamp,
+        safeFormat(r.timestamp, formatForExport),
         r.timeFromStart,
         additional,
       ]
@@ -116,6 +144,7 @@ function triggerBrowserDownload(filename: string, contents: string, mime: string
 function CallLogsTable({ callLogs }: CallLogsTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusOption>("all");
+  const { timezone, format: formatInTz, formatForExport } = useTimezone();
 
   const rows = callLogs ?? [];
 
@@ -146,7 +175,11 @@ function CallLogsTable({ callLogs }: CallLogsTableProps) {
   );
 
   const handleExportCsv = () => {
-    const csv = toCsv(filtered);
+    const csv = toCsv(
+      filtered,
+      (iso) => formatForExport(iso),
+      timezone
+    );
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     triggerBrowserDownload(`call-logs-${stamp}.csv`, csv, "text/csv");
   };
@@ -215,8 +248,14 @@ function CallLogsTable({ callLogs }: CallLogsTableProps) {
               <TableHead className="w-[56px]">Emoji</TableHead>
               <TableHead className="min-w-[260px]">Action</TableHead>
               <TableHead className="w-[110px]">Status</TableHead>
-              <TableHead className="w-[180px] whitespace-nowrap">
+              <TableHead
+                className="w-[180px] whitespace-nowrap"
+                title={`Timestamps shown in ${timezone}`}
+              >
                 Timestamp
+                <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                  ({timezone})
+                </span>
               </TableHead>
               <TableHead className="w-[140px] whitespace-nowrap">
                 Time From Start
@@ -254,8 +293,11 @@ function CallLogsTable({ callLogs }: CallLogsTableProps) {
                     <TableCell className="align-top whitespace-nowrap">
                       {row.status}
                     </TableCell>
-                    <TableCell className="align-top whitespace-nowrap font-mono text-xs">
-                      {row.timestamp}
+                    <TableCell
+                      className="align-top whitespace-nowrap font-mono text-xs"
+                      title={`Raw: ${row.timestamp}`}
+                    >
+                      {safeFormat(row.timestamp, (iso) => formatInTz(iso))}
                     </TableCell>
                     <TableCell className="align-top whitespace-nowrap font-mono text-xs">
                       {row.timeFromStart}

@@ -16,6 +16,7 @@ export type Audit = {
 export type KamailioConfig = Audit & { ip: string; provider: Provider };
 
 export type AsteriskMachine = Audit & {
+  name: string | null;
   /** Public IP. */
   ip: string;
   private_ip: string | null;
@@ -42,6 +43,7 @@ export type KamailioAsteriskMap = Audit & {
   kamailio_id: string;
   kamailio_ip: string;
   asterisk_id: string;
+  asterisk_name: string | null;
   asterisk_ip: string;
   asterisk_private_ip: string | null;
   asterisk_provider: Provider;
@@ -71,4 +73,15 @@ export type FirewallSyncPlan = {
   /** Set by apply. */
   applied?: boolean;
   result?: string;
+};
+
+/** Outcome of calling /sync-audios on one Asterisk machine. */
+export type AudioSyncResult = {
+  id: string;
+  name: string | null;
+  ip: string;
+  success: boolean;
+  message: string;
+  logs: string[];
+  duration_ms: number;
 };

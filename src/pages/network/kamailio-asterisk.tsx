@@ -56,7 +56,7 @@ export default function KamailioAsteriskPage() {
     () =>
       (asterisks ?? []).map((a) => ({
         value: a.id,
-        label: a.ip,
+        label: a.name ? `${a.name} — ${a.ip}` : a.ip,
         // Private IP is searchable via the description.
         description: [a.private_ip && `private ${a.private_ip}`, PROVIDER_LABELS[a.provider]]
           .filter(Boolean)
@@ -124,6 +124,7 @@ export default function KamailioAsteriskPage() {
       sortValue: (r) => ipSortValue(r.asterisk_ip),
       render: (r) => (
         <div>
+          {r.asterisk_name && <div className="text-sm font-medium">{r.asterisk_name}</div>}
           <div className="font-mono text-sm">{r.asterisk_ip}</div>
           <div className="font-mono text-xs text-muted-foreground">
             {r.asterisk_private_ip ? `private ${r.asterisk_private_ip}` : "no private IP"}
@@ -168,9 +169,9 @@ export default function KamailioAsteriskPage() {
         columns={columns}
         getRowId={(r) => r.id}
         searchText={(r) =>
-          `${r.kamailio_ip} ${r.asterisk_ip} ${r.asterisk_private_ip ?? ""} ${r.updated_by ?? ""}`
+          `${r.kamailio_ip} ${r.asterisk_name ?? ""} ${r.asterisk_ip} ${r.asterisk_private_ip ?? ""} ${r.updated_by ?? ""}`
         }
-        searchPlaceholder="Search IPs…"
+        searchPlaceholder="Search names or IPs…"
         isLoading={isLoading}
         error={error}
         initialSort={{ key: "kamailio", dir: "asc" }}
@@ -192,7 +193,7 @@ export default function KamailioAsteriskPage() {
               value={asteriskFilter}
               onChange={setAsteriskFilter}
               placeholder="All Asterisk machines"
-              searchPlaceholder="Search Asterisk IPs…"
+              searchPlaceholder="Search Asterisk names or IPs…"
               clearable
             />
           </>
@@ -233,7 +234,7 @@ export default function KamailioAsteriskPage() {
             value={form.asterisk_id}
             onChange={(asterisk_id) => setForm((f) => ({ ...f, asterisk_id }))}
             placeholder="Select Asterisk machine"
-            searchPlaceholder="Search Asterisk IPs…"
+            searchPlaceholder="Search Asterisk names or IPs…"
             emptyText="No Asterisk machines — add one first"
             invalid={!!errors.asterisk_id}
           />

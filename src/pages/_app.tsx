@@ -26,6 +26,8 @@ import "primereact/resources/themes/lara-dark-indigo/theme.css";
 import Head from "next/head";
 import { appPageData } from "@/constants";
 import ThemeToggler from "@/components/ThemeToggler";
+import TimezoneSelector from "@/components/TimezoneSelector";
+import { TimezoneProvider } from "@/context/TimezoneContext";
 
 export default function App({
   Component,
@@ -39,15 +41,17 @@ export default function App({
       refetchInterval={0}
     >
       <ThemeProviders>
-        <PrimeReactProvider>
-          <MainLayout
-            Component={Component}
-            pageProps={pageProps}
-            router={router}
-          />
+        <TimezoneProvider>
+          <PrimeReactProvider>
+            <MainLayout
+              Component={Component}
+              pageProps={pageProps}
+              router={router}
+            />
 
-          <Toaster />
-        </PrimeReactProvider>
+            <Toaster />
+          </PrimeReactProvider>
+        </TimezoneProvider>
       </ThemeProviders>
     </SessionProvider>
   );
@@ -126,7 +130,10 @@ export function MainLayout({ Component, pageProps }: AppProps) {
                   </BreadcrumbList>
                 </Breadcrumb>
               </div>
-              <ThemeToggler />
+              <div className="flex items-center gap-2 pr-4">
+                <TimezoneSelector />
+                <ThemeToggler />
+              </div>
             </header>
             <Component {...pageProps} />
             <Toaster />

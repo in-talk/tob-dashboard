@@ -11,7 +11,12 @@ import { Field, FormDrawer } from "./FormDrawer";
 import { ProviderBadge, ProviderSelect, RowActions, auditColumns, ipSortValue } from "./shared";
 import { useCrudResource } from "./useCrudResource";
 
-type IpServer = Audit & { ip: string; private_ip?: string | null; provider: Provider };
+type IpServer = Audit & {
+  name?: string | null;
+  ip: string;
+  private_ip?: string | null;
+  provider: Provider;
+};
 
 type Props = {
   endpoint: string;
@@ -24,9 +29,13 @@ type Props = {
   deleteWarning: string;
   /** Also capture an optional private (VPC-internal) IP, unique per provider. */
   withPrivateIp?: boolean;
+  /** Also capture an optional display name, unique case-insensitively. */
+  withName?: boolean;
+  /** Extra toolbar buttons shown before "Add". */
+  extraActions?: React.ReactNode;
 };
 
-type FormState = { ip: string; private_ip: string; provider: Provider | null };
+type FormState = { name: string; ip: string; private_ip: string; provider: Provider | null };
 type FormErrors = Partial<Record<keyof FormState, string>>;
 
 /**
@@ -41,6 +50,8 @@ export function IpServerManager({
   extraColumns = [],
   deleteWarning,
   withPrivateIp = false,
+  withName = false,
+  extraActions,
 }: Props) {
   const { rows, isLoading, error, create, update, remove } = useCrudResource<IpServer>(
     endpoint,
@@ -49,7 +60,7 @@ export function IpServerManager({
   const [providerFilter, setProviderFilter] = useState<Provider | null>(null);
   const [editing, setEditing] = useState<IpServer | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [form, setForm] = useState<FormState>({ ip: "", private_ip: "", provider: null });
+  const [form, setForm] = useState<FormState>({ name: "", ip: "", private_ip: "", provider: null });
   const [errors, setErrors] = useState<FormErrors>({});
 
   const filtered = useMemo(
@@ -61,8 +72,8 @@ export function IpServerManager({
     setEditing(row);
     setForm(
       row
-        ? { ip: row.ip, private_ip: row.private_ip ?? "", provider: row.provider }
-        : { ip: "", private_ip: "", provider: null }
+        ? { name: row.name ?? "", ip: row.ip, private_ip: row.private_ip ?? "", provider: row.provider }
+        : { name: "", ip: "", private_ip: "", provider: null }
     );
     setErrors({});
     setDrawerOpen(true);
@@ -70,6 +81,12 @@ export function IpServerManager({
 
   const validate = (): boolean => {
     const next: FormErrors = {};
+    const name = form.name.trim().toLowerCase();
+    if (withName && name) {
+      if (name.length > 100) next.name = "Name must be at most 100 characters";
+      else if (rows.some((r) => r.name?.toLowerCase() === name && r.id !== editing?.id))
+        next.name = `Another ${noun} already has this name`;
+    }
     const ip = normalizeIp(form.ip);
     const ipLabel = withPrivateIp ? "Public IP" : "IP address";
     if (!ip) next.ip = `${ipLabel} is required`;
@@ -99,12 +116,28 @@ export function IpServerManager({
       ip: normalizeIp(form.ip),
       provider: form.provider,
       ...(withPrivateIp ? { private_ip: normalizeIp(form.private_ip) || null } : {}),
+      ...(withName ? { name: form.name.trim() || null } : {}),
     };
     return editing ? update({ id: editing.id, ...body }) : create(body);
   };
 
   const columns: DataGridColumn<IpServer>[] = [
     { key: "id", header: "ID", sortValue: (r) => Number(r.id), className: "w-16 text-muted-foreground" },
+    ...(withName
+      ? [
+          {
+            key: "name",
+            header: "Name",
+            sortValue: (r: IpServer) => r.name?.toLowerCase() ?? null,
+            render: (r: IpServer) =>
+              r.name ? (
+                <span className="text-sm font-medium">{r.name}</span>
+              ) : (
+                <span className="text-xs italic text-muted-foreground">Not set</span>
+              ),
+          },
+        ]
+      : []),
     {
       key: "ip",
       header: withPrivateIp ? "Public IP" : "IP address",
@@ -155,8 +188,8 @@ export function IpServerManager({
         rows={filtered}
         columns={columns}
         getRowId={(r) => r.id}
-        searchText={(r) => `${r.ip} ${r.private_ip ?? ""} ${r.provider} ${r.updated_by ?? ""}`}
-        searchPlaceholder="Search IP or user…"
+        searchText={(r) => `${r.name ?? ""} ${r.ip} ${r.private_ip ?? ""} ${r.provider} ${r.updated_by ?? ""}`}
+        searchPlaceholder={withName ? "Search name, IP or user…" : "Search IP or user…"}
         isLoading={isLoading}
         error={error}
         initialSort={{ key: "ip", dir: "asc" }}
@@ -170,10 +203,13 @@ export function IpServerManager({
           />
         }
         actions={
-          <Button onClick={() => openDrawer(null)}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Add {noun}
-          </Button>
+          <>
+            {extraActions}
+            <Button onClick={() => openDrawer(null)}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Add {noun}
+            </Button>
+          </>
         }
       />
 
@@ -192,6 +228,24 @@ export function IpServerManager({
         onSubmit={onSubmit}
         audit={editing ?? undefined}
       >
+        {withName && (
+          <Field
+            label="Name"
+            htmlFor="name"
+            error={errors.name}
+            hint="Friendly label, e.g. asterisk-agi-2. Optional."
+          >
+            <Input
+              id="name"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="asterisk-agi-1"
+              className={errors.name ? "border-red-500" : undefined}
+              autoComplete="off"
+              autoFocus
+            />
+          </Field>
+        )}
         <Field
           label={withPrivateIp ? "Public IP" : "IP address"}
           htmlFor="ip"
@@ -206,7 +260,7 @@ export function IpServerManager({
             placeholder="0.0.0.0"
             className={errors.ip ? "border-red-500 font-mono" : "font-mono"}
             autoComplete="off"
-            autoFocus
+            autoFocus={!withName}
           />
         </Field>
         {withPrivateIp && (

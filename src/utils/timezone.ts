@@ -1,21 +1,37 @@
 import { DateTime } from "luxon";
 
 /**
- * Get the current timezone from cookies or default to system timezone
+ * Default timezone when nothing else is set. Per product requirement all
+ * timestamps default to US Eastern — do NOT fall back to the browser's
+ * system zone, because a non-US viewer should still see US time by default.
+ */
+export const DEFAULT_TIMEZONE = "America/New_York";
+
+/**
+ * Get the current timezone. Priority: localStorage ('tob-timezone-v1') →
+ * cookie ('timezone') → DEFAULT_TIMEZONE.
+ *
+ * `TimezoneContext` keeps the two client-side stores in sync whenever the
+ * user picks a new zone, so every reader (this helper, SSR, legacy callers)
+ * sees the same value within one tick.
  */
 export function getCurrentTimezone(): string {
   if (typeof window !== "undefined") {
-    // Client-side: check cookies first, then system timezone
+    try {
+      const stored = window.localStorage.getItem("tob-timezone-v1");
+      if (stored) return stored;
+    } catch {
+      /* storage blocked — fall through */
+    }
+
     const cookieTimezone = document.cookie
       .split("; ")
       .find((row) => row.startsWith("timezone="))
       ?.split("=")[1];
-
-    return cookieTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (cookieTimezone) return decodeURIComponent(cookieTimezone);
   }
 
-  // Server-side: default to UTC if no timezone provided
-  return "UTC";
+  return DEFAULT_TIMEZONE;
 }
 
 /**
@@ -27,18 +43,43 @@ export function getCurrentTimezone(): string {
 
 export function currentTimezoneToUTC(
   dateInput: string | Date | number,
-  timezone = "Asia/Karachi"
+  timezone: string = DEFAULT_TIMEZONE
 ): string {
   let dt: DateTime;
 
   if (typeof dateInput === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
     dt = DateTime.fromISO(`${dateInput}T00:00:00`, { zone: timezone });
+  } else if (
+    typeof dateInput === "string" &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(dateInput)
+  ) {
+    // Naive datetime-local string ("YYYY-MM-DDTHH:mm[:ss]") — interpret in the
+    // caller's zone, not UTC. Without this it was being parsed as UTC and
+    // "today 00:00" would silently shift by the UTC offset.
+    dt = DateTime.fromISO(dateInput, { zone: timezone });
   } else {
     dt = DateTime.fromJSDate(new Date(dateInput), { zone: timezone });
   }
 
   const utc = dt.toUTC();
-  return utc.toISO() ?? ""; 
+  return utc.toISO() ?? "";
+}
+
+/**
+ * Format a UTC/ISO date in the given zone using a Luxon format token string
+ * (e.g. "yyyy-LL-dd HH:mm:ss"). Preferred for CSV/Excel exports because the
+ * output is unambiguous and locale-stable.
+ */
+export function formatInTimezone(
+  input: string | Date | number,
+  tokenFormat: string,
+  timezone: string = DEFAULT_TIMEZONE
+): string {
+  const dt =
+    typeof input === "string"
+      ? DateTime.fromISO(input, { zone: "utc" })
+      : DateTime.fromJSDate(new Date(input), { zone: "utc" });
+  return dt.setZone(timezone).toFormat(tokenFormat);
 }
 
 /**

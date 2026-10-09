@@ -1,16 +1,24 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import useSWR from "swr";
 import { GetServerSideProps } from "next";
 import { withAuth } from "@/utils/auth";
 import { fetcher } from "@/utils/fetcher";
+import { Button } from "@/components/ui/button";
+import { AudioSyncDialog } from "@/components/network/AudioSyncDialog";
 import { IpServerManager } from "@/components/network/IpServerManager";
 import { NetworkPage } from "@/components/network/shared";
-import { KamailioAsteriskMap } from "@/lib/network/types";
+import { AsteriskMachine, KamailioAsteriskMap } from "@/lib/network/types";
 
 export default function AsteriskPage() {
   const { data: maps } = useSWR<KamailioAsteriskMap[]>("/api/network/kamailio-asterisk", fetcher, {
     revalidateOnFocus: false,
   });
+  // Same key as IpServerManager's list, so SWR shares the request.
+  const { data: machines } = useSWR<AsteriskMachine[]>("/api/network/asterisk", fetcher, {
+    revalidateOnFocus: false,
+  });
+  const [syncOpen, setSyncOpen] = useState(false);
   const counts = useMemo(() => {
     const out = new Map<string, number>();
     maps?.forEach((m) => out.set(m.asterisk_id, (out.get(m.asterisk_id) ?? 0) + 1));
@@ -26,7 +34,14 @@ export default function AsteriskPage() {
         endpoint="/api/network/asterisk"
         noun="Asterisk machine"
         withPrivateIp
+        withName
         dependents={["/api/network/kamailio-asterisk"]}
+        extraActions={
+          <Button variant="outline" onClick={() => setSyncOpen(true)}>
+            <RefreshCw className="mr-1.5 h-4 w-4" />
+            Sync audios
+          </Button>
+        }
         deleteWarning="Any Kamailio mappings to this machine will also be removed. This cannot be undone."
         extraColumns={[
           {
@@ -39,6 +54,7 @@ export default function AsteriskPage() {
           },
         ]}
       />
+      <AudioSyncDialog open={syncOpen} onOpenChange={setSyncOpen} machines={machines ?? []} />
     </NetworkPage>
   );
 }
