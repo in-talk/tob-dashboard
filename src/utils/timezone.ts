@@ -45,10 +45,18 @@ export function currentTimezoneToUTC(
   dateInput: string | Date | number,
   timezone: string = DEFAULT_TIMEZONE
 ): string {
+  // Guard against an invalid/garbled zone (e.g. a URL-encoded cookie value
+  // like "America%2FNew_York"). An invalid zone would make every DateTime
+  // below invalid, toISO() return null, and this function hand back "" —
+  // which upstream turns into null date bounds and silently shows no data.
+  const zone = DateTime.local().setZone(timezone).isValid
+    ? timezone
+    : DEFAULT_TIMEZONE;
+
   let dt: DateTime;
 
   if (typeof dateInput === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
-    dt = DateTime.fromISO(`${dateInput}T00:00:00`, { zone: timezone });
+    dt = DateTime.fromISO(`${dateInput}T00:00:00`, { zone });
   } else if (
     typeof dateInput === "string" &&
     /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(dateInput)
@@ -56,9 +64,9 @@ export function currentTimezoneToUTC(
     // Naive datetime-local string ("YYYY-MM-DDTHH:mm[:ss]") — interpret in the
     // caller's zone, not UTC. Without this it was being parsed as UTC and
     // "today 00:00" would silently shift by the UTC offset.
-    dt = DateTime.fromISO(dateInput, { zone: timezone });
+    dt = DateTime.fromISO(dateInput, { zone });
   } else {
-    dt = DateTime.fromJSDate(new Date(dateInput), { zone: timezone });
+    dt = DateTime.fromJSDate(new Date(dateInput), { zone });
   }
 
   const utc = dt.toUTC();

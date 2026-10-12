@@ -3,7 +3,7 @@ import Head from "next/head";
 import { format } from "date-fns";
 import { Download, Search, FileText } from "lucide-react";
 import NewDateFilter from "@/components/NewDateFilter";
-import { useTimezone } from "@/hooks/useTimezone";
+import { useTimezone } from "@/context/TimezoneContext";
 import { getUTCDateRange } from "@/utils/timezone";
 import { InputText } from "primereact/inputtext";
 import { withAuth } from "@/utils/auth";

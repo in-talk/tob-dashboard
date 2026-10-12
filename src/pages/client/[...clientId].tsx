@@ -2,7 +2,7 @@ import DispositionChart from "@/components/dashboard/DispositionChart";
 import Stats from "@/components/dashboard/Stats";
 import NewDateFilter from "@/components/NewDateFilter";
 import AutoRefresh from "@/components/ui/autoRefresh";
-import { useTimezone } from "@/hooks/useTimezone";
+import { useTimezone } from "@/context/TimezoneContext";
 import { CallRecord } from "@/types/callRecord";
 import { withAuth } from "@/utils/auth";
 import { getUTCDateRange } from "@/utils/timezone";

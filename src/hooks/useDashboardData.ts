@@ -1,7 +1,7 @@
 // hooks/useDashboardData.ts
 import { useMemo, useCallback } from "react";
 import useSWR from "swr";
-import { useTimezone } from "@/hooks/useTimezone";
+import { useTimezone } from "@/context/TimezoneContext";
 import { getUTCDateRange } from "@/utils/timezone";
 import { transformAgentData } from "@/utils/transformAgentData";
 import { transformGraphData } from "@/utils/transformGraphData";
