@@ -78,8 +78,9 @@ const createClientSchema = z.object({
   force_xfer: z.boolean().default(false),
   // Generic per-client feature toggles, stored as {KEY: boolean}. The set of
   // keys is defined by the FEATURE_FLAGS registry; node-agi forwards the JSON
-  // as-is and ai-voice-bot reads it via has_flag(...).
-  feature_flags: z.record(z.boolean()).default({}),
+  // as-is and ai-voice-bot reads it via has_flag(...). This stays optional so
+  // older rows and newly-created clients without any flags remain valid.
+  feature_flags: z.record(z.boolean()).nullish(),
   // Create-only: comma-separated IPs inserted into client_ips once the
   // client exists. Parsed/validated identically on the server.
   ips: z

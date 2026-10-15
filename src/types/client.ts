@@ -42,6 +42,7 @@ export type Client = {
    * Generic per-client feature toggles, stored as a JSON object e.g.
    * {"AEP": true}. Managed via the FEATURE_FLAGS registry in the client form;
    * node-agi forwards it as-is and ai-voice-bot reads it via has_flag(...).
+   * May be absent for older rows or clients without enabled flags.
    */
-  feature_flags: Record<string, boolean>;
+  feature_flags?: Record<string, boolean> | null;
 };
