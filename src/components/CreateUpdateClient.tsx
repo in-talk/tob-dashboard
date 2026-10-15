@@ -11,6 +11,7 @@ import { User } from "@/types/user";
 import { Model } from "@/types/model";
 import { Campaign } from "@/pages/keyword_finder";
 import { createClientData } from "@/constants";
+import { FEATURE_FLAGS } from "@/constants/featureFlags";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -75,6 +76,10 @@ const createClientSchema = z.object({
   // Aggressive transfer: skip the "answer questions" rebuttals and fast-track
   // callers toward XFER (from turn 2) unless they clearly decline.
   force_xfer: z.boolean().default(false),
+  // Generic per-client feature toggles, stored as {KEY: boolean}. The set of
+  // keys is defined by the FEATURE_FLAGS registry; node-agi forwards the JSON
+  // as-is and ai-voice-bot reads it via has_flag(...).
+  feature_flags: z.record(z.boolean()).default({}),
   // Create-only: comma-separated IPs inserted into client_ips once the
   // client exists. Parsed/validated identically on the server.
   ips: z
@@ -237,7 +242,7 @@ export default function CreateUpdateClient({
 
       <DialogContent
         aria-describedby="Client form"
-        className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto"
+        className="max-w-[calc(100vw-2rem)] sm:max-w-[900px] max-h-[90vh] overflow-y-auto"
       >
         <DialogHeader>
           <DialogTitle>
@@ -248,26 +253,13 @@ export default function CreateUpdateClient({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
-              <div className="flex flex-col justify-between">
-                <FormField
-                  control={form.control}
-                  name="updated_by"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Updated by</FormLabel>
-                      <FormControl>
-                        <Input
-                          className="!mt-0"
-                          {...field}
-                          readOnly
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            {/* ---- Basic details ---- */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground/80 border-b pb-1.5">
+                Basic details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <FormField
                   control={form.control}
                   name="name"
@@ -283,18 +275,108 @@ export default function CreateUpdateClient({
                 />
                 <FormField
                   control={form.control}
-                  name="is_active"
+                  name="updated_by"
                   render={({ field }) => (
-                    <FormItem className="flex items-center gap-2">
+                    <FormItem>
+                      <FormLabel>Updated by</FormLabel>
                       <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={(val) =>
-                            field.onChange(Boolean(val))
-                          }
-                        />
+                        <Input className="!mt-0" {...field} readOnly />
                       </FormControl>
-                      <FormLabel className="!mt-0 ">Is Active</FormLabel>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="user_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>User</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={(val) => field.onChange(Number(val))}
+                          value={field.value?.toString() ?? ""}
+                        >
+                          <SelectTrigger className="w-full !mt-0">
+                            <SelectValue placeholder="Select user" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {users?.map((user) => (
+                              <SelectItem key={user.id} value={user.id.toString()}>
+                                {user.name} ({user.email})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="campaign_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Campaign</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={(val) => field.onChange(Number(val))}
+                          value={field.value?.toString() ?? ""}
+                        >
+                          <SelectTrigger className="w-full !mt-0">
+                            <SelectValue placeholder="Select campaign" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {campaigns?.map((campaign) => (
+                              <SelectItem
+                                key={campaign.campaign_id}
+                                value={campaign.campaign_id.toString()}
+                              >
+                                {campaign.campaign_name}-{campaign.campaign_code}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="model"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Model</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={(val) => field.onChange(Number(val))}
+                          value={field.value ? field.value.toString() : ""}
+                        >
+                          <SelectTrigger className="w-full !mt-0">
+                            <SelectValue
+                              placeholder={
+                                !watchedCampaignId
+                                  ? "Select campaign first"
+                                  : filteredModels.length === 0
+                                    ? "No models for this campaign"
+                                    : "Select model"
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredModels.map((model) => (
+                              <SelectItem
+                                key={model.model_id}
+                                value={model.model_number.toString()}
+                              >
+                                {model.model_name} (#{model.model_number})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -322,11 +404,164 @@ export default function CreateUpdateClient({
                     </FormItem>
                   )}
                 />
+                {["version", "number_of_lines"].map((fieldName) => (
+                  <FormField
+                    key={fieldName}
+                    control={form.control}
+                    name={fieldName as keyof CreateClientValues}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="capitalize">
+                          {fieldName.replace(/_/g, " ")}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            className="!mt-0"
+                            type="number"
+                            value={
+                              field.value !== undefined && field.value !== null
+                                ? String(field.value)
+                                : ""
+                            }
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value === ""
+                                  ? undefined
+                                  : Number(e.target.value)
+                              )
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ))}
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea className="!mt-0" {...field} rows={3} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </section>
+
+            {/* ---- Options & feature flags ---- */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground/80 border-b pb-1.5">
+                Options
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(val) => field.onChange(Boolean(val))}
+                        />
+                      </FormControl>
+                      <FormLabel className="!mt-0">Is Active</FormLabel>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="transfer_using_did"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(val) => field.onChange(Boolean(val))}
+                        />
+                      </FormControl>
+                      <FormLabel className="!mt-0">Transfer using DID</FormLabel>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="force_xfer"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(val) => field.onChange(Boolean(val))}
+                        />
+                      </FormControl>
+                      <FormLabel className="!mt-0">
+                        Force Transfer (aggressive XFER)
+                      </FormLabel>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {FEATURE_FLAGS.length > 0 && (
+                <div className="space-y-3 rounded-md border border-input p-4">
+                  <FormLabel className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Feature Flags
+                  </FormLabel>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {FEATURE_FLAGS.map((flag) => (
+                      <FormField
+                        key={flag.key}
+                        control={form.control}
+                        name={`feature_flags.${flag.key}`}
+                        render={({ field }) => (
+                          <FormItem className="flex items-start gap-2 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                className="mt-0.5"
+                                checked={Boolean(field.value)}
+                                onCheckedChange={(val) =>
+                                  field.onChange(Boolean(val))
+                                }
+                              />
+                            </FormControl>
+                            <div className="flex flex-col">
+                              <FormLabel className="!mt-0">{flag.label}</FormLabel>
+                              {flag.description && (
+                                <span className="text-xs text-muted-foreground">
+                                  {flag.description}
+                                </span>
+                              )}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* ---- Routing & labels ---- */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground/80 border-b pb-1.5">
+                Routing & labels
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <FormField
                   control={form.control}
                   name="label_table_name"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="md:col-span-2">
                       <FormLabel>Label Table Name (optional)</FormLabel>
                       <FormControl>
                         <Input
@@ -339,44 +574,6 @@ export default function CreateUpdateClient({
                           onChange={(e) => field.onChange(e.target.value)}
                         />
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="transfer_using_did"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-2">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={(val) =>
-                            field.onChange(Boolean(val))
-                          }
-                        />
-                      </FormControl>
-                      <FormLabel className="!mt-0">Transfer using DID</FormLabel>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="force_xfer"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-2">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={(val) =>
-                            field.onChange(Boolean(val))
-                          }
-                        />
-                      </FormControl>
-                      <FormLabel className="!mt-0">
-                        Force Transfer (aggressive XFER)
-                      </FormLabel>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -424,79 +621,242 @@ export default function CreateUpdateClient({
                   )}
                 />
               </div>
+            </section>
 
-              <div>
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea className="!mt-0" {...field} rows={3} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2 ">
+            {/* ---- Vicidial ---- */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground/80 border-b pb-1.5">
+                Vicidial
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                <div className="space-y-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Main
+                  </p>
+                  {[
+                    "vicidial_address",
+                    "vicidial_address_folder",
+                    "vicidial_api_user",
+                    "vicidial_api_password",
+                  ].map((fieldName) => (
+                    <FormField
+                      key={fieldName}
+                      control={form.control}
+                      name={fieldName as keyof CreateClientValues}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="capitalize">
+                            {fieldName.replace(/_/g, " ")}
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              className="!mt-0"
+                              {...field}
+                              value={
+                                typeof field.value === "string" ||
+                                  typeof field.value === "number"
+                                  ? field.value
+                                  : ""
+                              }
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+
+                  {/* Transfer Group Name - Chip/Tag Input */}
                   <FormField
                     control={form.control}
-                    name="campaign_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Campaign</FormLabel>
-                        <FormControl>
-                          <Select
-                            onValueChange={(val) => field.onChange(Number(val))}
-                            value={field.value?.toString() ?? ""}
-                          >
-                            <SelectTrigger className="w-full !mt-0">
-                              <SelectValue placeholder="Select campaign" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {campaigns?.map((campaign) => (
-                                <SelectItem
-                                  key={campaign.campaign_id}
-                                  value={campaign.campaign_id.toString()}
+                    name="transfer_group_name"
+                    render={({ field }) => {
+                      const tags = (field.value || "")
+                        .split(",")
+                        .map((t: string) => t.trim())
+                        .filter(Boolean);
+
+                      const addTag = (value: string) => {
+                        const trimmed = value.trim();
+                        if (!trimmed) return;
+                        const current = tags;
+                        if (!current.includes(trimmed)) {
+                          field.onChange([...current, trimmed].join(","));
+                        }
+                      };
+
+                      const removeTag = (index: number) => {
+                        const updated = tags.filter(
+                          (_: string, i: number) => i !== index
+                        );
+                        field.onChange(updated.join(","));
+                      };
+
+                      return (
+                        <FormItem>
+                          <FormLabel>Transfer Group Name</FormLabel>
+                          <FormControl>
+                            <div
+                              className="flex flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[40px] cursor-text"
+                              onClick={(e) => {
+                                const input = (
+                                  e.currentTarget as HTMLElement
+                                ).querySelector("input");
+                                input?.focus();
+                              }}
+                            >
+                              {tags.map((tag: string, idx: number) => (
+                                <span
+                                  key={`${tag}-${idx}`}
+                                  className="inline-flex items-center gap-1 rounded-full bg-blue-600 text-white px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-blue-700"
                                 >
-                                  {campaign.campaign_name}-{campaign.campaign_code}
-                                </SelectItem>
+                                  {tag}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeTag(idx);
+                                    }}
+                                    className="ml-0.5 rounded-full p-0.5 hover:bg-blue-800 focus:outline-none"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </span>
                               ))}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                              <input
+                                className="flex-1 min-w-[120px] bg-transparent outline-none placeholder:text-muted-foreground text-sm"
+                                placeholder={
+                                  tags.length === 0
+                                    ? "Type and press Enter or comma"
+                                    : ""
+                                }
+                                onKeyDown={(e) => {
+                                  const input = e.currentTarget;
+                                  if (e.key === "Enter" || e.key === ",") {
+                                    e.preventDefault();
+                                    addTag(input.value.replace(/,/g, ""));
+                                    input.value = "";
+                                  } else if (
+                                    e.key === "Backspace" &&
+                                    input.value === "" &&
+                                    tags.length > 0
+                                  ) {
+                                    removeTag(tags.length - 1);
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  const val = e.currentTarget.value.trim();
+                                  if (val) {
+                                    addTag(val.replace(/,/g, ""));
+                                    e.currentTarget.value = "";
+                                  }
+                                }}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                </div>
+                <div className="space-y-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Transfer
+                  </p>
+                  {[
+                    "vicidial_transfer_address",
+                    "vicidial_transfer_address_folder",
+                    "vicidial_transfer_api_user",
+                    "vicidial_transfer_api_pass",
+                    "vicidial_transfer_user",
+                  ].map((fieldName) => (
+                    <FormField
+                      key={fieldName}
+                      control={form.control}
+                      name={fieldName as keyof CreateClientValues}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="capitalize">
+                            {fieldName.replace(/_/g, " ")}
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              className="!mt-0"
+                              {...field}
+                              value={
+                                typeof field.value === "string" ||
+                                  typeof field.value === "number"
+                                  ? field.value
+                                  : ""
+                              }
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* ---- Network (create only) ---- */}
+            {mode === "create" && (
+              <section className="space-y-4">
+                <h3 className="text-sm font-semibold text-foreground/80 border-b pb-1.5">
+                  Network
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-x-6 gap-y-4">
+                  <FormField
+                    control={form.control}
+                    name="ips"
+                    render={({ field }) => {
+                      const { valid } = parseIpList(field.value);
+                      return (
+                        <FormItem>
+                          <FormLabel>IPs (optional)</FormLabel>
+                          <FormControl>
+                            <Input
+                              className="!mt-0 font-mono"
+                              placeholder="e.g. 34.1.2.3, 34.1.2.4"
+                              {...field}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          {valid.length > 0 && !form.formState.errors.ips && (
+                            <p className="text-xs text-muted-foreground">
+                              {valid.length} IP(s) will be added to Client IPs
+                            </p>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   <FormField
                     control={form.control}
-                    name="model"
+                    name="ips_provider"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Model</FormLabel>
+                        <FormLabel>IP provider</FormLabel>
                         <FormControl>
                           <Select
-                            onValueChange={(val) => field.onChange(Number(val))}
-                            value={field.value ? field.value.toString() : ""}
+                            onValueChange={(val) =>
+                              field.onChange(val === "none" ? null : val)
+                            }
+                            value={field.value ?? "none"}
                           >
                             <SelectTrigger className="w-full !mt-0">
-                              <SelectValue placeholder={
-                                !watchedCampaignId
-                                  ? "Select campaign first"
-                                  : filteredModels.length === 0
-                                    ? "No models for this campaign"
-                                    : "Select model"
-                              } />
+                              <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {filteredModels.map((model) => (
-                                <SelectItem
-                                  key={model.model_id}
-                                  value={model.model_number.toString()}
-                                >
-                                  {model.model_name} (#{model.model_number})
+                              <SelectItem value="none">Not set</SelectItem>
+                              {PROVIDERS.map((p) => (
+                                <SelectItem key={p} value={p}>
+                                  {PROVIDER_LABELS[p]}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -507,294 +867,10 @@ export default function CreateUpdateClient({
                     )}
                   />
                 </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
-              <FormField
-                control={form.control}
-                name="user_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel >User</FormLabel>
-                    <FormControl>
-                      <Select
-
-                        onValueChange={(val) => field.onChange(Number(val))}
-                        value={field.value?.toString() ?? ""}
-                      >
-                        <SelectTrigger className="w-full !mt-0">
-                          <SelectValue placeholder="Select user" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {users?.map((user) => (
-                            <SelectItem
-                              key={user.id}
-                              value={user.id.toString()}
-                            >
-                              {user.name} ({user.email})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-                {["version", "number_of_lines"].map((fieldName) => (
-                  <FormField
-                    key={fieldName}
-                    control={form.control}
-                    name={fieldName as keyof CreateClientValues}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{fieldName.replace(/_/g, " ")}</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="!mt-0"
-                            type="number"
-                            value={
-                              field.value !== undefined &&
-                                field.value !== null
-                                ? String(field.value)
-                                : ""
-                            }
-                            onChange={(e) =>
-                              field.onChange(
-                                e.target.value === ""
-                                  ? undefined
-                                  : Number(e.target.value)
-                              )
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
-              <div>
-                {[
-                  "vicidial_address",
-                  "vicidial_address_folder",
-                  "vicidial_api_user",
-                  "vicidial_api_password",
-                ].map((fieldName) => (
-                  <FormField
-                    key={fieldName}
-                    control={form.control}
-                    name={fieldName as keyof CreateClientValues}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{fieldName.replace(/_/g, " ")}</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="!mt-0"
-                            {...field}
-                            value={
-                              typeof field.value === "string" ||
-                                typeof field.value === "number"
-                                ? field.value
-                                : ""
-                            }
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ))}
-
-                {/* Transfer Group Name - Chip/Tag Input */}
-                <FormField
-                  control={form.control}
-                  name="transfer_group_name"
-                  render={({ field }) => {
-                    const tags = (field.value || "")
-                      .split(",")
-                      .map((t: string) => t.trim())
-                      .filter(Boolean);
-
-                    const addTag = (value: string) => {
-                      const trimmed = value.trim();
-                      if (!trimmed) return;
-                      const current = tags;
-                      if (!current.includes(trimmed)) {
-                        field.onChange([...current, trimmed].join(","));
-                      }
-                    };
-
-                    const removeTag = (index: number) => {
-                      const updated = tags.filter((_: string, i: number) => i !== index);
-                      field.onChange(updated.join(","));
-                    };
-
-                    return (
-                      <FormItem>
-                        <FormLabel>Transfer Group Name</FormLabel>
-                        <FormControl>
-                          <div
-                            className="flex flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[40px] cursor-text"
-                            onClick={(e) => {
-                              const input = (e.currentTarget as HTMLElement).querySelector("input");
-                              input?.focus();
-                            }}
-                          >
-                            {tags.map((tag: string, idx: number) => (
-                              <span
-                                key={`${tag}-${idx}`}
-                                className="inline-flex items-center gap-1 rounded-full bg-blue-600 text-white px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-blue-700"
-                              >
-                                {tag}
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    removeTag(idx);
-                                  }}
-                                  className="ml-0.5 rounded-full p-0.5 hover:bg-blue-800 focus:outline-none"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </span>
-                            ))}
-                            <input
-                              className="flex-1 min-w-[120px] bg-transparent outline-none placeholder:text-muted-foreground text-sm"
-                              placeholder={tags.length === 0 ? "Type and press Enter or comma" : ""}
-                              onKeyDown={(e) => {
-                                const input = e.currentTarget;
-                                if (e.key === "Enter" || e.key === ",") {
-                                  e.preventDefault();
-                                  addTag(input.value.replace(/,/g, ""));
-                                  input.value = "";
-                                } else if (
-                                  e.key === "Backspace" &&
-                                  input.value === "" &&
-                                  tags.length > 0
-                                ) {
-                                  removeTag(tags.length - 1);
-                                }
-                              }}
-                              onBlur={(e) => {
-                                const val = e.currentTarget.value.trim();
-                                if (val) {
-                                  addTag(val.replace(/,/g, ""));
-                                  e.currentTarget.value = "";
-                                }
-                              }}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
-              </div>
-              <div>
-                {[
-                  "vicidial_transfer_address",
-                  "vicidial_transfer_address_folder",
-                  "vicidial_transfer_api_user",
-                  "vicidial_transfer_api_pass",
-                  "vicidial_transfer_user",
-                ].map((fieldName) => (
-                  <FormField
-                    key={fieldName}
-                    control={form.control}
-                    name={fieldName as keyof CreateClientValues}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{fieldName.replace(/_/g, " ")}</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="!mt-0"
-                            {...field}
-                            value={
-                              typeof field.value === "string" ||
-                                typeof field.value === "number"
-                                ? field.value
-                                : ""
-                            }
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {mode === "create" && (
-              <div className="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-6">
-                <FormField
-                  control={form.control}
-                  name="ips"
-                  render={({ field }) => {
-                    const { valid } = parseIpList(field.value);
-                    return (
-                      <FormItem>
-                        <FormLabel>IPs (optional)</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="!mt-0 font-mono"
-                            placeholder="e.g. 34.1.2.3, 34.1.2.4"
-                            {...field}
-                            value={field.value ?? ""}
-                          />
-                        </FormControl>
-                        {valid.length > 0 && !form.formState.errors.ips && (
-                          <p className="text-xs text-muted-foreground">
-                            {valid.length} IP(s) will be added to Client IPs
-                          </p>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
-                <FormField
-                  control={form.control}
-                  name="ips_provider"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>IP provider</FormLabel>
-                      <FormControl>
-                        <Select
-                          onValueChange={(val) => field.onChange(val === "none" ? null : val)}
-                          value={field.value ?? "none"}
-                        >
-                          <SelectTrigger className="w-full !mt-0">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Not set</SelectItem>
-                            {PROVIDERS.map((p) => (
-                              <SelectItem key={p} value={p}>
-                                {PROVIDER_LABELS[p]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              </section>
             )}
 
-            <div className="flex justify-center">
+            <div className="flex justify-end gap-2 pt-4 border-t">
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? (
                   <>

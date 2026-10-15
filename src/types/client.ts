@@ -38,4 +38,10 @@ export type Client = {
   peer_trunk_identifier: string | null;
   /** Aggressive transfer: fast-track callers toward XFER instead of answering. */
   force_xfer: boolean;
+  /**
+   * Generic per-client feature toggles, stored as a JSON object e.g.
+   * {"AEP": true}. Managed via the FEATURE_FLAGS registry in the client form;
+   * node-agi forwards it as-is and ai-voice-bot reads it via has_flag(...).
+   */
+  feature_flags: Record<string, boolean>;
 };
