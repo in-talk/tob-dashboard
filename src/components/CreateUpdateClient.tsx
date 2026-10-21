@@ -11,7 +11,7 @@ import { User } from "@/types/user";
 import { Model } from "@/types/model";
 import { Campaign } from "@/pages/keyword_finder";
 import { createClientData } from "@/constants";
-import { FEATURE_FLAGS } from "@/constants/featureFlags";
+import { FEATURE_FLAGS, normaliseFeatureFlags } from "@/constants/featureFlags";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -80,7 +80,12 @@ const createClientSchema = z.object({
   // keys is defined by the FEATURE_FLAGS registry; node-agi forwards the JSON
   // as-is and ai-voice-bot reads it via has_flag(...). This stays optional so
   // older rows and newly-created clients without any flags remain valid.
-  feature_flags: z.record(z.boolean()).nullish(),
+  // Every flag is optional: an untouched checkbox (undefined) or a missing
+  // key is stored as false instead of failing validation as "Required".
+  feature_flags: z.preprocess(
+    (value) => normaliseFeatureFlags(value),
+    z.record(z.boolean())
+  ).nullish(),
   // Create-only: comma-separated IPs inserted into client_ips once the
   // client exists. Parsed/validated identically on the server.
   ips: z
@@ -129,12 +134,15 @@ export default function CreateUpdateClient({
   const setDialogOpen = externalOnOpenChange !== undefined ? externalOnOpenChange : setInternalOpen;
   const form = useForm<CreateClientValues>({
     resolver: zodResolver(createClientSchema),
-    defaultValues: initialData ?? {
-      is_active: true,
-      version: 1,
-      model: 1,
-      updated_by: sessionUser ?? "",
-    },
+    defaultValues: initialData
+      ? { ...initialData, feature_flags: normaliseFeatureFlags(initialData.feature_flags) }
+      : {
+          is_active: true,
+          version: 1,
+          model: 1,
+          updated_by: sessionUser ?? "",
+          feature_flags: normaliseFeatureFlags(null),
+        },
   });
 
   const lastResetData = useRef<string>("");
@@ -145,6 +153,7 @@ export default function CreateUpdateClient({
       if (currentDataStr !== lastResetData.current) {
         form.reset({
           ...initialData,
+          feature_flags: normaliseFeatureFlags(initialData.feature_flags),
           updated_by: sessionUser ?? initialData?.updated_by ?? "",
         });
         lastResetData.current = currentDataStr;
