@@ -1,26 +1,19 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import db from "@/lib/db";
+import { AuthedUser, requireClientAccess, withApiAuth } from "@/lib/auth/guard";
 
-export default async function handler(
+async function handler(
     req: NextApiRequest,
-    res: NextApiResponse
+    res: NextApiResponse,
+    user: AuthedUser
 ) {
-    if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method not allowed" });
-    }
 
-    const { client_id } = req.body;
+    const { client_id } = req.body ?? {};
 
-    if (!client_id) {
-        return res.status(400).json({ error: "client_id is required" });
-    }
+    const clientIdInt = await requireClientAccess(user, client_id, res);
+    if (clientIdInt === null) return;
 
     try {
-        // Ensure client_id is an integer if it's a numeric string
-        const clientIdInt = typeof client_id === 'string' && /^\d+$/.test(client_id)
-            ? parseInt(client_id, 10)
-            : client_id;
-
 
         const result = await db.query(
             `SELECT * FROM public.get_agent_disposition_last_7_days($1);`,
@@ -50,3 +43,5 @@ export default async function handler(
         res.status(500).json({ error: message });
     }
 }
+
+export default withApiAuth(handler, { roles: { POST: ["admin", "user"] } });

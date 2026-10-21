@@ -1,3 +1,5 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
 import { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
@@ -13,7 +15,7 @@ interface UpdateKeywordsQuery {
   collectionType?: string;
 }
 
-export default async function handleUpdateKeywords(
+async function handleUpdateKeywords(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -145,3 +147,5 @@ export default async function handleUpdateKeywords(
     });
   }
 }
+
+export default withApiAuth(handleUpdateKeywords, { roles: ADMIN });

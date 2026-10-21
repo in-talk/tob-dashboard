@@ -110,7 +110,6 @@ function TabLabel({ label, tabKey }: { label: string; tabKey: string }) {
   );
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_KEYWORD_API_URL || "";
 
 export default function AgeMechanism() {
   const [resetting, setResetting] = useState(false);
@@ -118,7 +117,7 @@ export default function AgeMechanism() {
   const handleResetCache = async () => {
     setResetting(true);
     try {
-      const res = await fetch(`${API_BASE}/age-classifier/reset-cache`, {
+      const res = await fetch("/api/age-classifier/reset-cache", {
         method: "POST",
       });
       if (!res.ok) throw new Error("Failed to reset cache");

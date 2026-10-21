@@ -1,11 +1,29 @@
-import { Pool, PoolClient } from "pg";
+import fs from "fs";
+import { Pool, PoolClient, PoolConfig } from "pg";
+
+// TLS to Postgres. Set DB_SSL_CA (path to the server CA .pem, or the PEM text
+// itself) to verify the server certificate — that's what stops a
+// man-in-the-middle. Without it, production keeps the previous encrypted-but-
+// unverified behaviour and logs a warning so this doesn't go unnoticed.
+function sslConfig(): PoolConfig["ssl"] {
+  const ca = process.env.DB_SSL_CA;
+  if (ca) {
+    const pem = ca.includes("-----BEGIN") ? ca : fs.readFileSync(ca, "utf8");
+    return { ca: pem, rejectUnauthorized: true };
+  }
+  if (process.env.NODE_ENV === "production") {
+    console.warn("[db] DB_SSL_CA not set — Postgres TLS certificate is NOT verified.");
+    return { rejectUnauthorized: false };
+  }
+  return false;
+}
 
 const pool = new Pool({
   connectionString: process.env.POSTGRESDATABASE_URL,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false,
+  ssl: sslConfig(),
+  max: Number(process.env.DB_POOL_MAX ?? 10),
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

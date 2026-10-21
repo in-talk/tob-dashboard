@@ -1,7 +1,9 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
 import type { NextApiRequest, NextApiResponse } from "next";
 import db from "@/lib/db"; // same DB connection
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -161,3 +163,5 @@ async function deleteAgentByCampaign(
     return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }
+
+export default withApiAuth(handler, { roles: ADMIN });

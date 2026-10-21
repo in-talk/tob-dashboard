@@ -1,3 +1,5 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Agent } from "undici";
 
@@ -49,7 +51,7 @@ interface ApiResponse {
   results: ProcessResult[];
 }
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ApiResponse | { error: string; message?: string }>
 ) {
@@ -115,3 +117,5 @@ export default async function handler(
     });
   }
 }
+
+export default withApiAuth(handler, { roles: ADMIN });

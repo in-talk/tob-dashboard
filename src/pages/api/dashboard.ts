@@ -1,3 +1,5 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import clientPromise from "@/lib/mongodb";
 import { getCampaignLabel } from "@/lib/utils";
@@ -5,7 +7,7 @@ import { labelsSchema } from "@/lib/zod";
 import { ObjectId } from "mongodb";
 import { NextApiRequest, NextApiResponse } from "next";
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -168,3 +170,5 @@ async function handlePut(
     return res.status(500).json({ message: "An unexpected error occurred" });
   }
 }
+
+export default withApiAuth(handler, { roles: ADMIN });

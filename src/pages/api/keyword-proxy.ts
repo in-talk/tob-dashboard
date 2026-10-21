@@ -1,3 +1,5 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Agent } from "undici";
 
@@ -15,7 +17,7 @@ const longTimeoutAgent = new Agent({
   connectTimeout: 30_000,
 });
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -45,3 +47,5 @@ export default async function handler(
     res.status(500).json({ error: "Failed to proxy request" });
   }
 }
+
+export default withApiAuth(handler, { roles: ADMIN });

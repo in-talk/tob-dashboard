@@ -4,6 +4,7 @@ import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import db from "@/lib/db";
 import { PROVIDERS, Provider } from "./types";
 import { isValidIp, normalizeIp } from "./ip";
+import { isCrossSite } from "@/lib/auth/guard";
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -17,6 +18,11 @@ export async function requireAdmin(
   req: NextApiRequest,
   res: NextApiResponse
 ): Promise<string | null> {
+  res.setHeader("Cache-Control", "no-store");
+  if (isCrossSite(req)) {
+    res.status(403).json({ ok: false, error: "Cross-site request blocked" });
+    return null;
+  }
   const session = await getServerSession(req, res, authOptions);
   if (!session?.user) {
     res.status(401).json({ ok: false, error: "Unauthorized" });
@@ -127,7 +133,10 @@ export function sendError(
   console.error("[network api]", error);
   return res.status(500).json({
     ok: false,
-    error: error instanceof Error ? error.message : "Unexpected error",
+    error:
+      process.env.NODE_ENV !== "production" && error instanceof Error
+        ? error.message
+        : "Unexpected error",
   });
 }
 

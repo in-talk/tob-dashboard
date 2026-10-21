@@ -1,53 +1,8 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import bcrypt from "bcryptjs";
-import db from "@/lib/db"; // Use our database utility instead of Prisma
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
+import { createUser } from "@/lib/auth/users";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).end();
-
-  try {
-    const { email, password, name, role } = req.body;
-
-    if (!email || !password || !name || !role) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    const existingUserResult = await db.query(
-      "SELECT id FROM users WHERE email = $1",
-      [email.toLowerCase()]
-    );
-
-    if (existingUserResult.rows.length > 0) {
-      return res.status(409).json({ error: "User already exists" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const insertResult = await db.query(
-      `INSERT INTO users (email, password, name, role, client_id) 
-       VALUES ($1, $2, $3, $4, $5) 
-       RETURNING id`,
-      [email.toLowerCase(), hashedPassword, name, role, '24']
-    );
-
-    const userId = insertResult.rows[0].id;
-
-    res.status(201).json({
-      message: "User created successfully",
-      userId: userId,
-    });
-  } catch (error) {
-    console.error("Error creating user:", error);
-    
-    if (error instanceof Error) {
-      console.error(error.message);
-      if ('code' in error) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        console.error(`Database error code: ${(error as any).code}`);
-      }
-       res.status(500).json({ error: error.message });
-    }
-    
-    res.status(500).json({ error: error });
-  }
-}
+// Legacy endpoint kept for the CreateUser component; same rules as POST /api/users.
+// (It used to hardcode client_id = 24 — client access now comes only from
+// clients_by_users.)
+export default withApiAuth((req, res, user) => createUser(req, res, user), { roles: { POST: ADMIN } });

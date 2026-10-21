@@ -1,3 +1,5 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
 // pages/api/keywords/add.ts
 import { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/lib/mongodb";
@@ -14,7 +16,7 @@ interface AddKeywordQuery {
   collectionType?: string;
 }
 
-export default async function handleAddKeyword(
+async function handleAddKeyword(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -98,3 +100,5 @@ export default async function handleAddKeyword(
     });
   }
 }
+
+export default withApiAuth(handleAddKeyword, { roles: ADMIN });

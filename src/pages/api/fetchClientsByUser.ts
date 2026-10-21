@@ -1,44 +1,28 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import db from "@/lib/db"; // Adjust based on your actual DB wrapper
+import db from "@/lib/db";
+import { AuthedUser, withApiAuth } from "@/lib/auth/guard";
+import { isGlobalRole } from "@/lib/auth/roles";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  try {
-    // Get user_id from query parameters
-    const { user_id } = req.query;
-
-    // Validate user_id is provided
-    if (!user_id) {
-      return res.status(400).json({ error: "user_id is required" });
-    }
-
-    // Convert to number and validate
-    const userId = parseInt(user_id as string);
-    if (isNaN(userId)) {
+async function handler(req: NextApiRequest, res: NextApiResponse, user: AuthedUser) {
+  // Non-admins can only list their own clients, whatever user_id they send.
+  let userId = user.id;
+  if (isGlobalRole(user.role) && req.query.user_id !== undefined) {
+    const requested = String(req.query.user_id);
+    if (!/^\d+$/.test(requested)) {
       return res.status(400).json({ error: "user_id must be a valid number" });
     }
-
-    const result = await db.query(
-      `SELECT c.name, c.client_id
-          FROM clients c
-          INNER JOIN clients_by_users cbu ON c.client_id = cbu.client_id
-          WHERE cbu.user_id = $1`,
-      [userId]
-    );
-
-    res.status(200).json({
-      clients: result.rows,
-    });
-  } catch (error) {
-    console.error("Error getting clients:", error);
-
-    const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ error: message });
+    userId = requested;
   }
+
+  const result = await db.query(
+    `SELECT c.name, c.client_id
+       FROM clients c
+       INNER JOIN clients_by_users cbu ON c.client_id = cbu.client_id
+      WHERE cbu.user_id = $1`,
+    [userId]
+  );
+
+  res.status(200).json({ clients: result.rows });
 }
+
+export default withApiAuth(handler, { roles: { GET: ["admin", "user"] } });

@@ -3,8 +3,10 @@ import { useRef, useState, useCallback } from "react";
 
 export default function AudioPlayer({
   audioPath,
+  callId,
 }: {
   audioPath: string | null;
+  callId?: string | number | null;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -17,7 +19,7 @@ export default function AudioPlayer({
     try {
       setLoading(true);
       setError(false);
-      const url = await generateAudioUrl(audioPath);
+      const url = await generateAudioUrl(audioPath, callId);
 
       if (url) {
         setAudioUrl(url);
@@ -30,7 +32,7 @@ export default function AudioPlayer({
       setLoading(false);
       setError(true);
     }
-  }, [audioPath, loading, audioUrl]);
+  }, [audioPath, callId, loading, audioUrl]);
 
   const handleInitialPlay = () => {
     if (!audioUrl) {

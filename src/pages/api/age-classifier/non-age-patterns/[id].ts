@@ -1,8 +1,10 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 const UPSTREAM_BASE = `${process.env.KEYWORD_API_URL}/age-classifier/non-age-patterns`;
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -34,3 +36,5 @@ export default async function handler(
     return res.status(500).json({ error: "Failed to proxy request" });
   }
 }
+
+export default withApiAuth(handler, { roles: ADMIN });

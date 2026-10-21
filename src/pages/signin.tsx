@@ -1,22 +1,13 @@
-"use client";
-
-// ───────────────────────────────────────────────────────────────────────
-// CAPTCHA DISABLED
-// All Google reCAPTCHA wiring is preserved below as comments so it can
-// be re-enabled later by removing the `// ` line comments and the
-// `/* */` JSX-comment markers, and by restoring the matching constants
-// in `src/constants/index.ts` and the `react-google-recaptcha` import.
-// Sign-in currently runs WITHOUT captcha verification.
-// ───────────────────────────────────────────────────────────────────────
-
 import { useState, useRef, useEffect, useCallback } from "react";
+import type { GetServerSideProps } from "next";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { EyeOpenIcon, EyeClosedIcon } from "@radix-ui/react-icons";
-// import ReCAPTCHA from "react-google-recaptcha";
 import Image from "next/image";
 import CustomLoader from "@/components/ui/CustomLoader";
+import Turnstile from "@/components/auth/Turnstile";
 import { signInPageData } from "@/constants";
+import { captchaMode } from "@/lib/auth/captcha";
 import {
   motion,
   AnimatePresence,
@@ -48,29 +39,49 @@ const errorVariants: Variants = {
 };
 
 const BUTTON_SCALE_ANIMATION = 0.98 as const;
-// const RECAPTCHA_THEME: "light" | "dark" = "light";
 
-export default function SignIn() {
+type SignInProps = {
+  /** Cloudflare Turnstile site key (public), or null when captcha is off. */
+  turnstileSiteKey: string | null;
+  /** Show the captcha from the start (TURNSTILE_MODE=always). */
+  captchaAlways: boolean;
+};
+
+// Read at request time so changing the env doesn't need a rebuild.
+export const getServerSideProps: GetServerSideProps<SignInProps> = async () => {
+  const mode = captchaMode();
+  const siteKey = process.env.TURNSTILE_SITE_KEY || null;
+  return {
+    props: {
+      turnstileSiteKey: mode === "off" ? null : siteKey,
+      captchaAlways: mode === "always" && !!siteKey,
+    },
+  };
+};
+
+export default function SignIn({ turnstileSiteKey, captchaAlways }: SignInProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [isFormFocused, setIsFormFocused] = useState(false);
 
-  // const recaptchaRef = useRef<ReCAPTCHA>(null);
+  // Turnstile: shown from the start in "always" mode, otherwise only once
+  // the server says this login needs it (after repeated failures).
+  const [showCaptcha, setShowCaptcha] = useState(captchaAlways);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
+
   const hasRedirected = useRef(false);
 
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-
-  // Memoized callbacks to prevent re-renders
   const handleFocus = useCallback(() => setIsFormFocused(true), []);
   const handleBlur = useCallback(() => setIsFormFocused(false), []);
   const togglePasswordVisibility = useCallback(() => setShowPassword((s) => !s), []);
+  const handleCaptchaError = useCallback(() => setError(signInPageData.errors.captchaLoad), []);
 
   // Handle session redirect - only once
   useEffect(() => {
@@ -80,148 +91,74 @@ export default function SignIn() {
     }
   }, [session, status, router]);
 
-  /* CAPTCHA DISABLED — handlers preserved for revival
-  const handleRecaptchaChange = useCallback((token: string | null) => {
-    setRecaptchaToken(token);
-    if (error === signInPageData.errors.recaptchaRequired) {
-      setError(null);
-    }
-  }, [error]);
-
-  const handleRecaptchaError = useCallback(() => {
-    setError(signInPageData.errors.recaptchaLoad);
-    setRecaptchaToken(null);
-  }, []);
-
-  const handleRecaptchaExpired = useCallback(() => {
-    setRecaptchaToken(null);
-    setError(signInPageData.errors.recaptchaExpired);
-  }, []);
-
-  const verifyRecaptcha = useCallback(async (token: string): Promise<boolean> => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      const response = await fetch("/api/verify-recaptcha", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("reCAPTCHA verification failed:", errorData);
-        return false;
-      }
-
-      const data = await response.json();
-      return data.success === true;
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          console.error("reCAPTCHA verification timeout");
-          setError("Verification timeout. Please try again.");
-        } else {
-          console.error("Error verifying reCAPTCHA:", err);
-        }
-      }
-      return false;
-    }
-  }, []);
-  */
-
   const handleSignIn = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    // CAPTCHA DISABLED — siteKey + token gates removed
-    // if (!siteKey) {
-    //   setError(signInPageData.errors.recaptchaConfig);
-    //   return;
-    // }
 
     if (!email || !password) {
       setError("Please enter both email and password");
       return;
     }
-
-    // CAPTCHA DISABLED — token requirement removed
-    // if (!recaptchaToken) {
-    //   setError(signInPageData.errors.recaptchaRequired);
-    //   return;
-    // }
+    if (showCaptcha && !captchaToken) {
+      setError(signInPageData.errors.captchaRequired);
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      // CAPTCHA DISABLED — verifyRecaptcha call removed
-      // const isRecaptchaValid = await verifyRecaptcha(recaptchaToken);
-      // if (!isRecaptchaValid) {
-      //   setError(signInPageData.errors.recaptchaFailed);
-      //   recaptchaRef.current?.reset();
-      //   setRecaptchaToken(null);
-      //   setIsLoading(false);
-      //   return;
-      // }
-
       const result = await signIn("credentials", {
         redirect: false,
         email,
         password,
+        captchaToken: captchaToken ?? "",
         callbackUrl: "/",
       });
 
-      if (result?.error) {
-        setError(signInPageData.errors.invalidCredentials);
-        // recaptchaRef.current?.reset();
-        // setRecaptchaToken(null);
-      } else if (result?.ok && result?.url) {
+      if (result?.ok && !result.error && result.url) {
         hasRedirected.current = true;
         await router.push(result.url);
-      } else {
-        setError(signInPageData.errors.unexpected);
-        // recaptchaRef.current?.reset();
-        // setRecaptchaToken(null);
+        return;
       }
+
+      switch (result?.error) {
+        case "CaptchaRequired":
+          if (turnstileSiteKey) {
+            setShowCaptcha(true);
+            setError(signInPageData.errors.captchaRequired);
+          } else {
+            setError(signInPageData.errors.unexpected);
+          }
+          break;
+        case "CaptchaFailed":
+          setError(signInPageData.errors.captchaFailed);
+          break;
+        case "TooManyAttempts":
+          setError(signInPageData.errors.tooManyAttempts);
+          break;
+        case undefined:
+          setError(signInPageData.errors.unexpected);
+          break;
+        default:
+          setError(signInPageData.errors.invalidCredentials);
+      }
+      // Turnstile tokens are single-use: get a fresh one for the next try.
+      if (showCaptcha) setCaptchaReset((n) => n + 1);
     } catch (err) {
       console.error("Sign in error:", err);
       setError(signInPageData.errors.unexpected);
-      // recaptchaRef.current?.reset();
-      // setRecaptchaToken(null);
+      if (showCaptcha) setCaptchaReset((n) => n + 1);
     } finally {
       setIsLoading(false);
     }
-    // CAPTCHA DISABLED — dropped `recaptchaToken, siteKey, verifyRecaptcha` from deps
-  }, [email, password, router]);
+  }, [email, password, router, showCaptcha, captchaToken, turnstileSiteKey]);
 
   // Don't render anything if authenticated (prevents flash)
   if (status === "authenticated") {
     return null;
   }
 
-  /* CAPTCHA DISABLED — config error fallback preserved
-  if (!siteKey) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-red-600 mb-2">
-            {signInPageData.configError.title}
-          </h2>
-          <p className="text-gray-600">
-            {signInPageData.configError.description}
-          </p>
-        </div>
-      </div>
-    );
-  }
-  */
-
-  // CAPTCHA DISABLED — dropped recaptchaToken from disabled condition
-  const isSubmitDisabled = isLoading; // was: isLoading || !recaptchaToken
+  const isSubmitDisabled = isLoading || (showCaptcha && !captchaToken);
 
   const buttonClasses =
     `group relative w-full py-3 rounded-2xl font-semibold flex items-center justify-center overflow-hidden ` +
@@ -361,6 +298,7 @@ export default function SignIn() {
                   disabled={status === "loading"}
                   className="absolute right-3 top-[8px] p-2 text-white/50 hover:text-white/80 transition-colors duration-200 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={togglePasswordVisibility}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
                     <EyeClosedIcon className="w-5 h-5" />
@@ -372,32 +310,20 @@ export default function SignIn() {
               </div>
             </motion.div>
 
-            {/* CAPTCHA DISABLED — widget block preserved for revival
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="flex justify-center"
-            >
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                {status !== "loading" && (
-                  <ReCAPTCHA
-                    ref={recaptchaRef}
-                    sitekey={siteKey}
-                    onChange={handleRecaptchaChange}
-                    onErrored={handleRecaptchaError}
-                    onExpired={handleRecaptchaExpired}
-                    theme={RECAPTCHA_THEME}
-                  />
-                )}
-                {status === "loading" && (
-                  <div className="w-[304px] h-[78px] flex items-center justify-center">
-                    <CustomLoader />
-                  </div>
-                )}
-              </div>
-            </motion.div>
-            */}
+            {showCaptcha && turnstileSiteKey && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Turnstile
+                  siteKey={turnstileSiteKey}
+                  resetKey={captchaReset}
+                  onToken={setCaptchaToken}
+                  onError={handleCaptchaError}
+                />
+              </motion.div>
+            )}
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -432,19 +358,6 @@ export default function SignIn() {
               </motion.button>
             </motion.div>
           </form>
-
-          {/* CAPTCHA DISABLED — "Protected by reCAPTCHA …" footer preserved for revival
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="mt-8 text-center"
-          >
-            <p className="text-white/40 text-xs">
-              {signInPageData.protectedBy}
-            </p>
-          </motion.div>
-          */}
         </motion.div>
       </motion.div>
     </div>

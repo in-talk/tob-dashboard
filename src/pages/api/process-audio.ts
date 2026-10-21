@@ -1,3 +1,5 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
 // pages/api/process-audio.ts
 
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -100,7 +102,7 @@ const getBackgroundAudioPath = (
   return fs.existsSync(fullPath) ? fullPath : null;
 };
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -230,3 +232,5 @@ export default async function handler(
     res.status(500).json({ error: errorMessage });
   }
 }
+
+export default withApiAuth(handler, { roles: ADMIN });

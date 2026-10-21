@@ -1,3 +1,5 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
 // pages/api/keywords/bulk.ts
 import { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/lib/mongodb";
@@ -14,7 +16,7 @@ interface BulkKeywordsQuery {
   collectionType?: string;
 }
 
-export default async function handleBulkKeywords(
+async function handleBulkKeywords(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -143,3 +145,5 @@ export default async function handleBulkKeywords(
     });
   }
 }
+
+export default withApiAuth(handleBulkKeywords, { roles: ADMIN });

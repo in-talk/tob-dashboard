@@ -4,26 +4,15 @@ export const signInPageData = {
   passwordPlaceholder: "Password",
   signInButton: "Sign In",
   signingIn: "Signing in....",
-  // CAPTCHA DISABLED — uncomment to restore the "Protected by reCAPTCHA..." footer
-  // protectedBy: "Protected by reCAPTCHA and subject to Privacy Policy",
   welcomeBack: " Welcome back! Please sign in to continue",
   errors: {
-    // CAPTCHA DISABLED — error strings preserved for revival
-    // recaptchaRequired: "Please complete the reCAPTCHA verification",
-    // recaptchaLoad: "Failed to load reCAPTCHA. Please refresh the page",
-    // recaptchaExpired: "reCAPTCHA has expired. Please verify again",
-    // recaptchaConfig: "reCAPTCHA is not configured properly",
-    // recaptchaFailed: "reCAPTCHA verification failed. Please try again",
     invalidCredentials: "Invalid email or password",
+    tooManyAttempts: "Too many sign-in attempts. Please wait 15 minutes and try again.",
+    captchaRequired: "Please complete the security check below, then sign in.",
+    captchaFailed: "Security check failed. Please try the check again.",
+    captchaLoad: "The security check couldn't load. Please refresh the page.",
     unexpected: "An unexpected error occurred. Please try again",
-    // timeout: "Verification timeout. Please try again",
   },
-  // CAPTCHA DISABLED — config-error fallback preserved for revival
-  // configError: {
-  //   title: "Configuration Error",
-  //   description:
-  //     "reCAPTCHA site key is missing. Please check your environment variables.",
-  // },
   inputLabel: {
     email: "Email address",
     password: "Password",
@@ -66,7 +55,7 @@ export const appPageData = {
       "Advanced AI-powered call center dashboard for managing customer service operations. Monitor agent performance, track call metrics, and optimize customer interactions with intelligent analytics and real-time insights.",
     keywords:
       "AI call center, customer service dashboard, call center analytics, agent performance, customer support, artificial intelligence, call monitoring, service metrics, contact center management",
-    robots: "index, follow",
+    robots: "noindex, nofollow",
     contentType: "text/html; charset=utf-8",
     language: "English",
     author: "Your Company Name",
@@ -274,7 +263,7 @@ export const createUserData = {
     password: {
       label: "Password",
       required: "Password is required",
-      minLength: "Password must be at least 6 characters long",
+      minLength: "Password must be at least 12 characters long",
     },
     name: {
       label: "Name",
@@ -317,7 +306,7 @@ export const createClientData = {
     password: {
       label: "Password",
       required: "Password is required",
-      minLength: "Password must be at least 6 characters long",
+      minLength: "Password must be at least 12 characters long",
     },
     name: {
       label: "Name",

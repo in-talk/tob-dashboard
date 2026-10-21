@@ -1,3 +1,5 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
 // pages/api/keywords/remove.ts
 import { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/lib/mongodb";
@@ -24,7 +26,7 @@ interface RemoveKeywordQuery {
   collectionType?: string;
 }
 
-export default async function handleRemoveKeyword(
+async function handleRemoveKeyword(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -106,3 +108,5 @@ export default async function handleRemoveKeyword(
     });
   }
 }
+
+export default withApiAuth(handleRemoveKeyword, { roles: ADMIN });

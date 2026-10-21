@@ -1,15 +1,14 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import db from "@/lib/db";
+import { AuthedUser, requireClientAccess, withApiAuth } from "@/lib/auth/guard";
 import { formatDateForDB } from "@/utils/formatDateTime";
 import * as XLSX from "xlsx";
 
-export default async function handler(
+async function handler(
     req: NextApiRequest,
-    res: NextApiResponse
+    res: NextApiResponse,
+    user: AuthedUser
 ) {
-    if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method not allowed" });
-    }
 
     const {
         client_id,
@@ -18,18 +17,17 @@ export default async function handler(
         caller_id = null,
         call_id = null,
         search_term = null,
-    } = req.body;
+    } = req.body ?? {};
 
-    if (!client_id) {
-        return res.status(400).json({ error: "client_id is required" });
-    }
+    const clientId = await requireClientAccess(user, client_id, res);
+    if (clientId === null) return;
 
     try {
         // Call the postgres function
         const result = await db.query(
             `SELECT * FROM get_interactions_report($1, $2, $3, $4, $5, $6);`,
             [
-                client_id,
+                clientId,
                 from_date ? formatDateForDB(from_date) : null,
                 to_date ? formatDateForDB(to_date) : null,
                 call_id ? parseInt(call_id.toString()) : null,
@@ -77,3 +75,5 @@ export default async function handler(
         res.status(500).json({ error: message });
     }
 }
+
+export default withApiAuth(handler, { roles: { POST: ["admin", "user"] } });

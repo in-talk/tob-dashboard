@@ -1,7 +1,9 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
 import type { NextApiRequest, NextApiResponse } from "next";
 import db from "@/lib/db";
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -118,3 +120,5 @@ async function unassignAgent(req: NextApiRequest, res: NextApiResponse) {
     return res.status(500).json({ ok: false, error: "An unknown error occurred" });
   }
 }
+
+export default withApiAuth(handler, { roles: ADMIN });

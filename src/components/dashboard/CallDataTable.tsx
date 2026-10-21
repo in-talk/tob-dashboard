@@ -235,8 +235,8 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   }, [data, session?.user?.role, utcDateRange]);
 
 
-  const handleOpenPlayer = useCallback((url: string) => {
-    const playerUrl = `/audio-preview?url=${encodeURIComponent(url)}`;
+  const handleOpenPlayer = useCallback((url: string, callId?: string) => {
+    const playerUrl = `/audio-preview?url=${encodeURIComponent(url)}&call_id=${encodeURIComponent(callId ?? "")}`;
     window.open(playerUrl, "_blank");
   }, []);
 
@@ -322,11 +322,11 @@ const CallDataTable: React.FC<CallDataTableProps> = ({
   const audioBodyTemplate = useCallback(
     (rowData: CallRecord) =>
       role === "admin" ? (
-        <AudioPlayer audioPath={rowData.call_recording_path} />
+        <AudioPlayer audioPath={rowData.call_recording_path} callId={rowData.call_id} />
       ) : (
         <button
           className="text-blue-500 hover:text-blue-700 underline text-sm"
-          onClick={() => handleOpenPlayer(rowData.call_recording_path)}
+          onClick={() => handleOpenPlayer(rowData.call_recording_path, rowData.call_id)}
         >
           Call Audio
         </button>

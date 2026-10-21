@@ -1,3 +1,5 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN_OR_SUPER } from "@/lib/auth/roles";
 import type { NextApiRequest, NextApiResponse } from "next";
 import formidable from "formidable";
 import fs from "fs";
@@ -25,7 +27,7 @@ export const config = {
 
 const UPSTREAM = `${process.env.KEYWORD_API_URL}/process-audio`;
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -140,3 +142,5 @@ export default async function handler(
     }
   }
 }
+
+export default withApiAuth(handler, { roles: ADMIN_OR_SUPER });

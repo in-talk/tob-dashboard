@@ -92,8 +92,8 @@ export default function CreateUpdateUser({
             const payload = { ...data, id: userId };
 
             // For creation, password is required
-            if (mode === "create" && (!data.password || data.password.length < 6)) {
-                form.setError("password", { message: "Password must be at least 6 characters" });
+            if (mode === "create" && (!data.password || data.password.length < 12)) {
+                form.setError("password", { message: "Password must be at least 12 characters (mix of upper, lower, digits, symbols)" });
                 return;
             }
 

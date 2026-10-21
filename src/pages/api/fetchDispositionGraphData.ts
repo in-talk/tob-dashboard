@@ -1,14 +1,13 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import db from "@/lib/db";
+import { AuthedUser, requireClientAccess, withApiAuth } from "@/lib/auth/guard";
 import { formatDateForDB } from "@/utils/formatDateTime";
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
+  user: AuthedUser
 ) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
 
   const defaultToDate = new Date().toISOString().split("T")[0];
 
@@ -17,7 +16,7 @@ export default async function handler(
     from_date = defaultToDate,
     to_date = `${defaultToDate} 23:59:59`,
     timezone = "UTC",
-  } = req.body;
+  } = req.body ?? {};
 
   const fromDate = new Date(from_date);
   const toDate = new Date(to_date);
@@ -66,9 +65,8 @@ export default async function handler(
 
   // removed debug logging for fetchDispositionGraphData
 
-  if (!client_id) {
-    return res.status(400).json({ error: "client_id is required" });
-  }
+  const clientId = await requireClientAccess(user, client_id, res);
+  if (clientId === null) return;
 
   try {
     const result = await db.query(
@@ -78,8 +76,8 @@ export default async function handler(
         formatDateForDB(to_date),
         small_interval,
         main_interval,
-        client_id,
-        timezone,
+        clientId,
+        typeof timezone === "string" ? timezone.slice(0, 64) : "UTC",
       ]
     );
     res.status(200).json({
@@ -92,3 +90,5 @@ export default async function handler(
     res.status(500).json({ error: message });
   }
 }
+
+export default withApiAuth(handler, { roles: { POST: ["admin", "user"] } });

@@ -1,11 +1,28 @@
-import { generateAudioUrlSync } from "@/utils/WasabiClient";
+import { generateAudioUrl } from "@/utils/WasabiClient";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
+import type { GetServerSideProps } from "next";
+import { withAuth } from "@/utils/auth";
 
 export default function AudioPreview() {
-  const { query } = useRouter();
-  const audioPath = query.url as string;
-  const audioUrl = generateAudioUrlSync(audioPath);
+  const { query, isReady } = useRouter();
+  const audioPath = typeof query.url === "string" ? query.url : "";
+  const callId = typeof query.call_id === "string" ? query.call_id : "";
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [resolved, setResolved] = useState(false);
+
+  useEffect(() => {
+    if (!isReady) return;
+    let cancelled = false;
+    generateAudioUrl(audioPath, callId).then((url) => {
+      if (cancelled) return;
+      setAudioUrl(url);
+      setResolved(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isReady, audioPath, callId]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +44,7 @@ export default function AudioPreview() {
     };
   }, [audioUrl]);
 
+  if (!resolved) return <div>Loading…</div>;
   if (!audioUrl) return <div>No audio available</div>;
 
   return (
@@ -52,3 +70,7 @@ export default function AudioPreview() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = withAuth(async () => {
+  return { props: {} };
+}, ["admin", "user"]);

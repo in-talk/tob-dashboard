@@ -103,7 +103,7 @@ export default function CreateUser() {
               {...register("password", {
                 required: createUserData.form.password.required,
                 minLength: {
-                  value: 6,
+                  value: 12,
                   message: createUserData.form.password.minLength,
                 },
               })}

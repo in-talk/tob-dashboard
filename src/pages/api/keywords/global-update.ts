@@ -1,3 +1,5 @@
+import { withApiAuth } from "@/lib/auth/guard";
+import { ADMIN } from "@/lib/auth/roles";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // pages/api/keywords/global-update.ts
 import { NextApiRequest, NextApiResponse } from "next";
@@ -10,7 +12,7 @@ interface GlobalUpdateRequestBody {
     keywords: string[];
 }
 
-export default async function handleGlobalUpdate(
+async function handleGlobalUpdate(
     req: NextApiRequest,
     res: NextApiResponse
 ) {
@@ -93,3 +95,5 @@ export default async function handleGlobalUpdate(
         });
     }
 }
+
+export default withApiAuth(handleGlobalUpdate, { roles: ADMIN });
