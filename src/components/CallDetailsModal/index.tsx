@@ -79,7 +79,7 @@ export default function CallDetailsModal({
           {callId}
         </Button>
       </DialogTrigger>
-      <DialogContent className=" w-full max-w-[1000px] max-h-[850px] overflow-auto bg-white dark:bg-sidebar">
+      <DialogContent className="w-[95vw] max-w-[1400px] max-h-[85vh] overflow-hidden bg-white dark:bg-sidebar">
         <DialogHeader>
           <DialogTitle>Call details for {callId}</DialogTitle>
         </DialogHeader>

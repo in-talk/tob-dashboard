@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
+import { useSession } from "next-auth/react";
 import { z } from "zod";
 import { mutate } from "swr";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +26,17 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
     Select,
     SelectTrigger,
@@ -40,6 +52,10 @@ const userSchema = z.object({
     password: z.string().optional().or(z.literal("")),
     name: z.string().min(1, "Name is required"),
     role: z.string().min(1, "Role is required"),
+    // Update only. false = deactivated: signed out and can't log in.
+    is_active: z.boolean().optional(),
+    // Update only. Clears a lockout caused by repeated wrong passwords.
+    unlock: z.boolean().optional(),
 });
 
 type UserFormValues = z.infer<typeof userSchema>;
@@ -50,6 +66,10 @@ type CreateUpdateUserProps = {
     userId?: string;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
+    /** Update mode: show the Active switch (needs users.is_active in the DB). */
+    showStatus?: boolean;
+    /** Update mode: when set and in the future, the account is locked out. */
+    lockedUntil?: string | null;
 };
 
 export default function CreateUpdateUser({
@@ -58,7 +78,14 @@ export default function CreateUpdateUser({
     userId,
     open: externalOpen,
     onOpenChange: externalOnOpenChange,
+    showStatus = false,
+    lockedUntil,
 }: CreateUpdateUserProps) {
+    const { data: session } = useSession();
+    // Admins can't deactivate or unlock their own account (the API refuses too).
+    const isSelf = mode === "update" && !!userId && session?.user?.id === userId;
+    const isLockedOut = !!lockedUntil && new Date(lockedUntil).getTime() > Date.now();
+    const [pendingDeactivate, setPendingDeactivate] = useState<UserFormValues | null>(null);
     const [internalOpen, setInternalOpen] = useState(false);
     const isDialogOpen = externalOpen !== undefined ? externalOpen : internalOpen;
     const setDialogOpen = externalOnOpenChange !== undefined ? externalOnOpenChange : setInternalOpen;
@@ -87,9 +114,25 @@ export default function CreateUpdateUser({
         }
     }, [isDialogOpen, initialData, form]);
 
+    const watchedActive = useWatch({ control: form.control, name: "is_active" });
+    const wasActive = initialData?.is_active !== false;
+
     const onSubmit = async (data: UserFormValues) => {
+        // Turning an active account off signs the user out, so confirm first.
+        if (mode === "update" && showStatus && !isSelf && wasActive && data.is_active === false) {
+            setPendingDeactivate(data);
+            return;
+        }
+        await save(data);
+    };
+
+    const save = async (data: UserFormValues) => {
         try {
-            const payload = { ...data, id: userId };
+            const payload: UserFormValues & { id?: string } = { ...data, id: userId };
+            if (!showStatus || mode !== "update" || isSelf) {
+                delete payload.is_active;
+                delete payload.unlock;
+            }
 
             // For creation, password is required
             if (mode === "create" && (!data.password || data.password.length < 12)) {
@@ -116,9 +159,13 @@ export default function CreateUpdateUser({
             toast({
                 variant: "success",
                 description:
-                    mode === "update"
-                        ? "User updated successfully"
-                        : "User created successfully",
+                    mode === "create"
+                        ? "User created successfully"
+                        : payload.is_active === false && wasActive
+                        ? "User deactivated and signed out"
+                        : payload.is_active === true && !wasActive
+                        ? "User reactivated"
+                        : "User updated successfully",
             });
 
             mutate("/api/users");
@@ -223,6 +270,62 @@ export default function CreateUpdateUser({
                             )}
                         />
 
+                        {mode === "update" && showStatus && !isSelf && (
+                            <FormField
+                                control={form.control}
+                                name="is_active"
+                                render={({ field }) => (
+                                    <FormItem className="rounded-md border border-input p-3 space-y-2">
+                                        <div className="flex items-start gap-2 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                    className="mt-0.5"
+                                                    checked={field.value !== false}
+                                                    onCheckedChange={(val) => field.onChange(Boolean(val))}
+                                                />
+                                            </FormControl>
+                                            <div className="flex flex-col">
+                                                <FormLabel className="!mt-0">Active</FormLabel>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {watchedActive === false
+                                                        ? "Deactivated: this user is signed out and can't log in."
+                                                        : "This user can log in."}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
+
+                        {mode === "update" && isLockedOut && !isSelf && (
+                            <FormField
+                                control={form.control}
+                                name="unlock"
+                                render={({ field }) => (
+                                    <FormItem className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
+                                        <div className="flex items-start gap-2 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                    className="mt-0.5"
+                                                    checked={field.value === true}
+                                                    onCheckedChange={(val) => field.onChange(Boolean(val))}
+                                                />
+                                            </FormControl>
+                                            <div className="flex flex-col">
+                                                <FormLabel className="!mt-0">Unlock account</FormLabel>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Locked after repeated wrong passwords until{" "}
+                                                    {new Date(lockedUntil as string).toLocaleString()}.
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                        )}
+
                         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                             {form.formState.isSubmitting ? (
                                 <>
@@ -240,6 +343,36 @@ export default function CreateUpdateUser({
                     </form>
                 </Form>
             </DialogContent>
+
+            <AlertDialog
+                open={pendingDeactivate !== null}
+                onOpenChange={(open) => {
+                    if (!open) setPendingDeactivate(null);
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Deactivate this user?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            They will be signed out within a few seconds and can&apos;t log in until you
+                            reactivate them. Their data and settings are kept.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-700 hover:bg-red-800 text-white"
+                            onClick={() => {
+                                const data = pendingDeactivate;
+                                setPendingDeactivate(null);
+                                if (data) void save(data);
+                            }}
+                        >
+                            Deactivate
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Dialog>
     );
 }

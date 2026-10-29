@@ -1,6 +1,6 @@
 "use client";
 
-import { User } from "@/types/user";
+import { User, isLocked } from "@/types/user";
 import { Edit, Trash2 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import useSWR, { mutate } from "swr";
@@ -93,6 +93,8 @@ function Users() {
       base: { padding: "8px", background: "transparent" },
       username: { minWidth: "150px" },
       role: { minWidth: "80px" },
+      status: { minWidth: "110px" },
+      lastLogin: { minWidth: "140px" },
       actions: { minWidth: "100px" },
     }),
     []
@@ -128,6 +130,40 @@ function Users() {
     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${rowData.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
       }`}>
       {rowData.role.toUpperCase()}
+    </span>
+  );
+
+  // Status needs the is_active column (migration 011); hide it otherwise.
+  const hasStatus = (users ?? []).some((u) => typeof u.is_active === "boolean");
+
+  const statusTemplate = (rowData: User) => {
+    if (rowData.is_active === false) {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+          DEACTIVATED
+        </span>
+      );
+    }
+    if (isLocked(rowData)) {
+      return (
+        <span
+          className="px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800"
+          title={`Locked after repeated wrong passwords until ${new Date(rowData.locked_until as string).toLocaleString()}`}
+        >
+          LOCKED
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+        ACTIVE
+      </span>
+    );
+  };
+
+  const lastLoginTemplate = (rowData: User) => (
+    <span className="text-xs text-gray-500 dark:text-gray-400">
+      {rowData.last_login_at ? new Date(rowData.last_login_at).toLocaleString() : "Never"}
     </span>
   );
 
@@ -185,8 +221,13 @@ function Users() {
           name: editingUser.name,
           email: editingUser.email,
           role: editingUser.role,
+          ...(typeof editingUser.is_active === "boolean"
+            ? { is_active: editingUser.is_active, unlock: false }
+            : {}),
         } : {}}
         userId={editingUser?.id}
+        showStatus={typeof editingUser?.is_active === "boolean"}
+        lockedUntil={editingUser?.locked_until ?? null}
       />
 
       <div className="bg-gray-100 px-3 sm:px-6 py-4 shadow-lg dark:bg-sidebar rounded-xl border overflow-x-auto">
@@ -197,6 +238,7 @@ function Users() {
           tableStyle={{ minWidth: "400px" }}
           showGridlines
           pt={ptConfig}
+          rowClassName={(row: User) => (row.is_active === false ? "opacity-60" : "")}
           size="normal"
           removableSort
         >
@@ -205,15 +247,33 @@ function Users() {
             header="User"
             body={nameTemplate}
             sortable
-            style={{ ...columnStyles.base, ...columnStyles.username, width: "50%" }}
+            style={{ ...columnStyles.base, ...columnStyles.username, width: hasStatus ? "35%" : "50%" }}
           />
           <Column
             field="role"
             header="Role"
             body={roleTemplate}
             sortable
-            style={{ ...columnStyles.base, ...columnStyles.role, width: "30%" }}
+            style={{ ...columnStyles.base, ...columnStyles.role, width: hasStatus ? "15%" : "30%" }}
           />
+          {hasStatus && (
+            <Column
+              field="is_active"
+              header="Status"
+              body={statusTemplate}
+              sortable
+              style={{ ...columnStyles.base, ...columnStyles.status, width: "15%" }}
+            />
+          )}
+          {hasStatus && (
+            <Column
+              field="last_login_at"
+              header="Last login"
+              body={lastLoginTemplate}
+              sortable
+              style={{ ...columnStyles.base, ...columnStyles.lastLogin, width: "15%" }}
+            />
+          )}
 
           <Column
             header="Actions"

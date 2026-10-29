@@ -41,7 +41,7 @@ function CallDetailsTable({ callDetails }: CallDetailsTableProps) {
               {callDetail.interaction_id}
             </TableCell>
 
-            <TableCell className=" pb-2 border-l px-1 max-w-[180px] whitespace-nowrap overflow-x-auto">
+            <TableCell className="pb-2 border-l px-1 align-top max-w-[420px] whitespace-normal break-words">
               {callDetail.transcription || "N/A"}
             </TableCell>
             <TableCell className="p-0 border-l px-1">

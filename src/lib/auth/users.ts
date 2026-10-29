@@ -4,7 +4,7 @@ import { AuthedUser } from "./guard";
 import { hashPassword, passwordProblem } from "./password";
 import { isRole } from "./roles";
 import { audit, hasUserColumn, invalidateAuthState } from "./state";
-import { clientIp } from "./rateLimit";
+import { clientIp, reset as resetRateLimit } from "./rateLimit";
 
 // Shared user-management logic for /api/users and /api/create-user.
 
@@ -32,8 +32,13 @@ function cleanEmail(v: unknown): string | null {
 }
 
 export async function listUsers(_req: NextApiRequest, res: NextApiResponse) {
-  const extra = (await hasUserColumn("is_active")) ? ", is_active" : "";
-  const result = await db.query(`SELECT id, name, email, role, created_at${extra} FROM users ORDER BY id ASC`);
+  // Account-state columns come from migration 011; include whichever exist.
+  const optional = ["is_active", "last_login_at", "locked_until"];
+  const extra: string[] = [];
+  for (const col of optional) if (await hasUserColumn(col)) extra.push(col);
+  const result = await db.query(
+    `SELECT id, name, email, role, created_at${extra.map((c) => ", " + c).join("")} FROM users ORDER BY id ASC`
+  );
   return res.status(200).json(result.rows.map((u: { id: number }) => ({ ...u, id: String(u.id) })));
 }
 
@@ -62,7 +67,7 @@ export async function createUser(req: NextApiRequest, res: NextApiResponse, acto
 }
 
 export async function updateUser(req: NextApiRequest, res: NextApiResponse, actor: AuthedUser) {
-  const { id, password, role, is_active } = req.body ?? {};
+  const { id, password, role, is_active, unlock } = req.body ?? {};
   const email = cleanEmail(req.body?.email);
   const name = cleanName(req.body?.name);
 
@@ -80,7 +85,7 @@ export async function updateUser(req: NextApiRequest, res: NextApiResponse, acto
     return res.status(400).json({ ok: false, error: "You can't deactivate your own account" });
   }
 
-  const current = await db.query("SELECT role, email FROM users WHERE id = $1", [targetId]);
+  const current = await db.query("SELECT * FROM users WHERE id = $1", [targetId]);
   if (!current.rows[0]) return res.status(404).json({ ok: false, error: "User not found" });
 
   const sets = ["email = $1", "name = $2", "role = $3"];
@@ -97,10 +102,21 @@ export async function updateUser(req: NextApiRequest, res: NextApiResponse, acto
     revoke = true;
   }
 
-  if (typeof is_active === "boolean" && (await hasUserColumn("is_active"))) {
+  const hasActive = await hasUserColumn("is_active");
+  if (typeof is_active === "boolean" && hasActive) {
     params.push(is_active);
-    sets.push(`is_active = $${params.length}`);
+    sets.push(`is_active = ${params.length}`);
     if (!is_active) revoke = true;
+  }
+
+  // Clear a brute-force lockout when the admin asks to, or when reactivating
+  // a deactivated account (it starts with a clean slate).
+  const reactivating = hasActive && is_active === true && current.rows[0].is_active === false;
+  let unlocked = false;
+  if ((unlock === true || reactivating) && (await hasUserColumn("locked_until"))) {
+    sets.push("locked_until = NULL");
+    if (await hasUserColumn("failed_login_count")) sets.push("failed_login_count = 0");
+    unlocked = true;
   }
 
   // Bumping token_version signs the user out everywhere.
@@ -114,9 +130,10 @@ export async function updateUser(req: NextApiRequest, res: NextApiResponse, acto
   if (!result.rows.length) return res.status(404).json({ ok: false, error: "User not found" });
 
   invalidateAuthState(targetId);
+  if (unlocked) resetRateLimit(`login:email:${String(current.rows[0].email).toLowerCase()}`);
   await audit("user_updated", {
     ...ctx(req, actor),
-    details: { target: targetId, role, passwordChanged: changingPassword, is_active, sessionsRevoked: revoke },
+    details: { target: targetId, role, passwordChanged: changingPassword, is_active, unlocked, sessionsRevoked: revoke },
   });
   return res.status(200).json({ ok: true, message: "User updated successfully" });
 }
