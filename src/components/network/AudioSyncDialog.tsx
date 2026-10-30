@@ -9,13 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AsteriskMachine, AudioSyncResult } from "@/lib/network/types";
-import { ProviderBadge } from "./shared";
+import { MachinePicker } from "./MachinePicker";
 
 type Props = {
   open: boolean;
@@ -43,28 +41,6 @@ export function AudioSyncDialog({ open, onOpenChange, machines }: Props) {
     // Reset only when the dialog opens, not when the list refreshes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-
-  const allSelected = machines.length > 0 && selected.size === machines.length;
-  const someSelected = selected.size > 0 && !allSelected;
-
-  const toggle = (id: string, checked: boolean) =>
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(id);
-      else next.delete(id);
-      return next;
-    });
-
-  const toggleAll = (checked: boolean) =>
-    setSelected(checked ? new Set(machines.map((m) => m.id)) : new Set());
-
-  const label = allSelected
-    ? `All machines (${machines.length})`
-    : selected.size === 0
-      ? "Select machines…"
-      : selected.size === 1
-        ? machineLabel(machines.find((m) => selected.has(m.id)))
-        : `${selected.size} machines selected`;
 
   const run = async () => {
     setRunning(true);
@@ -104,55 +80,12 @@ export function AudioSyncDialog({ open, onOpenChange, machines }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full justify-between font-normal"
-              disabled={running || !machines.length}
-            >
-              <span className={cn(!selected.size && "text-muted-foreground")}>
-                {machines.length ? label : "No Asterisk machines"}
-              </span>
-              <ChevronDown className="h-4 w-4 opacity-60" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-1">
-            <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm font-medium hover:bg-muted">
-              <Checkbox
-                checked={allSelected ? true : someSelected ? "indeterminate" : false}
-                onCheckedChange={(c) => toggleAll(c === true)}
-              />
-              Select all
-            </label>
-            <div className="my-1 border-t" />
-            {machines.map((m) => (
-              <label
-                key={m.id}
-                className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted"
-              >
-                <Checkbox
-                  checked={selected.has(m.id)}
-                  onCheckedChange={(c) => toggle(m.id, c === true)}
-                />
-                <span className="min-w-0">
-                  {m.name && <span className="block truncate font-medium">{m.name}</span>}
-                  <span className={cn("font-mono", m.name && "text-xs text-muted-foreground")}>
-                    {m.ip}
-                  </span>
-                  {m.private_ip && (
-                    <span className="ml-1 font-mono text-xs text-muted-foreground">
-                      ({m.private_ip})
-                    </span>
-                  )}
-                </span>
-                <span className="ml-auto">
-                  <ProviderBadge provider={m.provider} />
-                </span>
-              </label>
-            ))}
-          </PopoverContent>
-        </Popover>
+        <MachinePicker
+          machines={machines}
+          selected={selected}
+          onChange={setSelected}
+          disabled={running}
+        />
 
         {error && (
           <div className="flex items-start gap-2 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
@@ -191,11 +124,6 @@ export function AudioSyncDialog({ open, onOpenChange, machines }: Props) {
       </DialogContent>
     </Dialog>
   );
-}
-
-function machineLabel(m: AsteriskMachine | undefined) {
-  if (!m) return "";
-  return m.name ? `${m.name} (${m.ip})` : m.ip;
 }
 
 function ResultRow({ result }: { result: AudioSyncResult }) {

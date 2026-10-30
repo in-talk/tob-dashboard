@@ -85,3 +85,14 @@ export type AudioSyncResult = {
   logs: string[];
   duration_ms: number;
 };
+
+/** Outcome of /invalidate-cache on one Asterisk machine. */
+export type CacheInvalidateResult = {
+  id: string;
+  name: string | null;
+  ip: string;
+  success: boolean;
+  /** The machine's own reply message, or why the call failed. */
+  message: string;
+  duration_ms: number;
+};

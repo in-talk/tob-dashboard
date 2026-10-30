@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, RotateCcw, Trash2 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import useSWR, { mutate } from "swr";
@@ -22,6 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import CreateUpdateClient from "@/components/CreateUpdateClient";
+import { CacheInvalidateDialog } from "@/components/network/CacheInvalidateDialog";
 import { withAuth } from "@/utils/auth";
 import { GetServerSideProps } from "next";
 import { Campaign } from "../keyword_finder";
@@ -65,6 +66,9 @@ function Clients() {
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [selectedCampaign, setSelectedCampaign] = useState<string>("");
   const [isEditOpen, setEditOpen] = useState(false);
+  // Reset-cache dialog: a specific client, or null for "all clients".
+  const [cacheOpen, setCacheOpen] = useState(false);
+  const [cacheClient, setCacheClient] = useState<{ client_id: string; name: string } | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const { data: session } = useSession();
 
@@ -214,6 +218,17 @@ function Clients() {
       <div className="flex justify-center space-x-2">
         <Button
           variant="ghost"
+          title="Reset cache on Asterisk machines"
+          aria-label={`Reset cache for ${rowData.name}`}
+          onClick={() => {
+            setCacheClient({ client_id: String(rowData.client_id), name: rowData.name });
+            setCacheOpen(true);
+          }}
+        >
+          <RotateCcw className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
           onClick={() => {
             setEditingClient(rowData);
             setEditOpen(true);
@@ -298,8 +313,25 @@ function Clients() {
             Clear Filters
           </Button>
         </div>
-        <CreateUpdateClient mode="create" campaigns={campaigns} users={users} models={models} sessionUser={session?.user?.name} />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setCacheClient(null);
+              setCacheOpen(true);
+            }}
+          >
+            <RotateCcw className="mr-2 h-4 w-4" /> Reset cache (all clients)
+          </Button>
+          <CreateUpdateClient mode="create" campaigns={campaigns} users={users} models={models} sessionUser={session?.user?.name} />
+        </div>
       </div>
+
+      <CacheInvalidateDialog
+        open={cacheOpen}
+        onOpenChange={setCacheOpen}
+        client={cacheClient}
+      />
 
       <CreateUpdateClient
         mode="update"
