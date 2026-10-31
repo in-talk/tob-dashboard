@@ -40,7 +40,7 @@ export const loadExcelFromPublic = async (): Promise<CallRecord[]> => {
 
     for (const key in updatedRow) {
       const value = updatedRow[key];
-      if (typeof value === 'number' && value > 10000 && value < 60000) {
+      if (typeof value === 'number' && value > 10000 && value < 70000) {
         updatedRow[key] = excelDateToCustomFormat(value);
       }
     }

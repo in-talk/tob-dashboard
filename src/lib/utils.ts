@@ -14,6 +14,7 @@ export enum Campaign {
   FEV2 = 40002,
   MVA = 50000,
   MC = 60000,
+  HIMP = 70000,
 }
 
 export function getCampaignLabel(campaignName: string): string {

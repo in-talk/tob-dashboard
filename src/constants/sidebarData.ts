@@ -127,6 +127,10 @@ export const sideBarData = {
           title: `MC (Medicare) - ${Campaign.MC}`,
           url: "/label_managment/?MC",
         },
+        {
+          title: `HIMP - ${Campaign.HIMP}`,
+          url: "/label_managment/?HIMP",
+        },
       ],
     },
     {
