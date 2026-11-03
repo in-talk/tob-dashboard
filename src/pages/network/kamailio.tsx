@@ -4,6 +4,7 @@ import { GetServerSideProps } from "next";
 import { withAuth } from "@/utils/auth";
 import { fetcher } from "@/utils/fetcher";
 import { IpServerManager } from "@/components/network/IpServerManager";
+import { KamailioSyncButton } from "@/components/network/KamailioSyncDialog";
 import { NetworkPage } from "@/components/network/shared";
 import { KamailioAsteriskMap, KamailioClientIpMap } from "@/lib/network/types";
 
@@ -37,6 +38,7 @@ export default function KamailioPage() {
         noun="Kamailio server"
         dependents={["/api/network/kamailio-client-ips", "/api/network/kamailio-asterisk"]}
         deleteWarning="All client-IP and Asterisk mappings for this server will also be removed. This cannot be undone."
+        extraActions={<KamailioSyncButton />}
         extraColumns={[
           {
             key: "mappings",

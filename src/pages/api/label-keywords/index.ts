@@ -2,7 +2,7 @@ import { withApiAuth } from "@/lib/auth/guard";
 import { ADMIN } from "@/lib/auth/roles";
 import type { NextApiRequest, NextApiResponse } from "next";
 
-const UPSTREAM = `${process.env.KEYWORD_API_URL}/age-classifier/age-unsure-label-keywords`;
+const UPSTREAM = `${process.env.KEYWORD_API_URL}/label-keywords`;
 
 async function handler(
   req: NextApiRequest,
@@ -35,7 +35,7 @@ async function handler(
     res.setHeader("Allow", ["GET", "POST"]);
     return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   } catch (error) {
-    console.error("age-unsure-label-keywords proxy error:", error);
+    console.error("label-keywords proxy error:", error);
     if (error instanceof TypeError && String(error.message).includes("fetch")) {
       return res.status(503).json({ error: "Cannot connect to backend service." });
     }

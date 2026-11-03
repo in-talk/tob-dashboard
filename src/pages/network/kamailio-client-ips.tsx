@@ -7,6 +7,7 @@ import { fetcher } from "@/utils/fetcher";
 import { Button } from "@/components/ui/button";
 import { DataGrid, DataGridColumn } from "@/components/network/DataGrid";
 import { Field, FormDrawer } from "@/components/network/FormDrawer";
+import { KamailioSyncButton } from "@/components/network/KamailioSyncDialog";
 import { SearchableSelect, SelectOption } from "@/components/network/SearchableSelect";
 import {
   NetworkPage,
@@ -262,10 +263,13 @@ export default function KamailioClientIpsPage() {
           </>
         }
         actions={
-          <Button onClick={() => openDrawer(null)}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Add mapping
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <KamailioSyncButton />
+            <Button onClick={() => openDrawer(null)}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Add mapping
+            </Button>
+          </div>
         }
       />
 

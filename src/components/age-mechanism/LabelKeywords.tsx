@@ -5,14 +5,18 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useSWR, { mutate } from "swr";
-import { Edit, Plus, Search, Trash2 } from "lucide-react";
+import { Edit, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import {
   DataTable,
   type DataTableSelectionMultipleChangeEvent,
 } from "primereact/datatable";
 import { Column } from "primereact/column";
 
-import { AgeUnsureKeyword } from "@/types/ageMechanism";
+import {
+  type KeywordMatchType,
+  type LabelDefinition,
+  type LabelKeyword,
+} from "@/types/ageMechanism";
 import { fetcher } from "@/utils/fetcher";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -57,37 +61,53 @@ import BulkAddDialog, {
 } from "@/components/age-mechanism/BulkAddDialog";
 import { bulkCreate, bulkDelete } from "@/components/age-mechanism/bulkOps";
 
-const API_ROUTE = "/api/age-classifier/age-unsure-label-keywords";
+const API_ROUTE = "/api/label-keywords";
+const LABELS_ROUTE = "/api/label-keywords/labels";
+const SYNC_ROUTE = "/api/label-keywords/sync-defaults";
 
-const VALID_LABELS = ["DNC", "AH", "NI", "IDL", "CGM-NQ1"] as const;
+const MATCH_TYPES: KeywordMatchType[] = ["word", "exact", "regex"];
 
-const LABEL_COLORS: Record<string, { variant: "default" | "destructive" | "secondary"; className?: string }> = {
-  DNC: { variant: "destructive" },
-  AH: { variant: "default" },
-  NI: { variant: "secondary" },
-  "CGM-NQ1": { variant: "secondary" },
+const MATCH_TYPE_INFO: Record<KeywordMatchType, string> = {
+  word: "Word — phrase anywhere in the transcript",
+  exact: "Exact — the whole utterance equals it",
+  regex: "Regex — regular expression, case-insensitive",
 };
 
 const keywordSchema = z.object({
-  keyword: z.string().min(1, "Keyword is required"),
-  label: z.enum(["DNC", "AH", "NI", "IDL", "CGM-NQ1"], {
-    required_error: "Label is required",
-  }),
+  keyword: z.string().trim().min(1, "Keyword is required"),
+  label: z.string().min(1, "Label is required"),
+  match_type: z.enum(["word", "exact", "regex"]),
   active: z.boolean(),
 });
 
 type KeywordFormValues = z.infer<typeof keywordSchema>;
 
-export default function AgeUnsureKeywords() {
-  const { data, error, isLoading } = useSWR<AgeUnsureKeyword[]>(
-    API_ROUTE,
-    fetcher
-  );
+/** "T1", "T1, T2" or "any turn" for an early-hangup label. */
+const turnsText = (def?: LabelDefinition) =>
+  def?.turns?.length ? def.turns.map((t) => `T${t}`).join(", ") : "any turn";
+
+export default function LabelKeywords() {
+  const { data, error, isLoading } = useSWR<LabelKeyword[]>(API_ROUTE, fetcher);
+  const { data: labelDefs } = useSWR<LabelDefinition[]>(LABELS_ROUTE, fetcher);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<AgeUnsureKeyword | null>(null);
+  const [editingItem, setEditingItem] = useState<LabelKeyword | null>(null);
   const [search, setSearch] = useState("");
   const [labelFilter, setLabelFilter] = useState<string>("all");
-  const [selected, setSelected] = useState<AgeUnsureKeyword[]>([]);
+  const [selected, setSelected] = useState<LabelKeyword[]>([]);
+  const [syncing, setSyncing] = useState(false);
+
+  const defsByLabel = useMemo(
+    () => new Map((labelDefs ?? []).map((d) => [d.label, d])),
+    [labelDefs]
+  );
+  // Registered labels first (brain order), then any label only seen in data.
+  const labelOptions = useMemo(() => {
+    const labels = (labelDefs ?? []).map((d) => d.label);
+    for (const item of data ?? []) {
+      if (!labels.includes(item.label)) labels.push(item.label);
+    }
+    return labels;
+  }, [labelDefs, data]);
 
   const filteredData = useMemo(() => {
     if (!data) return [];
@@ -106,40 +126,50 @@ export default function AgeUnsureKeywords() {
     return result;
   }, [data, search, labelFilter]);
 
+  const emptyForm = (): KeywordFormValues => ({
+    keyword: "",
+    label: labelOptions[0] ?? "DNC",
+    match_type: "word",
+    active: true,
+  });
+
   const form = useForm<KeywordFormValues>({
     resolver: zodResolver(keywordSchema),
-    defaultValues: { keyword: "", label: "DNC", active: true },
+    defaultValues: emptyForm(),
   });
 
   const openCreate = () => {
     setEditingItem(null);
-    form.reset({ keyword: "", label: "DNC", active: true });
+    form.reset(emptyForm());
     setDialogOpen(true);
   };
 
-  const openEdit = (item: AgeUnsureKeyword) => {
+  const openEdit = (item: LabelKeyword) => {
     setEditingItem(item);
     form.reset({
       keyword: item.keyword,
       label: item.label,
+      match_type: item.match_type ?? "word",
       active: item.active,
     });
     setDialogOpen(true);
   };
 
+  const postKeyword = async (values: KeywordFormValues) => {
+    const res = await fetch(API_ROUTE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.detail || body?.error || "Failed to save");
+    }
+  };
+
   const onSubmit = async (values: KeywordFormValues) => {
     try {
-      const res = await fetch(API_ROUTE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err || "Failed to save");
-      }
-
+      await postKeyword(values);
       toast({
         variant: "success",
         description: editingItem ? "Keyword updated" : "Keyword added",
@@ -185,21 +215,25 @@ export default function AgeUnsureKeywords() {
   const parseKeywordLine = (line: string): ParsedLine<KeywordFormValues> => {
     const parts = line.split("|").map((p) => p.trim());
     if (parts.length < 2) {
-      return { ok: false, error: "expected: keyword | label" };
+      return { ok: false, error: "expected: keyword | label [| match type]" };
     }
-    const [keyword, rawLabel] = parts;
+    const [keyword, rawLabel, rawMatch = "word"] = parts;
     if (!keyword) return { ok: false, error: "keyword is required" };
     const label = rawLabel.toUpperCase();
-    if (!VALID_LABELS.includes(label as KeywordFormValues["label"])) {
+    if (!labelOptions.includes(label)) {
       return {
         ok: false,
-        error: `label must be DNC, AH, NI, IDL or CGM-NQ1 (got "${rawLabel}")`,
+        error: `label must be one of ${labelOptions.join(", ")} (got "${rawLabel}")`,
       };
     }
-    return {
-      ok: true,
-      value: { keyword, label: label as KeywordFormValues["label"], active: true },
-    };
+    const match_type = rawMatch.toLowerCase() as KeywordMatchType;
+    if (!MATCH_TYPES.includes(match_type)) {
+      return {
+        ok: false,
+        error: `match type must be word, exact or regex (got "${rawMatch}")`,
+      };
+    }
+    return { ok: true, value: { keyword, label, match_type, active: true } };
   };
 
   const handleBulkAdd = async (items: KeywordFormValues[]) => {
@@ -213,19 +247,15 @@ export default function AgeUnsureKeywords() {
     });
   };
 
-  const handleToggleActive = async (item: AgeUnsureKeyword) => {
+  const handleToggleActive = async (item: LabelKeyword) => {
     try {
-      const res = await fetch(API_ROUTE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          keyword: item.keyword,
-          label: item.label,
-          active: !item.active,
-        }),
+      // Send match_type too — the upsert would otherwise reset it to "word".
+      await postKeyword({
+        keyword: item.keyword,
+        label: item.label,
+        match_type: item.match_type ?? "word",
+        active: !item.active,
       });
-      if (!res.ok) throw new Error("Failed to update");
-
       toast({
         variant: "success",
         description: `Keyword ${item.active ? "deactivated" : "activated"}`,
@@ -234,6 +264,28 @@ export default function AgeUnsureKeywords() {
     } catch (err) {
       console.error(err);
       toast({ variant: "destructive", description: "Failed to update status" });
+    }
+  };
+
+  const handleSyncDefaults = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch(SYNC_ROUTE, { method: "POST" });
+      if (!res.ok) throw new Error("Sync failed");
+      const result: { inserted: number; missing_labels: string[] } =
+        await res.json();
+      toast({
+        variant: "success",
+        description: result.inserted
+          ? `Added ${result.inserted} default keyword${result.inserted === 1 ? "" : "s"} (${result.missing_labels.join(", ")})`
+          : "All default keywords are already present",
+      });
+      mutate(API_ROUTE);
+    } catch (err) {
+      console.error(err);
+      toast({ variant: "destructive", description: "Failed to sync defaults" });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -254,12 +306,30 @@ export default function AgeUnsureKeywords() {
     []
   );
 
-  const labelTemplate = (rowData: AgeUnsureKeyword) => {
-    const config = LABEL_COLORS[rowData.label] || { variant: "secondary" as const };
-    return <Badge variant={config.variant}>{rowData.label}</Badge>;
+  const labelTemplate = (rowData: LabelKeyword) => {
+    const def = defsByLabel.get(rowData.label);
+    return (
+      <div className="flex items-center gap-2">
+        <Badge
+          variant={def?.early_hangup ? "destructive" : "secondary"}
+          title={def?.description}
+        >
+          {rowData.label}
+        </Badge>
+        {def?.early_hangup && (
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            hangup · {turnsText(def)}
+          </span>
+        )}
+      </div>
+    );
   };
 
-  const activeTemplate = (rowData: AgeUnsureKeyword) => (
+  const matchTypeTemplate = (rowData: LabelKeyword) => (
+    <span className="font-mono text-xs">{rowData.match_type ?? "word"}</span>
+  );
+
+  const activeTemplate = (rowData: LabelKeyword) => (
     <Badge
       variant={rowData.active ? "default" : "destructive"}
       className="cursor-pointer"
@@ -269,7 +339,7 @@ export default function AgeUnsureKeywords() {
     </Badge>
   );
 
-  const actionsTemplate = (rowData: AgeUnsureKeyword) => (
+  const actionsTemplate = (rowData: LabelKeyword) => (
     <div className="flex justify-center space-x-2">
       <Button
         variant="ghost"
@@ -319,7 +389,7 @@ export default function AgeUnsureKeywords() {
   if (error)
     return (
       <div className="text-destructive p-4">
-        Failed to load age-unsure keywords. Please try again.
+        Failed to load label keywords. Please try again.
       </div>
     );
 
@@ -328,7 +398,8 @@ export default function AgeUnsureKeywords() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div className="flex items-center gap-3">
           <p className="text-sm text-muted-foreground">
-            DNC/AH/NI keywords for AGEUNSURE intent detection
+            Keywords per label — early hangup (RI, REC, FAS, DNC, AM) and
+            campaign routing (AH, NI, IDL, …)
           </p>
           <Badge variant="secondary">
             {filteredData.length}
@@ -338,18 +409,18 @@ export default function AgeUnsureKeywords() {
             entries
           </Badge>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <Select value={labelFilter} onValueChange={setLabelFilter}>
-            <SelectTrigger className="w-[100px]">
+            <SelectTrigger className="w-[120px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              <SelectItem value="DNC">DNC</SelectItem>
-              <SelectItem value="AH">AH</SelectItem>
-              <SelectItem value="NI">NI</SelectItem>
-              <SelectItem value="IDL">IDL</SelectItem>
-              <SelectItem value="CGM-NQ1">CGM-NQ1</SelectItem>
+              {labelOptions.map((label) => (
+                <SelectItem key={label} value={label}>
+                  {label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <div className="relative flex-1 sm:flex-initial">
@@ -368,14 +439,24 @@ export default function AgeUnsureKeywords() {
               onConfirm={handleBulkDelete}
             />
           )}
+          <Button
+            variant="outline"
+            onClick={handleSyncDefaults}
+            disabled={syncing}
+            title="Add any built-in default keywords that are missing. Existing keywords are not changed."
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+            Sync defaults
+          </Button>
           <BulkAddDialog
             itemNoun="Keywords"
-            placeholder={"stop calling | DNC\nalready have insurance | AH"}
+            placeholder={"stop calling | DNC\nleave a voice message | AM | exact\n^press \\d+$ | AM | regex"}
             formatHint={
               <>
                 One entry per line as{" "}
-                <span className="font-mono">keyword | label</span>. Label must be
-                DNC, AH, NI, IDL or CGM-NQ1.
+                <span className="font-mono">keyword | label | match type</span>.
+                Match type is optional (word, exact or regex; default word).
+                Label must be one of {labelOptions.join(", ")}.
               </>
             }
             parseLine={parseKeywordLine}
@@ -395,7 +476,7 @@ export default function AgeUnsureKeywords() {
           value={filteredData}
           scrollable
           scrollHeight="550px"
-          tableStyle={{ minWidth: "500px" }}
+          tableStyle={{ minWidth: "600px" }}
           showGridlines
           pt={ptConfig}
           size="normal"
@@ -404,7 +485,7 @@ export default function AgeUnsureKeywords() {
           selectionMode="checkbox"
           selection={selected}
           onSelectionChange={(
-            e: DataTableSelectionMultipleChangeEvent<AgeUnsureKeyword[]>
+            e: DataTableSelectionMultipleChangeEvent<LabelKeyword[]>
           ) => setSelected(e.value)}
         >
           <Column
@@ -423,24 +504,31 @@ export default function AgeUnsureKeywords() {
             body={labelTemplate}
             sortable
             field="label"
-            style={{ padding: "8px", background: "transparent", width: "15%" }}
+            style={{ padding: "8px", background: "transparent", width: "20%" }}
+          />
+          <Column
+            header="Match"
+            body={matchTypeTemplate}
+            sortable
+            field="match_type"
+            style={{ padding: "8px", background: "transparent", width: "10%" }}
           />
           <Column
             header="Status"
             body={activeTemplate}
-            style={{ padding: "8px", background: "transparent", width: "15%" }}
+            style={{ padding: "8px", background: "transparent", width: "12%" }}
           />
           <Column
             header="Actions"
             body={actionsTemplate}
             align="center"
-            style={{ padding: "8px", background: "transparent", width: "25%" }}
+            style={{ padding: "8px", background: "transparent", width: "18%" }}
           />
         </DataTable>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[420px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingItem ? "Edit Keyword" : "Add Keyword"}
@@ -472,19 +560,47 @@ export default function AgeUnsureKeywords() {
                   <FormItem>
                     <FormLabel>Label</FormLabel>
                     <FormControl>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select label" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="DNC">DNC (Do Not Call)</SelectItem>
-                          <SelectItem value="AH">AH (Already Have)</SelectItem>
-                          <SelectItem value="NI">NI (Not Interested)</SelectItem>
-                          <SelectItem value="IDL">IDL (In Decision Loop)</SelectItem>
-                          <SelectItem value="CGM-NQ1">CGM-NQ1 (CGM not qualified Q1)</SelectItem>
+                          {labelOptions.map((label) => {
+                            const def = defsByLabel.get(label);
+                            return (
+                              <SelectItem key={label} value={label}>
+                                {label}
+                                {def ? ` (${def.description})` : ""}
+                                {def?.early_hangup
+                                  ? ` — hangup, ${turnsText(def)}`
+                                  : ""}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="match_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Match type</FormLabel>
+                    <FormControl>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MATCH_TYPES.map((mt) => (
+                            <SelectItem key={mt} value={mt}>
+                              {MATCH_TYPE_INFO[mt]}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </FormControl>

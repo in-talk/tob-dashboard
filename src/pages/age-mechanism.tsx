@@ -17,7 +17,7 @@ import {
 import WeirdCases from "@/components/age-mechanism/WeirdCases";
 import TypoCorrections from "@/components/age-mechanism/TypoCorrections";
 import NonAgePatterns from "@/components/age-mechanism/NonAgePatterns";
-import AgeUnsureKeywords from "@/components/age-mechanism/AgeUnsureKeywords";
+import LabelKeywords from "@/components/age-mechanism/LabelKeywords";
 import PositiveNegativePatterns from "@/components/age-mechanism/PositiveNegativePatterns";
 
 type TabInfo = {
@@ -53,14 +53,14 @@ const TAB_INFO: Record<string, TabInfo> = {
       "Add maybe → UNSURE. User says only 'maybe' → classified UNSURE. User says 'well maybe yes' → NO match, falls through to normal age logic.",
     notes: "Classification must be either NO or UNSURE.",
   },
-  "age-unsure-keywords": {
-    matchType: "Word-boundary substring match, anywhere in transcript",
+  "label-keywords": {
+    matchType: "Per keyword: word (anywhere, word boundaries), exact (whole utterance) or regex",
     description:
-      "Every keyword is searched for anywhere in the transcript on word boundaries. Each hit adds +1 to that label's score; the highest-scoring label wins.",
+      "Keywords per label. Early-hangup labels (RI, REC, FAS on turn 1, AM on turn 2, DNC on any turn) are checked on every transcript and end the call instantly. The other labels (AH, NI, IDL, CGM-NQ1) are used by campaign routing.",
     example:
-      "Add 'stop calling' under DNC. User says 'please stop calling me' → DNC scores +1 and wins.",
+      "Add 'stop calling' under DNC (word). User says 'please stop calling me' → call ends as DNC.",
     notes:
-      "Case-insensitive. Label must be DNC, AH, NI, or IDL. Used to route calls before age qualification.",
+      "Case-insensitive. Labels come from ai-voice-bot. 'Sync defaults' adds missing built-in keywords without touching existing ones.",
   },
   "pos-neg-patterns": {
     matchType: "Exact whole-utterance match (yes/no context only)",
@@ -166,8 +166,8 @@ export default function AgeMechanism() {
           <TabsTrigger value="non-age-patterns">
             <TabLabel label="Non-Age Patterns" tabKey="non-age-patterns" />
           </TabsTrigger>
-          <TabsTrigger value="age-unsure-keywords">
-            <TabLabel label="File Base DB" tabKey="age-unsure-keywords" />
+          <TabsTrigger value="label-keywords">
+            <TabLabel label="Label Keywords" tabKey="label-keywords" />
           </TabsTrigger>
           <TabsTrigger value="pos-neg-patterns">
             <TabLabel label="Pos/Neg Patterns" tabKey="pos-neg-patterns" />
@@ -182,8 +182,8 @@ export default function AgeMechanism() {
         <TabsContent value="non-age-patterns">
           <NonAgePatterns />
         </TabsContent>
-        <TabsContent value="age-unsure-keywords">
-          <AgeUnsureKeywords />
+        <TabsContent value="label-keywords">
+          <LabelKeywords />
         </TabsContent>
         <TabsContent value="pos-neg-patterns">
           <PositiveNegativePatterns />

@@ -20,11 +20,24 @@ export type NonAgePattern = {
   active: boolean;
 };
 
-export type AgeUnsureKeyword = {
+export type KeywordMatchType = "word" | "exact" | "regex";
+
+export type LabelKeyword = {
   id: string;
   keyword: string;
-  label: "DNC" | "AH" | "NI" | "IDL" | "CGM-NQ1";
+  // Any label registered in ai-voice-bot (see LabelDefinition).
+  label: string;
+  match_type: KeywordMatchType;
   active: boolean;
+};
+
+export type LabelDefinition = {
+  label: string;
+  description: string;
+  // Checked on every transcript; a match ends the call instantly.
+  early_hangup: boolean;
+  // Turns the early-hangup check applies to; null = every turn.
+  turns: number[] | null;
 };
 
 export type PositiveNegativePattern = {

@@ -96,3 +96,37 @@ export type CacheInvalidateResult = {
   message: string;
   duration_ms: number;
 };
+
+/** Body sent to a Kamailio's Sync API (POST /api/v1/sync), built by get_kamailio_ips(). */
+export type KamailioSyncPayload = {
+  vicidial_ips: string[];
+  asterisk_servers: { private_ip: string; public_ip: string; name: string }[];
+};
+
+/** What would be sent to one Kamailio, plus anything that blocks syncing it. */
+export type KamailioSyncPreview = {
+  id: string;
+  ip: string;
+  provider: Provider;
+  payload: KamailioSyncPayload | null;
+  /** Reasons this Kamailio can't be synced right now (empty = ready). */
+  problems: string[];
+};
+
+/** Outcome of syncing one Kamailio. */
+export type KamailioSyncResult = {
+  id: string;
+  ip: string;
+  /** success = HTTP 200; partial = HTTP 207 (DB updated, runtime reload failed). */
+  status: "success" | "partial" | "failed" | "skipped";
+  http_status: number | null;
+  /** The API's machine-readable code, e.g. VALIDATION_ERROR. */
+  code: string | null;
+  message: string;
+  /** Kamailio's request id — give this to the Kamailio admin when something fails. */
+  request_id: string | null;
+  /** The API's `data` object (added/removed/unchanged/skipped, runtime_reload, ...). */
+  data: Record<string, unknown> | null;
+  sent: { vicidial_ips: number; asterisk_servers: number };
+  duration_ms: number;
+};

@@ -2,7 +2,7 @@ import { withApiAuth } from "@/lib/auth/guard";
 import { ADMIN } from "@/lib/auth/roles";
 import type { NextApiRequest, NextApiResponse } from "next";
 
-const UPSTREAM_BASE = `${process.env.KEYWORD_API_URL}/age-classifier/age-unsure-label-keywords`;
+const UPSTREAM_BASE = `${process.env.KEYWORD_API_URL}/label-keywords`;
 
 async function handler(
   req: NextApiRequest,
@@ -20,7 +20,7 @@ async function handler(
         headers: { "Content-Type": "application/json" },
       });
       if (response.status === 404) {
-        return res.status(404).json({ error: "Age-unsure keyword not found" });
+        return res.status(404).json({ error: "Label keyword not found" });
       }
       const data = await response.json().catch(() => ({ deleted: true }));
       return res.status(response.status).json(data);
@@ -29,7 +29,7 @@ async function handler(
     res.setHeader("Allow", ["DELETE"]);
     return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   } catch (error) {
-    console.error("age-unsure-label-keywords [id] proxy error:", error);
+    console.error("label-keywords [id] proxy error:", error);
     if (error instanceof TypeError && String(error.message).includes("fetch")) {
       return res.status(503).json({ error: "Cannot connect to backend service." });
     }
