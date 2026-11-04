@@ -212,8 +212,7 @@ export default function LabelKeywords() {
     });
   };
 
-  const parseKeywordLine = (line: string): ParsedLine<KeywordFormValues> => {
-    const parts = line.split("|").map((p) => p.trim());
+  const parseKeywordLine = (parts: string[]): ParsedLine<KeywordFormValues> => {
     if (parts.length < 2) {
       return { ok: false, error: "expected: keyword | label [| match type]" };
     }
@@ -459,7 +458,12 @@ export default function LabelKeywords() {
                 Label must be one of {labelOptions.join(", ")}.
               </>
             }
-            parseLine={parseKeywordLine}
+            columns={[
+              { name: "keyword", required: true, hint: "Text to match (a pattern for regex)" },
+              { name: "label", required: true, hint: labelOptions.join(", ") },
+              { name: "match_type", hint: "word (default), exact or regex" },
+            ]}
+            parseCells={parseKeywordLine}
             onSubmit={handleBulkAdd}
           />
           <Button

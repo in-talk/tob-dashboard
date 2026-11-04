@@ -176,8 +176,7 @@ export default function PositiveNegativePatterns() {
     });
   };
 
-  const parsePatternLine = (line: string): ParsedLine<PatternFormValues> => {
-    const parts = line.split("|").map((p) => p.trim());
+  const parsePatternLine = (parts: string[]): ParsedLine<PatternFormValues> => {
     if (parts.length < 2) {
       return { ok: false, error: "expected: text | label" };
     }
@@ -370,7 +369,11 @@ export default function PositiveNegativePatterns() {
                 YES or NO.
               </>
             }
-            parseLine={parsePatternLine}
+            columns={[
+              { name: "text", required: true, hint: "Phrase" },
+              { name: "label", required: true, hint: "YES or NO" },
+            ]}
+            parseCells={parsePatternLine}
             onSubmit={handleBulkAdd}
           />
           <Button

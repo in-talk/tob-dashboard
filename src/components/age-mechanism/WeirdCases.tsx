@@ -165,8 +165,7 @@ export default function WeirdCases() {
     });
   };
 
-  const parseWeirdCaseLine = (line: string): ParsedLine<WeirdCaseFormValues> => {
-    const parts = line.split("|").map((p) => p.trim());
+  const parseWeirdCaseLine = (parts: string[]): ParsedLine<WeirdCaseFormValues> => {
     if (parts.length < 2) {
       return { ok: false, error: "expected: input | output | category" };
     }
@@ -336,7 +335,12 @@ export default function WeirdCases() {
                 values: phonetic, slang, other.
               </>
             }
-            parseLine={parseWeirdCaseLine}
+            columns={[
+              { name: "input", required: true, hint: "Exact transcript to replace" },
+              { name: "output", required: true, hint: "Replacement text" },
+              { name: "category", hint: "phonetic (default), slang or other" },
+            ]}
+            parseCells={parseWeirdCaseLine}
             onSubmit={handleBulkAdd}
           />
           <Button

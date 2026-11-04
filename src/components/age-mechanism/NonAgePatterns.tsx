@@ -170,8 +170,7 @@ export default function NonAgePatterns() {
     });
   };
 
-  const parseNonAgeLine = (line: string): ParsedLine<NonAgeFormValues> => {
-    const parts = line.split("|").map((p) => p.trim());
+  const parseNonAgeLine = (parts: string[]): ParsedLine<NonAgeFormValues> => {
     if (parts.length < 2) {
       return { ok: false, error: "expected: text | classification" };
     }
@@ -354,7 +353,11 @@ export default function NonAgePatterns() {
                 Classification must be NO or UNSURE.
               </>
             }
-            parseLine={parseNonAgeLine}
+            columns={[
+              { name: "text", required: true, hint: "Phrase" },
+              { name: "classification", required: true, hint: "NO or UNSURE" },
+            ]}
+            parseCells={parseNonAgeLine}
             onSubmit={handleBulkAdd}
           />
           <Button

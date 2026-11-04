@@ -166,8 +166,7 @@ export default function TypoCorrections() {
     });
   };
 
-  const parseTypoLine = (line: string): ParsedLine<TypoFormValues> => {
-    const parts = line.split("|").map((p) => p.trim());
+  const parseTypoLine = (parts: string[]): ParsedLine<TypoFormValues> => {
     if (parts.length < 2) {
       return { ok: false, error: "expected: pattern | correction" };
     }
@@ -330,7 +329,11 @@ export default function TypoCorrections() {
                 <span className="font-mono">pattern | correction</span>.
               </>
             }
-            parseLine={parseTypoLine}
+            columns={[
+              { name: "pattern", required: true, hint: "Text to correct" },
+              { name: "correction", required: true, hint: "Corrected text" },
+            ]}
+            parseCells={parseTypoLine}
             onSubmit={handleBulkAdd}
           />
           <Button
