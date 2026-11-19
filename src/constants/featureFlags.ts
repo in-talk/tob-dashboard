@@ -20,7 +20,7 @@
  * the key is then treated as ON on both sides; only an explicit `false`
  * (unticking the checkbox and saving) turns it off.
  */
-export type FeatureFlagKey = "MC_AEP" | "PITCH_CET";
+export type FeatureFlagKey = "MC_AEP" | "PITCH_CET" | "ACA_SKIP_TURN_2";
 
 export type FeatureFlagDef = {
   /** Stored key — must match the ai-voice-bot has_flag("<KEY>") check exactly. */
@@ -49,6 +49,12 @@ export const FEATURE_FLAGS: FeatureFlagDef[] = [
     description:
       "FE V2 + Medicare: randomly play CET pitches (card/email/text). Off = always play the base P pitch.",
     defaultValue: true,
+  },
+  {
+    key: "ACA_SKIP_TURN_2",
+    label: "ACA_SKIP_TURN_2",
+    description:
+      "ACA only: skip Q1 (turn 2) and jump from the opening pitch straight to the age question (turn 3).",
   },
 ];
 
